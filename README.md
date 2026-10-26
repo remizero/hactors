@@ -47,30 +47,15 @@ hactors/
 
 ### `projects/` — Instancias de proyectos basados en HACTORS.
 
-| Directorio | Contenido |
-|---|---|
-| [specs/normative/](specs/normative/) | Especificaciones, estándares y plantillas. |
-| [specs/work/](specs/work/) | Estado activo: decisiones, flujos, hallazgos, relaciones. |
-| [specs/history/](specs/history/) | Archivo histórico y migraciones de esquema. |
-| [specs/INDEX_SPECS.md](specs/INDEX_SPECS.md) | Índice maestro y política de carga normativa. |
+Cada subdirectorio es un proyecto HACTORS con su propia identidad, artefactos, RFCs, estándares específicos, manifiesto de relaciones y flujo de ejecución. Ver [PROJECTS.md](specs/PROJECTS.md).
 
-### `specs/` — Contenido normativo
+### `specs/` — Contenido normativo.
 
-| Directorio | Contenido |
-|---|---|
-| [specs/normative/](specs/normative/) | Especificaciones, estándares y plantillas. |
-| [specs/work/](specs/work/) | Estado activo: decisiones, flujos, hallazgos, relaciones. |
-| [specs/history/](specs/history/) | Archivo histórico y migraciones de esquema. |
-| [specs/INDEX_SPECS.md](specs/INDEX_SPECS.md) | Índice maestro y política de carga normativa. |
+Especificaciones, plantillas y estándares que rigen la metodología HACTORS y la estructura de los proyectos. Actualmente contiene [PROJECTS.md](specs/PROJECTS.md) como única especificación normativa; las demás se incorporarán progresivamente.
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 
-| Directorio | Contenido |
-|---|---|
-| [specs/normative/](specs/normative/) | Especificaciones, estándares y plantillas. |
-| [specs/work/](specs/work/) | Estado activo: decisiones, flujos, hallazgos, relaciones. |
-| [specs/history/](specs/history/) | Archivo histórico y migraciones de esquema. |
-| [specs/INDEX_SPECS.md](specs/INDEX_SPECS.md) | Índice maestro y política de carga normativa. |
+Herramientas de automatización para la gestión de proyectos HACTORS. Actualmente contiene la [CLI](tools/cli/) con el comando `create-project`; los demás se incorporarán progresivamente.
 
 
 
