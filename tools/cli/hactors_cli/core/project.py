@@ -36,7 +36,7 @@ def validate_name(name: str) -> None:
         )
 
 
-def create_project(name: str, hactors_root: Path) -> Path:
+def create_project(name: str, hactors_root: Path, description: str = "") -> Path:
     validate_name(name)
 
     target = hactors_root / "projects" / name
@@ -54,7 +54,7 @@ def create_project(name: str, hactors_root: Path) -> Path:
     created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     (target / "project.yaml").write_text(
-        render_project_yaml(project_template, name, created_at)
+        render_project_yaml(project_template, name, created_at, description)
     )
     (target / "manifest.yaml").write_text(
         render_manifest_yaml(manifest_template, name)

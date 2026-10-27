@@ -104,6 +104,12 @@ class TestCreateProject:
         for key in template:
             assert key in data, f"Campo '{key}' de la plantilla falta en manifest.yaml generado"
 
+    def test_description_is_set(self, hactors_root: Path, load_yaml):
+        create_project("test-project", hactors_root, description="Proyecto de prueba")
+
+        data = load_yaml(hactors_root / "projects" / "test-project" / "project.yaml")
+        assert data["description"] == "Proyecto de prueba"
+
     def test_already_exists_error(self, hactors_root: Path):
         create_project("test-project", hactors_root)
 
@@ -159,6 +165,18 @@ class TestCli:
         result = runner.invoke(cli, ["create-project", "bad name!", "--root", str(hactors_root)])
 
         assert result.exit_code != 0
+
+    def test_create_project_with_description(self, hactors_root: Path, load_yaml):
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "create-project", "desc-project",
+            "-d", "Mi descripción",
+            "--root", str(hactors_root),
+        ])
+
+        assert result.exit_code == 0
+        data = load_yaml(hactors_root / "projects" / "desc-project" / "project.yaml")
+        assert data["description"] == "Mi descripción"
 
     def test_help_shows_command(self):
         runner = CliRunner()
