@@ -1,7 +1,7 @@
 * [] hactors init
 * [x] hactors project create
-* [] hactors workflow create
-* [] hactors task create
+* [x] hactors workflow create
+* [x] hactors task create
 * [] hactors rfc create
 * [] hactors plan create
 * [] hactors evidence add

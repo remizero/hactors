@@ -1,0 +1,56 @@
+workflow_run_000001:
+  identity:
+    id:
+    task_ref:
+    workflow_version:
+
+  global_state:
+    status:
+    current_step:
+    blocked_reason:
+    steps:
+      <workflow_step_1>:
+        status:
+        checkpoint_ref:
+        attempts:
+        - id: attempt_001
+          status: failed
+          started_at: "2026-10-22T10:00:00Z"
+          finished_at: "2026-10-22T10:01:00Z"
+
+        - id: attempt_002
+          status: failed
+          started_at: "2026-10-22T10:05:00Z"
+          finished_at: "2026-10-22T10:06:00Z"
+
+        - id: attempt_003
+          status: completed
+          started_at: "2026-10-22T10:10:00Z"
+          finished_at: "2026-10-22T10:12:00Z"
+      <workflow_step_n>:
+        status:
+        checkpoint_ref:
+        attempts:
+        - id: attempt_001
+          status: failed
+          started_at: "2026-10-22T10:00:00Z"
+          finished_at: "2026-10-22T10:01:00Z"
+
+        - id: attempt_002
+          status: failed
+          started_at: "2026-10-22T10:05:00Z"
+          finished_at: "2026-10-22T10:06:00Z"
+
+        - id: attempt_003
+          status: completed
+          started_at: "2026-10-22T10:10:00Z"
+          finished_at: "2026-10-22T10:12:00Z"
+
+  integration:
+    git_ref:
+    verification_refs:
+
+  review:
+    acceptance:
+    accepted_by:
+    accepted_at:

@@ -1,0 +1,19 @@
+identity:
+  id: ""
+  task_ref: ""
+  workflow_version: ""
+
+global_state:
+  status: ""
+  current_step: ""
+  blocked_reason: ""
+  steps: {}
+
+integration:
+  git_ref: ""
+  verification_refs: []
+
+review:
+  acceptance: ""
+  accepted_by: ""
+  accepted_at: ""

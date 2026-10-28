@@ -34,3 +34,15 @@ def render_manifest_yaml(template: dict, name: str) -> str:
     data = dict(template)
     data["project"] = name
     return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+
+def render_run_yaml(
+    template: dict, id_value: str, ref_value: str, ref_field: str, wrapper_key: str = ""
+) -> str:
+    data = dict(template)
+    if "identity" in data and isinstance(data["identity"], dict):
+        data["identity"]["id"] = id_value
+        data["identity"][ref_field] = ref_value
+    if wrapper_key:
+        data = {wrapper_key: data}
+    return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
