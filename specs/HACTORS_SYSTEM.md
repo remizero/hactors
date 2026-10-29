@@ -1,5 +1,7 @@
 # Sistema de ejecución HACTORS.
 
+> **Alcance de la CLI:** implementa la jerarquía recursiva, la ruta activa completa y la navegación descritas en este documento. Los comandos crean y seleccionan instancias; no generan documentos RFC/PLAN ni gestionan su aprobación, avance o cierre.
+
 ## 1. ¿Qué es el sistema de ejecución HACTORS?
 
 El sistema de ejecución HACTORS es el conjunto de artefactos, reglas y mecanismos que permiten llevar una RFC desde su intención inicial hasta su verificación final, manteniendo trazabilidad completa en cada etapa.
@@ -19,9 +21,9 @@ Este sistema se basa en tres principios:
 | TASK | Inicia el proceso. Define qué se pretende hacer y qué RFCs están involucradas. |
 | workflow_run | Instancia concreta de ejecución. Contiene el estado global, los pasos y los intentos. |
 | task_run | Unidad de trabajo dentro del workflow que contiene ejecuciones de RFC. |
-| rfc_run | Instancia de ejecución de una RFC, dentro de un task_run. |
-| PLAN | Documento que ordena pasos y puntos de decisión derivados de una RFC. |
-| plan_run | Instancia de ejecución de un PLAN, dentro de un rfc_run. |
+| rfc_run | Instancia de ejecución de una RFC, dentro de un task_run o de un plan_run. |
+| PLAN | Documento que ordena pasos y puntos de decisión derivados de una RFC y puede proponer nuevas RFCs. |
+| plan_run | Instancia de ejecución de un PLAN, dentro de un rfc_run; puede contener ejecuciones de RFCs derivadas. |
 | EVIDENCE | Registros verificables que respaldan las afirmaciones de cada paso. |
 
 ### Relación entre WORKFLOW y workflow_run
@@ -44,7 +46,15 @@ projects/<project_name>/
 │   │   │   └── rfc_run_000001/
 │   │   │       ├── manifest.yaml
 │   │   │       └── plan_run_000001/
-│   │   │           └── manifest.yaml
+│   │   │           ├── manifest.yaml
+│   │   │           ├── rfc_run_000002/
+│   │   │           │   ├── manifest.yaml
+│   │   │           │   └── plan_run_000002/
+│   │   │           │       ├── manifest.yaml
+│   │   │           │       └── rfc_run_000003/
+│   │   │           │           └── manifest.yaml
+│   │   │           └── rfc_run_000004/
+│   │   │               └── manifest.yaml
 │   │   └── task_run_000002/
 │   │       └── manifest.yaml
 │   └── workflow_run_000002/
@@ -73,18 +83,48 @@ projects/.state.yaml
 | `standards/` | Normas del proyecto | Convenciones de documentación, Git y estilo de código. |
 | `hactors/workflow_run_XXXXXX/` | workflow_run | Instancia de ejecución con su propio manifest. |
 | `hactors/workflow_run_XXXXXX/task_run_XXXXXX/` | task_run | Unidad de trabajo que contiene ejecuciones de RFC. |
-| `…/task_run_XXXXXX/rfc_run_XXXXXX/` | rfc_run | Ejecución que referencia una RFC. |
-| `…/rfc_run_XXXXXX/plan_run_XXXXXX/` | plan_run | Ejecución que referencia un PLAN derivado de esa RFC. |
-| `projects/.state.yaml` | Estado activo | Proyecto, workflow_run, task_run y rfc_run en uso. |
+| `…/task_run_XXXXXX/rfc_run_XXXXXX/` o `…/plan_run_XXXXXX/rfc_run_XXXXXX/` | rfc_run | Ejecución que referencia una RFC inicial o derivada. |
+| `…/rfc_run_XXXXXX/plan_run_XXXXXX/` | plan_run | Ejecución que referencia un PLAN y puede contener nuevos rfc_runs. |
+| `projects/.state.yaml` | Estado activo | Proyecto y ruta completa de la instancia seleccionada, con todos sus ancestros. |
 
 ### Reglas de anidamiento
 
-- Un `task_run` siempre vive dentro de un `workflow_run`. No existe un task_run suelto fuera de un workflow.
-- Un `workflow_run` siempre vive dentro de `hactors/` en el directorio del proyecto.
-- Un `rfc_run` siempre vive dentro de un `task_run`; un `plan_run`, dentro de un `rfc_run`.
-- Cada padre puede contener varias instancias del nivel siguiente. No toda RFC produce un PLAN.
-- Los contadores son secuenciales y con un mínimo de seis dígitos: `workflow_run_000001`, `rfc_run_000042`, `plan_run_000003`.
-- El estado activo (`.state.yaml`) es compartido por todos los proyectos; conserva la cadena de contexto necesaria para crear el siguiente nivel.
+| Padre inmediato | Hijos de ejecución permitidos |
+|-----------------|--------------------------------|
+| `hactors/` del proyecto | `workflow_run` |
+| `workflow_run` | `task_run` |
+| `task_run` | `rfc_run` |
+| `rfc_run` | `plan_run` |
+| `plan_run` | `rfc_run` |
+
+- Cada padre puede contener cero o varias instancias del tipo permitido. No toda RFC produce un PLAN ni todo PLAN deriva nuevas RFCs.
+- Tras `workflow_run → task_run`, se alternan `rfc_run → plan_run → rfc_run → …`, sin una profundidad fija del modelo. Cada ruta concreta es finita y queda sujeta a los límites del sistema de archivos.
+- Cada instancia tiene un único padre inmediato y conserva su ubicación. No se reutiliza una instancia como hija de otro padre ni se enlaza un ancestro como descendiente; el árbol de cada workflow_run no contiene ciclos.
+- Pueden repetirse los tipos, pero no la identidad de una instancia dentro del proyecto. Ejecutar de nuevo un documento requiere otra instancia con otro ID; el mismo documento referenciado no convierte esas instancias en una sola.
+- Los IDs son secuenciales por tipo y proyecto, con un mínimo de seis dígitos. El número no codifica parentesco ni profundidad.
+- El estado activo (`.state.yaml`) conserva una sola ruta seleccionada, no todo el árbol. Las demás ramas permanecen en sus directorios aunque no estén activas.
+
+### Ascendencia y profundidad
+
+La **profundidad de ejecución** es el número de aristas desde el workflow_run hasta la instancia: el workflow_run tiene profundidad `0`, su task_run `1` y cada hijo suma `1`. El proyecto y el directorio `hactors/` no cuentan como niveles de ejecución.
+
+Para la rama más profunda del árbol anterior:
+
+| Profundidad | Instancia | Padre inmediato |
+|-------------|-----------|-----------------|
+| 0 | `workflow_run_000001` | `hactors/` del proyecto |
+| 1 | `task_run_000001` | `workflow_run_000001` |
+| 2 | `rfc_run_000001` | `task_run_000001` |
+| 3 | `plan_run_000001` | `rfc_run_000001` |
+| 4 | `rfc_run_000002` | `plan_run_000001` |
+| 5 | `plan_run_000002` | `rfc_run_000002` |
+| 6 | `rfc_run_000003` | `plan_run_000002` |
+
+`rfc_run_000004` es hermano de `rfc_run_000002`: ambos tienen profundidad `4`. No es descendiente de `rfc_run_000003`, aunque su número sea mayor.
+
+La ascendencia se reconstruye como una **secuencia ordenada de instancias**, mediante todos los prefijos de la ruta. No se reduce a un mapa por tipo ni se elimina un ancestro porque otro tenga el mismo tipo. Para `rfc_run_000003`, las RFCs ancestras son las instancias `rfc_run_000001` y `rfc_run_000002`, en sus posiciones originales; ninguna sustituye a la otra.
+
+Padre, ascendencia y profundidad se calculan desde la ruta; no se duplican como campos persistentes en los manifiestos o en el estado activo. La profundidad documental de una RFC, definida por su derivación, es distinta de esta profundidad de ejecución.
 
 ## 3. Manifest del proyecto: contadores y relaciones
 
@@ -107,12 +147,12 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 | `task` | Una TASK en `tasks/` | `task_000001` |
 | `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001` |
 | `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
-| `rfc_run` | Un rfc_run dentro de un task_run | `rfc_run_000001` |
+| `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
 | `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
 
-Los contadores son independientes por tipo y globales al proyecto, no al padre. Un proyecto puede tener `workflow_run: 3` y `task_run: 7` si se han creado siete task_runs entre sus tres workflows. Los contadores de ejecución no numeran documentos RFC ni PLAN.
+Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes. Los contadores de ejecución no numeran documentos RFC ni PLAN y no se reinician al abrir una rama.
 
-Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores.
+Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
 ### Ejemplo
 
@@ -129,7 +169,7 @@ counters:
   plan_run: 0
 ```
 
-Esto indica que existe `workflow_run_000001` y, dentro de él, `task_run_000001` y `task_run_000002`.
+Los contadores registran la numeración asignada, no la ubicación ni una comprobación de existencia. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
 
 ## 4. Archivo de estado activo
 
@@ -139,32 +179,57 @@ El archivo `.state.yaml` mantiene el contexto de trabajo actual. Se encuentra en
 
 ```yaml
 active_project: ""
-current_workflow_run: ""
-current_task_run: ""
-current_rfc_run: ""
+active_run_path: ""
 ```
 
-### Campos
+### Campos y resolución
 
-**`active_project`** — Nombre del proyecto sobre el cual operan los comandos CLI. Debe referenciar un proyecto existente en `projects/`.
+**`active_project`** — Nombre del proyecto sobre el cual operan los comandos CLI. Debe referenciar un proyecto existente en `projects/`. Si está vacío, la ruta también debe estar vacía y no hay contexto activo.
 
-**`current_workflow_run`** — ID del workflow_run activo, dentro del proyecto.
+**`active_run_path`** — Ruta relativa a `projects/<active_project>/`, desde `hactors/` hasta el directorio de la instancia seleccionada, sin `manifest.yaml` ni separador final. Se almacena como una cadena con `/` entre componentes. Vacía significa que solo está seleccionado el proyecto; `hactors/` por sí solo no selecciona una instancia.
 
-**`current_task_run`** — ID del task_run activo, dentro de ese workflow_run.
+Ejemplo con tres rfc_runs y dos plan_runs en la misma ascendencia:
 
-**`current_rfc_run`** — ID del rfc_run activo, dentro de ese task_run. Determina dónde se crea un plan_run.
+```yaml
+active_project: "mi_proyecto"
+active_run_path: "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003"
+```
 
-### Comportamiento
+La instancia activa es únicamente el último componente (`rfc_run_000003`). Los anteriores son sus ancestros, no selecciones independientes. Excluido `hactors/`, la ruta tiene siete componentes: su profundidad es `7 - 1 = 6`, según la convención de la sección 2. El padre se obtiene quitando un componente, sin buscar otro nodo por su tipo.
 
-- **`hactors use-project <nombre>`** establece `active_project` y limpia todos los niveles de ejecución.
-- **`hactors create-workflow`** establece `current_workflow_run` y limpia task_run y rfc_run activos.
-- **`hactors create-task-run`** requiere proyecto y workflow activos; establece `current_task_run` y limpia `current_rfc_run`.
-- **`hactors create-rfc-run`** requiere proyecto, workflow y task activos; establece `current_rfc_run`.
-- **`hactors create-plan-run`** requiere la cadena activa completa y no cambia el contexto. Permite crear varios planes bajo la misma ejecución de RFC.
+### Validación de la ruta
 
-Los comandos crean únicamente instancias y sus manifiestos, no los documentos RFC/PLAN ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del documento referenciado. Crear una instancia no autoriza a ejecutar su trabajo.
+Antes de seleccionar una ruta o usarla como padre de una creación:
+
+- Validar el proyecto y su manifest, y aceptar únicamente rutas relativas con el prefijo `hactors/` y componentes completos de IDs de ejecución. Rechazar rutas absolutas, componentes vacíos, `.` y `..`, separadores alternativos y rutas a archivos; no corregirlas silenciosamente.
+- Validar **todos** los componentes y cada transición padre-hijo de la sección 2. No usar una lista de posiciones de longitud fija ni ignorar un sufijo desconocido.
+- Verificar que cada directorio de ejecución y su `manifest.yaml` existen, y que `identity.id` coincide con su componente de ruta. Para workflow_run, comprobar además la clave envolvente de su manifiesto.
+- Mantener la ruta física dentro del proyecto y rechazar enlaces simbólicos en `hactors/`, los directorios de ejecución y sus manifiestos: no deben introducir alias, saltos de ascendencia ni ciclos, incluso dentro del mismo proyecto.
+- Rechazar IDs de instancia repetidos en la ruta, pero conservar todas las apariciones de un **tipo**. La unicidad global de IDs se mantiene mediante los contadores del proyecto.
+
+Una ruta inválida o un padre incompatible produce un error sin cambiar la selección ni consumir un contador. No se recorta hasta un ancestro válido ni se elige automáticamente el último run creado. El contexto solo se actualiza después de crear correctamente la nueva instancia y su manifiesto; esto no implica una transacción general ante fallos de escritura.
+
+### Selección y creación
+
+| Operación | Contexto requerido | Resultado en el estado activo |
+|-----------|--------------------|--------------------------------|
+| `hactors use-project <nombre>` | Proyecto existente | Establece el proyecto y deja `active_run_path` vacía. |
+| `hactors use-run <ruta>` | Proyecto activo y ruta completa válida relativa a ese proyecto | Selecciona la instancia indicada con toda su ascendencia, aunque pertenezca a otra rama o workflow del mismo proyecto. |
+| `hactors use-run --parent` | Instancia activa válida | Quita exactamente el último componente; desde el workflow_run deja la ruta vacía y mantiene el proyecto. |
+| `hactors create-workflow` | Proyecto activo | Crea un workflow_run en `hactors/` y sustituye la ruta activa por la del nuevo workflow. |
+| `hactors create-task-run` | La instancia activa es un workflow_run | Crea su hijo task_run y añade el ID a la ruta activa. |
+| `hactors create-rfc-run` | La instancia activa es un task_run o un plan_run | Crea su hijo rfc_run y añade el ID a la ruta activa. |
+| `hactors create-plan-run` | La instancia activa es un rfc_run | Crea su hijo plan_run y añade el ID a la ruta activa. |
+
+`use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
+
+Cada creación de un hijo opera sobre la **instancia seleccionada**, nunca sobre el ancestro compatible más cercano. Para crear un hermano, se selecciona primero el padre compartido; para crear varios plan_runs de una RFC, se vuelve a ese rfc_run después de cada creación. Crear un hijo preserva todos los prefijos ancestrales, aunque se repitan sus tipos. Seleccionar otra rama reemplaza la ruta activa, pero no la ascendencia almacenada físicamente en ninguna de las ramas.
+
+Los comandos crean únicamente instancias y sus manifiestos, no los documentos RFC/PLAN ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del documento referenciado. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no autoriza a ejecutar su trabajo ni modifica los estados de sus ancestros.
 
 ### Secuencia CLI
+
+Ejemplo en un proyecto con contadores de ejecución inicialmente a cero; las referencias documentales son ilustrativas:
 
 ```bash
 hactors use-project mi_proyecto
@@ -172,31 +237,39 @@ hactors create-workflow --task-ref task_000001
 hactors create-task-run
 hactors create-rfc-run --rfc-ref RFC-A00001
 hactors create-plan-run --plan-ref PLAN-00001
+hactors create-rfc-run --rfc-ref RFC-A00001-F00001
+hactors create-plan-run --plan-ref PLAN-00002
+hactors create-rfc-run --rfc-ref RFC-A00001-F00001-T00001
 ```
 
-Todos estos comandos admiten `--root <directorio-hactors>`. `--rfc-ref` pertenece a `create-rfc-run`, no a `create-task-run`; los registros anteriores no se migran automáticamente.
+La ruta resultante es la del ejemplo anterior, con profundidad `6`. Para crear otra RFC bajo el primer plan_run, sin confundirlo con el segundo:
 
-### Ejemplo
-
-Estado con proyecto activo y workflow en curso:
-
-```yaml
-active_project: "mi_proyecto"
-current_workflow_run: "workflow_run_000001"
-current_task_run: "task_run_000001"
-current_rfc_run: "rfc_run_000001"
+```bash
+hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001
+hactors create-rfc-run --rfc-ref RFC-A00001-F00002
+hactors use-run --parent
 ```
 
-Estado tras cambiar de proyecto:
+Se crea `rfc_run_000004` a profundidad `4`, hermano de `rfc_run_000002`. La última operación vuelve a `plan_run_000001` a profundidad `3`, desde donde puede crearse otra RFC hermana. Ninguna operación elimina la rama que alcanza `rfc_run_000003`.
+
+Todos los comandos anteriores admiten `--root <directorio-hactors>`. `--rfc-ref` pertenece a `create-rfc-run`, no a `create-task-run`; `--plan-ref` pertenece a `create-plan-run`.
+
+### Transición desde el formato anterior
+
+El formato anterior conservaba `current_workflow_run`, `current_task_run` y `current_rfc_run`, sin seleccionar el plan_run al crearlo. Esos campos no representan ancestros de tipos repetidos y se sustituyen por `active_run_path`, sin mantener ambos formatos ni guardar campos adicionales de padre o profundidad.
+
+La transición es explícita: ante un estado del formato anterior, los comandos que consumen contexto fallan sin modificarlo y piden reseleccionar el proyecto mediante `use-project` y después la instancia mediante `use-run <ruta>`. `use-project` escribe el nuevo formato; no se infiere un plan_run activo ni se busca una rama por fecha o número.
+
+Los directorios y manifiestos existentes ya son prefijos válidos del árbol recursivo: se conservan sus IDs, contadores, referencias y ubicación, sin migrar ejecuciones ni documentos. La selección explícita puede recuperar toda su ascendencia desde la ruta.
+
+Tras cambiar de proyecto, el estado será:
 
 ```yaml
 active_project: "otro_proyecto"
-current_workflow_run: ""
-current_task_run: ""
-current_rfc_run: ""
+active_run_path: ""
 ```
 
-El archivo se crea automáticamente la primera vez que se ejecuta `use-project`. Si no existe, los comandos que lo requieren fallan con un mensaje claro.
+El archivo se crea mediante `use-project`. Si falta el contexto requerido, las operaciones fallan con un mensaje claro.
 
 ## 5. workflow_run: manifiesto de ejecución
 
@@ -302,7 +375,7 @@ review:
 
 ## 6. task_run: unidad de ejecución dentro del workflow
 
-Un `task_run` es una unidad de trabajo dentro de un `workflow_run`. Agrupa instancias `rfc_run`, cada una asociada a una RFC específica, sin duplicar sus referencias documentales.
+Un `task_run` es una unidad de trabajo dentro de un `workflow_run`. Agrupa instancias `rfc_run` iniciales, cada una asociada a una RFC específica, sin duplicar sus referencias documentales. Sus descendientes pueden alternar rfc_runs y plan_runs según la sección 2; todos conservan el mismo task_run y workflow_run ancestrales.
 
 ### Ubicación
 
@@ -326,7 +399,7 @@ La estructura del manifiesto se define en [task_run_template.yaml](templates/tas
 
 Mientras el `workflow_run` registra el estado global del proceso (qué paso se está ejecutando, cuántos intentos se han hecho, si está bloqueado), el `task_run` registra el estado de una unidad de trabajo que puede contener varias ejecuciones de RFC.
 
-Un workflow_run puede contener múltiples task_runs. Por ejemplo:
+Un workflow_run puede contener múltiples task_runs. Este ejemplo independiente muestra solo RFCs iniciales, sin expandir posibles descendientes:
 
 ```
 workflow_run_000001/
@@ -347,7 +420,7 @@ Los task_runs se numeran de forma independiente por proyecto, no por workflow_ru
 
 ## 7. TASK: artefacto iniciador
 
-Una TASK es el artefacto que inicia el proceso de ejecución. Sin TASK no hay workflow_run. La TASK define qué se pretende hacer, qué RFCs están involucradas, quién la ejecuta y qué criterios de aceptación debe cumplir.
+Una TASK es el artefacto que inicia el proceso de ejecución. Sin una TASK asociada no se inicia la ejecución de un workflow_run; crear su estructura con `task_ref` vacío no satisface este requisito. La TASK define qué se pretende hacer, qué RFCs están involucradas, quién la ejecuta y qué criterios de aceptación debe cumplir.
 
 ### Ubicación y formato
 
@@ -372,7 +445,7 @@ workflow_run_000001:
     task_ref: "task_000001"
 ```
 
-Esto inicia la cadena de trazabilidad: TASK → workflow_run → task_run → rfc_run → plan_run. Los dos últimos niveles referencian los documentos RFC y PLAN, respectivamente.
+Esto inicia la cadena de trazabilidad descrita en la sección 8. Cada nuevo rfc_run o plan_run conserva la TASK iniciadora a través de todos sus ancestros, no mediante una copia de `task_ref` en cada nivel.
 
 ## 8. Cadena de trazabilidad
 
@@ -381,28 +454,36 @@ El sistema de ejecución HACTORS mantiene una cadena de trazabilidad completa de
 ### La cadena
 
 ```
-TASK ← workflow_run → task_run → rfc_run → plan_run
-                                  ↓          ↓
-                                 RFC        PLAN
+TASK ← workflow_run → task_run → rfc_run → plan_run → rfc_run → plan_run → …
+                                  ↓          ↓          ↓          ↓
+                                 RFC        PLAN       RFC        PLAN
 ```
 
-Las flechas hacia TASK, RFC y PLAN representan referencias documentales; entre instancias representan anidamiento:
+Las flechas hacia TASK, RFC y PLAN representan referencias documentales; entre instancias representan anidamiento. El diagrama muestra una rama; cada padre admite varios hijos conforme a la sección 2:
 
 - **workflow_run → TASK**: `task_ref` apunta a la TASK que inició la ejecución.
-- **workflow_run → task_run → rfc_run → plan_run**: cada instancia vive dentro de su padre.
-- **rfc_run → RFC**: `identity.rfc_ref` identifica la especificación que se ejecuta.
+- **workflow_run → task_run → rfc_run → plan_run → rfc_run → …**: cada instancia vive dentro de su padre inmediato; la repetición continúa con nuevas identidades.
+- **rfc_run → RFC**: `identity.rfc_ref` identifica la especificación de esa instancia, a cualquier profundidad.
 - **plan_run → PLAN**: `identity.plan_ref` identifica el plan; su documento conserva el origen RFC y las decisiones, sin duplicarlos en la ejecución.
+
+### Derivación documental y contención de ejecuciones
+
+Un PLAN propone RFCs mediante `derived_rfcs`, conforme a [PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md). Cada RFC derivada conserva su relación documental `derives` con la RFC de origen, según [RFC.md](RFC.md); el PLAN es el documento que organiza esa derivación, no un sustituto de la RFC de origen.
+
+En la ejecución, el padre inmediato del rfc_run derivado es el **plan_run** que lo contiene; el rfc_run de origen es su abuelo. Ambos permanecen en la ruta, junto con cualquier ascendencia anterior. La contención no sustituye las relaciones documentales, no las registra automáticamente y no permite deducir aprobación o dependencias de ejecución.
 
 ### Ejemplo completo
 
-Dada una TASK `task_000001` que ejecuta dos RFCs:
+Para el árbol recursivo de la sección 2, una TASK `task_000001` puede referenciar la RFC inicial y las derivadas involucradas:
 
 ```yaml
 # tasks/task_000001.md
 task: "Implementar sistema de autenticación"
 rfcs:
   - "RFC-A00001"
-  - "RFC-F00001"
+  - "RFC-A00001-F00001"
+  - "RFC-A00001-F00001-T00001"
+  - "RFC-A00001-F00002"
 actor: "human"
 ```
 
@@ -419,7 +500,7 @@ workflow_run_000001:
     current_step: "step_001"
 ```
 
-Dentro del workflow_run se crea un task_run y, dentro de él, dos rfc_runs. Estos fragmentos ilustran su estado durante el trabajo, no valores asignados por los comandos de creación:
+Dentro del workflow_run se crea un task_run y, dentro de él, el rfc_run inicial. Si esa RFC produce `PLAN-00001`, su plan_run puede contener ejecuciones de RFCs derivadas. Estos fragmentos ilustran estados durante el trabajo, no valores asignados por los comandos de creación:
 
 ```yaml
 # hactors/workflow_run_000001/task_run_000001/rfc_run_000001/manifest.yaml
@@ -431,27 +512,29 @@ state:
 ```
 
 ```yaml
-# hactors/workflow_run_000001/task_run_000001/rfc_run_000002/manifest.yaml
+# hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/manifest.yaml
 identity:
   id: "rfc_run_000002"
-  rfc_ref: "RFC-F00001"
+  rfc_ref: "RFC-A00001-F00001"
 state:
   status: "in_progress"
 ```
 
-Si la primera RFC produce `PLAN-00001`, su ejecución vive en `rfc_run_000001/plan_run_000001/` y lo referencia mediante `identity.plan_ref`.
+El `plan_run_000001` intermedio referencia `PLAN-00001` mediante `identity.plan_ref`. Si la RFC derivada produce `PLAN-00002`, su ejecución se anida en `rfc_run_000002/plan_run_000002/`; la ejecución de `RFC-A00001-F00001-T00001` será `rfc_run_000003` dentro de ese segundo plan_run. La RFC `RFC-A00001-F00002` tiene su ejecución hermana `rfc_run_000004` bajo el primer plan_run, no bajo el segundo. Las profundidades resultantes son las de la sección 2.
 
 ### Reconstrucción del estado
 
 Dado cualquier artefacto vinculado, es posible reconstruir la cadena completa:
 
-- Desde un **plan_run**, `plan_ref` identifica el **PLAN** y el directorio padre lleva al **rfc_run**.
-- Desde un **rfc_run**, `rfc_ref` identifica la **RFC** y su padre lleva al **task_run**.
+- Desde un **plan_run**, `plan_ref` identifica el **PLAN** y el directorio padre lleva al **rfc_run** de origen.
+- Desde un **rfc_run**, `rfc_ref` identifica su **RFC**. Su padre es un **task_run** si es inicial, o un **plan_run** si es derivado; en este último caso se sigue ascendiendo por todos los plan_runs y rfc_runs anteriores, sin colapsarlos por tipo.
 - Desde un **task_run**, se navega al padre **workflow_run** y de su `task_ref` se obtiene la **TASK**.
 - Desde una **TASK**, se buscan los workflow_runs que la referencian en `task_ref`.
-- Desde una **RFC**, se buscan los rfc_runs que la referencian en `rfc_ref`; desde un **PLAN**, los plan_runs que lo referencian en `plan_ref`.
+- Desde una **RFC** o un **PLAN**, se buscan todas sus instancias por `rfc_ref` o `plan_ref`, recorriendo recursivamente las ramas a cualquier profundidad. Una referencia documental puede devolver varias rutas de ejecución, no una selección activa implícita.
 
-El manifest del proyecto (`manifest.yaml`) puede registrar estas relaciones en su campo `relations` para facilitar la navegación sin recorrer el árbol de directorios.
+La reconstrucción parte de la ruta de la instancia y sus manifiestos, no requiere que esa rama esté activa. Al ascender se elimina un componente cada vez; al descender se añade uno por hijo. Así se preservan la identidad de cada ancestro y su profundidad original, incluso cuando los tipos se repiten.
+
+El manifest del proyecto (`manifest.yaml`) puede registrar relaciones documentales en `relations` para facilitar su consulta. No sustituye el árbol físico ni requiere copiar la cadena completa de ancestros o su profundidad.
 
 ### Principio fundamental
 
@@ -465,7 +548,9 @@ Si un artefacto no puede responder estas preguntas, el sistema está incompleto.
 
 ## 9. rfc_run: ejecución de una RFC
 
-La RFC es la especificación; el `rfc_run` registra una instancia de su ejecución. Su manifiesto se define en [rfc_run_template.yaml](templates/rfc_run_template.yaml), con `identity.rfc_ref` como única referencia a la RFC dentro de la cadena de ejecución. La identidad documental y sus convenciones siguen en [RFC.md](RFC.md).
+La RFC es la especificación; el `rfc_run` registra una instancia de su ejecución. Su manifiesto se define en [rfc_run_template.yaml](templates/rfc_run_template.yaml), con `identity.rfc_ref` como referencia a la RFC de esa instancia, no de toda la rama. La identidad documental y sus convenciones siguen en [RFC.md](RFC.md).
+
+Un rfc_run inicial tiene como padre un task_run; uno derivado, un plan_run. Ambos usan la misma plantilla y el mismo contador de proyecto: no se introduce un tipo distinto por profundidad ni se copian las referencias de los rfc_runs ancestrales. Su padre y todos sus ancestros se obtienen de la ruta.
 
 Cada rfc_run puede contener varios plan_runs si la RFC produce planes. Los estados de ejecución no sustituyen el ciclo de vida ni la aprobación del documento RFC. Una nueva instancia no modifica la especificación original ni una ejecución anterior.
 
@@ -474,3 +559,7 @@ Cada rfc_run puede contener varios plan_runs si la RFC produce planes. Los estad
 El PLAN define la secuencia, los criterios de avance y los puntos de decisión; el `plan_run` registra una instancia de su ejecución. La estructura del manifiesto se define en [plan_run_template.yaml](templates/plan_run_template.yaml): `identity.plan_ref` apunta al documento, mientras `state` registra el estado de la instancia y su motivo de bloqueo.
 
 El documento PLAN conserva su contenido, origen y ciclo de vida conforme a [PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md). El rfc_run padre proporciona el contexto de ejecución de su RFC de origen; esa referencia no se repite en plan_run. Crear el manifiesto no aprueba el plan ni supera ninguno de sus puntos de decisión.
+
+Un plan_run puede contener cero o varios rfc_runs, correspondientes a las RFCs derivadas que se decida instanciar. Cada hijo puede producir nuevos plan_runs y continuar la jerarquía. Se crean individualmente: `derived_rfcs` no genera automáticamente documentos ni ejecuciones, y la mera contención no acredita que una RFC esté declarada en ese campo.
+
+El modelo de contención no añade reglas de aprobación, avance o cierre automático: siguen sujetos a los documentos y decisiones correspondientes. La recursión no modifica las plantillas de manifiesto ni duplica pasos, gates o listas de hijos; estos últimos se obtienen de los directorios inmediatos.

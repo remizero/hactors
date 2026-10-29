@@ -4,7 +4,7 @@ from typing import Optional
 import click
 
 from ..core.paths import find_hactors_root
-from ..core.state import NoActiveProjectError, require_active_project
+from ..core.state import StateError, require_active_project
 from ..core.workflow import WorkflowError, create_workflow
 
 
@@ -26,12 +26,8 @@ def create_workflow_cmd(task_ref: str, root: Optional[Path]) -> None:
 
     try:
         project_name = require_active_project(hactors_root)
-    except NoActiveProjectError as exc:
-        raise click.ClickException(str(exc)) from exc
-
-    try:
         run_dir = create_workflow(hactors_root, project_name, task_ref)
-    except WorkflowError as exc:
+    except (StateError, WorkflowError) as exc:
         raise click.ClickException(str(exc)) from exc
 
     click.echo(f"Workflow creado en: {run_dir}")

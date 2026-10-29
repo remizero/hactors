@@ -9,106 +9,112 @@ from click.testing import CliRunner
 
 from hactors_cli.cli import cli
 from hactors_cli.core.project import create_project
-from hactors_cli.core.state import set_active_project
+from hactors_cli.core.state import load_state
 
 
-class TestUseProjectCli:
-    def test_sets_active_project(self, hactors_root: Path, load_yaml):
-        create_project("test-proj", hactors_root)
-
-        runner = CliRunner()
-        result = runner.invoke(cli, ["use-project", "test-proj", "--root", str(hactors_root)])
-
-        assert result.exit_code == 0
-        assert "Proyecto activo: test-proj" in result.output
-
-        state = load_yaml(hactors_root / "projects" / ".state.yaml")
-        assert state["active_project"] == "test-proj"
-
-    def test_error_for_nonexistent_project(self, hactors_root: Path):
-        runner = CliRunner()
-        result = runner.invoke(cli, ["use-project", "nonexistent", "--root", str(hactors_root)])
-
-        assert result.exit_code != 0
-        assert "no encontrado" in result.output
+def snapshot(directory):
+    return {
+        path.relative_to(directory).as_posix(): (
+            ("link", str(path.readlink())) if path.is_symlink() else
+            ("directory",) if path.is_dir() else ("file", path.read_bytes())
+        )
+        for path in directory.rglob("*")
+    }
 
 
-class TestCreateWorkflowCli:
-    def test_creates_workflow(self, hactors_root: Path):
-        create_project("test-proj", hactors_root)
-
-        runner = CliRunner()
-        runner.invoke(cli, ["use-project", "test-proj", "--root", str(hactors_root)])
-        result = runner.invoke(cli, [
-            "create-workflow", "--task-ref", "task_001", "--root", str(hactors_root),
-        ])
-
-        assert result.exit_code == 0
-        assert "Workflow creado" in result.output
-        assert (hactors_root / "projects" / "test-proj" / "hactors" / "workflow_run_000001").is_dir()
-
-    def test_error_without_active_project(self, hactors_root: Path):
-        runner = CliRunner()
-        result = runner.invoke(cli, ["create-workflow", "--root", str(hactors_root)])
-
-        assert result.exit_code != 0
-        assert "No hay proyecto activo" in result.output
+def invoke(root, *args, expected=0):
+    result = CliRunner().invoke(cli, [*args, "--root", str(root)])
+    assert result.exit_code == expected, result.output
+    assert "Traceback" not in result.output
+    return result
 
 
-class TestCreateTaskRunCli:
-    def test_creates_task_run(self, hactors_root: Path):
-        create_project("test-proj", hactors_root)
-
-        runner = CliRunner()
-        runner.invoke(cli, ["use-project", "test-proj", "--root", str(hactors_root)])
-        runner.invoke(cli, ["create-workflow", "--root", str(hactors_root)])
-        result = runner.invoke(cli, [
-            "create-task-run", "--root", str(hactors_root),
-        ])
-
-        assert result.exit_code == 0
-        assert "Task run creado" in result.output
-
-        wf_dir = hactors_root / "projects" / "test-proj" / "hactors" / "workflow_run_000001"
-        assert (wf_dir / "task_run_000001").is_dir()
-
-    def test_error_without_active_workflow(self, hactors_root: Path):
-        create_project("test-proj", hactors_root)
-
-        runner = CliRunner()
-        runner.invoke(cli, ["use-project", "test-proj", "--root", str(hactors_root)])
-        result = runner.invoke(cli, ["create-task-run", "--root", str(hactors_root)])
-
-        assert result.exit_code != 0
-        assert "No hay workflow_run activo" in result.output
+@pytest.fixture
+def cli_chain(hactors_root):
+    project = create_project("proj", hactors_root)
+    invoke(hactors_root, "use-project", project.name)
+    paths = []
+    for command in (
+        "create-workflow", "create-task-run", "create-rfc-run", "create-plan-run",
+        "create-rfc-run", "create-plan-run", "create-rfc-run",
+    ):
+        invoke(hactors_root, command)
+        paths.append(load_state(hactors_root)["active_run_path"])
+    return project, paths
 
 
-@pytest.mark.parametrize("command,steps,missing", [
-    ("create-rfc-run", 0, "proyecto"),
-    ("create-rfc-run", 1, "workflow_run"),
-    ("create-rfc-run", 2, "task_run"),
-    ("create-plan-run", 0, "proyecto"),
-    ("create-plan-run", 1, "workflow_run"),
-    ("create-plan-run", 2, "task_run"),
-    ("create-plan-run", 3, "rfc_run"),
+def test_use_project_sets_exact_state_and_clears_run(hactors_root, cli_chain, load_yaml):
+    project, _ = cli_chain
+    result = invoke(hactors_root, "use-project", project.name)
+    assert "Proyecto activo: proj" in result.output
+    assert load_yaml(hactors_root / "projects" / ".state.yaml") == {
+        "active_project": project.name, "active_run_path": "",
+    }
+
+
+def test_use_project_requires_existing_project(hactors_root):
+    before = snapshot(hactors_root / "projects")
+    result = invoke(hactors_root, "use-project", "nonexistent", expected=1)
+    assert "no encontrado" in result.output
+    assert snapshot(hactors_root / "projects") == before
+
+
+def test_creates_workflow_and_task_with_reference(hactors_root, load_yaml):
+    project = create_project("proj", hactors_root)
+    invoke(hactors_root, "use-project", project.name)
+    workflow_result = invoke(hactors_root, "create-workflow", "--task-ref", "task_000001")
+    assert "Workflow creado" in workflow_result.output
+    task_result = invoke(hactors_root, "create-task-run")
+    assert "Task run creado" in task_result.output
+    workflow = project / "hactors" / "workflow_run_000001"
+    task = workflow / "task_run_000001"
+    assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "task_000001"
+    assert load_yaml(task / "manifest.yaml")["identity"] == {"id": task.name}
+    assert load_state(hactors_root) == {
+        "active_project": project.name, "active_run_path": task.relative_to(project).as_posix(),
+    }
+
+
+@pytest.mark.parametrize("command,steps,message", [
+    ("create-workflow", 0, "No hay proyecto activo"),
+    ("create-task-run", 0, "No hay proyecto activo"),
+    ("create-rfc-run", 0, "No hay proyecto activo"),
+    ("create-plan-run", 0, "No hay proyecto activo"),
+    ("create-task-run", 1, "No hay instancia activa"),
+    ("create-rfc-run", 1, "No hay instancia activa"),
+    ("create-plan-run", 1, "No hay instancia activa"),
+    ("create-rfc-run", 2, "No se puede crear"),
+    ("create-plan-run", 2, "No se puede crear"),
+    ("create-plan-run", 3, "No se puede crear"),
+    ("create-task-run", 3, "No se puede crear"),
+    ("create-rfc-run", 4, "No se puede crear"),
+    ("create-task-run", 5, "No se puede crear"),
+    ("create-plan-run", 5, "No se puede crear"),
 ])
-def test_new_commands_require_parent_context(hactors_root, command, steps, missing):
+def test_commands_require_selected_leaf_without_falling_back(hactors_root, command, steps, message):
     create_project("proj", hactors_root)
-    runner = CliRunner()
-    setup = [["use-project", "proj"], ["create-workflow"], ["create-task-run"]]
+    setup = [
+        ("use-project", "proj"), ("create-workflow",), ("create-task-run",),
+        ("create-rfc-run",), ("create-plan-run",),
+    ]
     for args in setup[:steps]:
-        result = runner.invoke(cli, [*args, "--root", str(hactors_root)])
-        assert result.exit_code == 0, result.output
-    result = runner.invoke(cli, [command, "--root", str(hactors_root)])
-    assert result.exit_code == 1
-    assert f"No hay {missing} activo" in result.output
+        invoke(hactors_root, *args)
+    before = snapshot(hactors_root / "projects")
+    result = invoke(hactors_root, command, expected=1)
+    assert message in result.output
+    if steps >= 2:
+        assert "dentro de" in result.output
+    assert snapshot(hactors_root / "projects") == before
 
 
-@pytest.mark.parametrize("command", ["create-rfc-run", "create-plan-run"])
-def test_new_command_help(command):
+@pytest.mark.parametrize("command,option", [
+    ("create-rfc-run", "--rfc-ref"), ("create-plan-run", "--plan-ref"), ("use-run", "--parent"),
+])
+def test_new_command_help(command, option):
     result = CliRunner().invoke(cli, [command, "--help"])
     assert result.exit_code == 0
-    assert ("--rfc-ref" if command == "create-rfc-run" else "--plan-ref") in result.output
+    assert option in result.output
+    assert "--root" in result.output
 
 
 def test_task_run_no_longer_accepts_rfc_ref():
@@ -118,56 +124,216 @@ def test_task_run_no_longer_accepts_rfc_ref():
     assert "--rfc-ref" in result.output
 
 
-def test_cli_process_chain(hactors_root, load_yaml):
-    env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+@pytest.mark.parametrize("both", [False, True], ids=["neither", "both"])
+def test_use_run_requires_exactly_one_selector(hactors_root, cli_chain, both):
+    _, paths = cli_chain
+    args = [paths[-1], "--parent"] if both else []
+    before = snapshot(hactors_root / "projects")
+    invoke(hactors_root, "use-run", *args, expected=2)
+    assert snapshot(hactors_root / "projects") == before
 
-    def invoke(*args, expected=0):
+
+def test_use_run_requires_project_and_parent_requires_run(hactors_root):
+    before = snapshot(hactors_root / "projects")
+    result = invoke(hactors_root, "use-run", "hactors/workflow_run_000001", expected=1)
+    assert "No hay proyecto activo" in result.output
+    assert snapshot(hactors_root / "projects") == before
+    create_project("proj", hactors_root)
+    invoke(hactors_root, "use-project", "proj")
+    before = snapshot(hactors_root / "projects")
+    result = invoke(hactors_root, "use-run", "--parent", expected=1)
+    assert "No hay instancia activa" in result.output
+    assert snapshot(hactors_root / "projects") == before
+
+
+def test_use_run_parent_visits_every_ancestor_then_project(hactors_root, cli_chain):
+    project, paths = cli_chain
+    before = snapshot(project)
+    for path in reversed(paths[:-1]):
+        invoke(hactors_root, "use-run", "--parent")
+        assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": path}
+    invoke(hactors_root, "use-run", "--parent")
+    assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": ""}
+    invoke(hactors_root, "use-run", "--parent", expected=1)
+    assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": ""}
+    assert snapshot(project) == before
+
+
+@pytest.mark.parametrize("case", ["absolute", "bare-id", "dotdot", "trailing", "file", "suffix", "missing"])
+def test_use_run_rejects_invalid_full_path_without_mutation(hactors_root, cli_chain, case):
+    project, paths = cli_chain
+    path = {
+        "absolute": str(project / paths[-1]), "bare-id": "workflow_run_000001",
+        "dotdot": paths[0] + "/../workflow_run_000001", "trailing": paths[-1] + "/",
+        "file": paths[-1] + "/manifest.yaml", "suffix": paths[-1] + "/unknown_000001",
+        "missing": paths[-1] + "/plan_run_999999",
+    }[case]
+    before = snapshot(hactors_root / "projects")
+    result = invoke(hactors_root, "use-run", path, expected=1)
+    assert any(word in result.output.lower() for word in ("ruta", "parent", "padre", "manifest"))
+    assert snapshot(hactors_root / "projects") == before
+
+
+@pytest.mark.parametrize("command,content", [
+    ("create-workflow", "active_project: [broken"),
+    ("create-workflow", b"\xff"),
+    ("create-task-run", "[]\n"),
+    ("create-rfc-run", "active_project: false\n"),
+    ("create-plan-run", "active_project: proj\nactive_run_path: []\n"),
+    ("use-run", "active_project: proj\nactive_run_path: 42\n"),
+    ("use-run", "active_project: ''\nactive_run_path: hactors/workflow_run_000001\n"),
+])
+def test_corrupt_state_reports_error_without_traceback_or_mutation(hactors_root, command, content):
+    project = create_project("proj", hactors_root)
+    state_file = hactors_root / "projects" / ".state.yaml"
+    state_file.write_bytes(content if isinstance(content, bytes) else content.encode())
+    before = snapshot(hactors_root / "projects")
+    args = ["--parent"] if command == "use-run" else []
+    result = invoke(hactors_root, command, *args, expected=1)
+    assert "error" in result.output.lower()
+    assert snapshot(hactors_root / "projects") == before
+    invoke(hactors_root, "use-project", project.name)
+    assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": ""}
+
+
+@pytest.mark.parametrize("problem", ["wrong-project", "wrong-wrapper", "wrong-ancestor-id", "malformed-manifest"])
+def test_invalid_manifest_is_reported_by_selection_and_creation(hactors_root, cli_chain, load_yaml, problem):
+    project, paths = cli_chain
+    if problem == "wrong-project":
+        manifest = project / "manifest.yaml"
+        data = load_yaml(manifest)
+        data["project"] = "other"
+    elif problem == "wrong-wrapper":
+        manifest = project / paths[0] / "manifest.yaml"
+        data = {"workflow_run_999999": load_yaml(manifest)["workflow_run_000001"]}
+    else:
+        manifest = project / paths[3] / "manifest.yaml"
+        data = load_yaml(manifest)
+        data["identity"]["id"] = "plan_run_999999"
+    manifest.write_text("identity: [broken" if problem == "malformed-manifest" else yaml.safe_dump(data))
+    before = snapshot(hactors_root / "projects")
+    for args in (("use-run", paths[-1]), ("use-run", "--parent"), ("create-plan-run",)):
+        result = invoke(hactors_root, *args, expected=1)
+        assert "manifest" in result.output.lower()
+        assert snapshot(hactors_root / "projects") == before
+
+
+def test_cli_process_chain(hactors_root, load_yaml):
+    env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]), PYTHONDONTWRITEBYTECODE="1")
+
+    def process(*args, expected=0):
         result = subprocess.run(
             [sys.executable, "-m", "hactors_cli", *args, "--root", str(hactors_root)],
             cwd=hactors_root, env=env, capture_output=True, text=True, timeout=30,
         )
-        assert result.returncode == expected, result.stdout + result.stderr
-        return result
+        output = result.stdout + result.stderr
+        assert result.returncode == expected, output
+        assert "Traceback" not in output
+        return output
 
-    invoke("create-project", "proj")
+    process("create-project", "proj")
     project = hactors_root / "projects" / "proj"
-    rfc_doc = project / "rfcs" / "RFC-A00001.md"
-    plan_doc = project / "rfcs" / "plans" / "PLAN-00001.md"
-    plan_doc.parent.mkdir()
-    rfc_doc.write_text("RFC original\n")
-    plan_doc.write_text("PLAN original\n")
-    originals = {path: path.read_bytes() for path in (rfc_doc, plan_doc)}
-    invoke("use-project", "proj")
-    invoke("create-workflow", "--task-ref", "task_000001")
-    invoke("create-task-run")
-    invoke("create-rfc-run", "--rfc-ref", "RFC-A00001")
-    invoke("create-plan-run", "--plan-ref", "PLAN-00001")
+    state_file = hactors_root / "projects" / ".state.yaml"
+    references = ["RFC-A00001", "RFC-A00001-F00001", "RFC-A00001-F00001-T00001", "RFC-A00001-F00002"]
+    (project / "rfcs" / "plans").mkdir()
+    documents = [project / "rfcs" / f"{ref}.md" for ref in references]
+    documents += [project / "rfcs" / "plans" / f"PLAN-{index:05d}.md" for index in (1, 2)]
+    documents.append(project / "tasks" / "task_000001.md")
+    for path in documents:
+        path.write_text(f"Original {path.stem}\n")
+    originals = {path: path.read_bytes() for path in documents}
+    source_templates = snapshot(hactors_root / "specs" / "templates")
+
+    process("use-project", "proj")
+    process("create-workflow", "--task-ref", "task_000001")
+    process("create-task-run")
+    process("create-rfc-run", "--rfc-ref", references[0])
+    process("create-plan-run", "--plan-ref", "PLAN-00001")
+    process("create-rfc-run", "--rfc-ref", references[1])
+    process("create-plan-run", "--plan-ref", "PLAN-00002")
+    process("create-rfc-run", "--rfc-ref", references[2])
     workflow = project / "hactors" / "workflow_run_000001"
     task = workflow / "task_run_000001"
-    rfc = task / "rfc_run_000001"
-    plan = rfc / "plan_run_000001"
-    assert load_yaml(rfc / "manifest.yaml")["identity"]["rfc_ref"] == "RFC-A00001"
-    assert load_yaml(plan / "manifest.yaml")["identity"]["plan_ref"] == "PLAN-00001"
-    assert load_yaml(task / "manifest.yaml")["identity"] == {"id": "task_run_000001"}
-    assert load_yaml(project / "manifest.yaml")["counters"] == {
-        "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "plan_run": 1,
-    }
-    assert load_yaml(hactors_root / "projects" / ".state.yaml") == {
+    rfc1 = task / "rfc_run_000001"
+    plan1 = rfc1 / "plan_run_000001"
+    rfc2 = plan1 / "rfc_run_000002"
+    plan2 = rfc2 / "plan_run_000002"
+    rfc3 = plan2 / "rfc_run_000003"
+    runs = [workflow, task, rfc1, plan1, rfc2, plan2, rfc3]
+    for run, ref in zip((rfc1, rfc2, rfc3), references):
+        assert load_yaml(run / "manifest.yaml")["identity"] == {"id": run.name, "rfc_ref": ref}
+    for index, run in enumerate((plan1, plan2), 1):
+        assert load_yaml(run / "manifest.yaml")["identity"] == {"id": run.name, "plan_ref": f"PLAN-{index:05d}"}
+    assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "task_000001"
+    assert load_yaml(task / "manifest.yaml")["identity"] == {"id": task.name}
+    originals.update({run / "manifest.yaml": (run / "manifest.yaml").read_bytes() for run in runs})
+    deepest = rfc3.relative_to(project).as_posix()
+    assert len(Path(deepest).parts) - 2 == 6
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deepest}
+    counters = {"task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 3, "plan_run": 2}
+    assert load_yaml(project / "manifest.yaml")["counters"] == counters
+
+    process("use-run", plan1.relative_to(project).as_posix())
+    process("create-rfc-run", "--rfc-ref", references[3])
+    rfc4 = plan1 / "rfc_run_000004"
+    assert load_yaml(rfc4 / "manifest.yaml")["identity"] == {"id": rfc4.name, "rfc_ref": references[3]}
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": rfc4.relative_to(project).as_posix()}
+    counters["rfc_run"] = 4
+    assert load_yaml(project / "manifest.yaml")["counters"] == counters
+    process("use-run", "--parent")
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": plan1.relative_to(project).as_posix()}
+    originals[rfc4 / "manifest.yaml"] = (rfc4 / "manifest.yaml").read_bytes()
+    before = snapshot(hactors_root / "projects")
+    assert "No se puede crear" in process("create-plan-run", expected=1)
+    assert "No se puede crear" in process("create-task-run", expected=1)
+    assert snapshot(hactors_root / "projects") == before
+
+    # Legacy context is rejected without implicit migration, even with empty fields.
+    state_file.write_text(yaml.safe_dump({
         "active_project": "proj", "current_workflow_run": workflow.name,
-        "current_task_run": task.name, "current_rfc_run": rfc.name,
-    }
-    invoke("create-plan-run", "--plan-ref", "PLAN-00002")
-    assert (rfc / "plan_run_000002" / "manifest.yaml").is_file()
-    invoke("create-task-run")
-    result = invoke("create-plan-run", expected=1)
-    assert "No hay rfc_run activo" in result.stderr
-    invoke("create-rfc-run", "--rfc-ref", "RFC-F00001")
-    assert (workflow / "task_run_000002" / "rfc_run_000002" / "manifest.yaml").is_file()
-    invoke("create-workflow")
-    result = invoke("create-rfc-run", expected=1)
-    assert "No hay task_run activo" in result.stderr
-    invoke("create-project", "other")
-    invoke("use-project", "other")
-    result = invoke("create-plan-run", expected=1)
-    assert "No hay workflow_run activo" in result.stderr
+        "current_task_run": "", "current_rfc_run": "",
+    }))
+    before = snapshot(hactors_root / "projects")
+    for args in (
+        ("create-workflow",), ("create-task-run",), ("create-rfc-run",), ("create-plan-run",),
+        ("use-run", deepest), ("use-run", "--parent"),
+    ):
+        output = process(*args, expected=1)
+        assert "use-project" in output and "use-run" in output
+        assert snapshot(hactors_root / "projects") == before
+    branch_before = snapshot(project)
+    process("use-project", "proj")
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": ""}
+    process("use-run", deepest)
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deepest}
+    assert snapshot(project) == branch_before
+
+    # Create a sibling task only after explicitly selecting its workflow.
+    process("use-run", workflow.relative_to(project).as_posix())
+    process("create-task-run")
+    process("create-rfc-run", "--rfc-ref", "RFC-F00001")
+    sibling_rfc = workflow / "task_run_000002" / "rfc_run_000005"
+    assert (sibling_rfc / "manifest.yaml").is_file()
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": sibling_rfc.relative_to(project).as_posix()}
+    process("create-workflow")
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": "hactors/workflow_run_000002"}
+    before = snapshot(hactors_root / "projects")
+    assert "No se puede crear" in process("create-rfc-run", expected=1)
+    assert snapshot(hactors_root / "projects") == before
+    counters.update(workflow_run=2, task_run=2, rfc_run=5)
+    assert load_yaml(project / "manifest.yaml")["counters"] == counters
+
+    process("create-project", "other")
+    process("use-project", "other")
+    assert load_yaml(state_file) == {"active_project": "other", "active_run_path": ""}
+    before = snapshot(hactors_root / "projects")
+    assert "No hay instancia activa" in process("create-plan-run", expected=1)
+    assert "manifest" in process("use-run", deepest, expected=1).lower()
+    assert snapshot(hactors_root / "projects") == before
+    assert all(value == 0 for value in load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"].values())
+    process("use-project", "proj")
+    process("use-run", deepest)
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deepest}
+    assert load_yaml(project / "manifest.yaml")["counters"] == counters
     assert all(path.read_bytes() == content for path, content in originals.items())
+    assert snapshot(hactors_root / "specs" / "templates") == source_templates

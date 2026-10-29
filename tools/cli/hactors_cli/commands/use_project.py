@@ -4,7 +4,7 @@ from typing import Optional
 import click
 
 from ..core.paths import find_hactors_root
-from ..core.state import NoActiveProjectError, set_active_project
+from ..core.state import StateError, set_active_project
 
 
 @click.command("use-project")
@@ -16,12 +16,10 @@ from ..core.state import NoActiveProjectError, set_active_project
     help="Directorio raíz de HACTORS. Por defecto se detecta desde el directorio actual.",
 )
 def use_project_cmd(name: str, root: Optional[Path]) -> None:
-    """Establecer el proyecto activo sobre el cual operan los comandos."""
+    """Establecer el proyecto activo y limpiar la selección de ejecución."""
     hactors_root = root if root is not None else find_hactors_root(Path.cwd())
-
-    project_dir = hactors_root / "projects" / name
-    if not project_dir.is_dir():
-        raise click.ClickException(f"Proyecto no encontrado: '{name}'.")
-
-    set_active_project(hactors_root, name)
+    try:
+        set_active_project(hactors_root, name)
+    except StateError as exc:
+        raise click.ClickException(str(exc)) from exc
     click.echo(f"Proyecto activo: {name}")

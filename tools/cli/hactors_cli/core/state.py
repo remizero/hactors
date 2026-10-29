@@ -1,6 +1,8 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
+
+from .paths import require_project_directory, require_run_directory
 
 STATE_FILE = "projects/.state.yaml"
 
@@ -13,15 +15,7 @@ class NoActiveProjectError(StateError):
     pass
 
 
-class NoActiveWorkflowRunError(StateError):
-    pass
-
-
-class NoActiveTaskRunError(StateError):
-    pass
-
-
-class NoActiveRfcRunError(StateError):
+class NoActiveRunError(StateError):
     pass
 
 
@@ -33,88 +27,94 @@ def load_state(hactors_root: Path) -> dict:
     path = _state_path(hactors_root)
     data = {}
     if path.is_file():
-        with path.open() as f:
-            data = yaml.safe_load(f)
+        try:
+            data = yaml.safe_load(path.read_text())
+        except (OSError, UnicodeError, yaml.YAMLError) as exc:
+            raise StateError(
+                "No se pudo leer el estado activo. "
+                "Reseleccione el proyecto con 'hactors use-project <nombre>'."
+            ) from exc
     if not isinstance(data, dict):
-        data = {}
-    return {
+        raise StateError(
+            "Estado activo inválido. "
+            "Reseleccione el proyecto con 'hactors use-project <nombre>'."
+        )
+    if any(key in data for key in ("current_workflow_run", "current_task_run", "current_rfc_run")):
+        raise StateError(
+            "Formato de estado anterior. Ejecute 'hactors use-project <nombre>' "
+            "y después 'hactors use-run <ruta>' para seleccionar la instancia."
+        )
+    state = {
         "active_project": data.get("active_project", ""),
-        "current_workflow_run": data.get("current_workflow_run", ""),
-        "current_task_run": data.get("current_task_run", ""),
-        "current_rfc_run": data.get("current_rfc_run", ""),
+        "active_run_path": data.get("active_run_path", ""),
     }
+    if not all(isinstance(value, str) for value in state.values()):
+        raise StateError("Estado activo inválido: el proyecto y la ruta deben ser cadenas.")
+    if state["active_run_path"] and not state["active_project"]:
+        raise StateError("Estado activo inválido: hay una ruta sin proyecto activo.")
+    return state
 
 
 def save_state(hactors_root: Path, state: dict) -> None:
-    path = _state_path(hactors_root)
-    path.write_text(yaml.dump(state, default_flow_style=False, allow_unicode=True, sort_keys=False))
+    try:
+        _state_path(hactors_root).write_text(
+            yaml.dump(state, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        )
+    except OSError as exc:
+        raise StateError(f"No se pudo guardar el estado activo: {exc}") from exc
 
 
 def set_active_project(hactors_root: Path, name: str) -> None:
-    state = load_state(hactors_root)
-    state["active_project"] = name
-    state["current_workflow_run"] = ""
-    state["current_task_run"] = ""
-    state["current_rfc_run"] = ""
-    save_state(hactors_root, state)
+    set_active_run(hactors_root, name, "")
 
 
-def set_current_workflow_run(hactors_root: Path, run_id: str) -> None:
-    state = load_state(hactors_root)
-    state["current_workflow_run"] = run_id
-    state["current_task_run"] = ""
-    state["current_rfc_run"] = ""
-    save_state(hactors_root, state)
-
-
-def set_current_task_run(hactors_root: Path, run_id: str) -> None:
-    state = load_state(hactors_root)
-    state["current_task_run"] = run_id
-    state["current_rfc_run"] = ""
-    save_state(hactors_root, state)
-
-
-def set_current_rfc_run(hactors_root: Path, run_id: str) -> None:
-    state = load_state(hactors_root)
-    state["current_rfc_run"] = run_id
-    save_state(hactors_root, state)
+def set_active_run(hactors_root: Path, project_name: str, run_path: str) -> None:
+    try:
+        if run_path == "":
+            require_project_directory(hactors_root, project_name)
+        else:
+            require_run_directory(hactors_root, project_name, run_path)
+    except (ValueError, OSError) as exc:
+        raise StateError(str(exc)) from exc
+    save_state(hactors_root, {"active_project": project_name, "active_run_path": run_path})
 
 
 def require_active_project(hactors_root: Path) -> str:
-    state = load_state(hactors_root)
-    name = state["active_project"]
+    name = load_state(hactors_root)["active_project"]
     if not name:
         raise NoActiveProjectError(
             "No hay proyecto activo. Ejecute 'hactors use-project <nombre>' primero."
         )
+    try:
+        require_project_directory(hactors_root, name)
+    except (ValueError, OSError) as exc:
+        raise StateError(str(exc)) from exc
     return name
 
 
-def require_active_workflow_run(hactors_root: Path) -> str:
+def require_active_run_path(hactors_root: Path) -> str:
     state = load_state(hactors_root)
-    run_id = state["current_workflow_run"]
-    if not run_id:
-        raise NoActiveWorkflowRunError(
-            "No hay workflow_run activo. Ejecute 'hactors create-workflow' primero."
+    if not state["active_project"]:
+        raise NoActiveProjectError(
+            "No hay proyecto activo. Ejecute 'hactors use-project <nombre>' primero."
         )
-    return run_id
-
-
-def require_active_task_run(hactors_root: Path) -> str:
-    state = load_state(hactors_root)
-    run_id = state["current_task_run"]
-    if not run_id:
-        raise NoActiveTaskRunError(
-            "No hay task_run activo. Ejecute 'hactors create-task-run' primero."
+    run_path = state["active_run_path"]
+    if not run_path:
+        raise NoActiveRunError(
+            "No hay instancia activa. Cree un workflow con 'hactors create-workflow' "
+            "o seleccione una instancia con 'hactors use-run <ruta>'."
         )
-    return run_id
+    try:
+        require_run_directory(hactors_root, state["active_project"], run_path)
+    except (ValueError, OSError) as exc:
+        raise StateError(str(exc)) from exc
+    return run_path
 
 
-def require_active_rfc_run(hactors_root: Path) -> str:
-    state = load_state(hactors_root)
-    run_id = state["current_rfc_run"]
-    if not run_id:
-        raise NoActiveRfcRunError(
-            "No hay rfc_run activo. Ejecute 'hactors create-rfc-run' primero."
-        )
-    return run_id
+def select_parent_run(hactors_root: Path) -> str:
+    run_path = require_active_run_path(hactors_root)
+    parent = PurePosixPath(run_path).parent.as_posix()
+    if parent == "hactors":
+        parent = ""
+    set_active_run(hactors_root, require_active_project(hactors_root), parent)
+    return parent

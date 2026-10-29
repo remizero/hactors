@@ -4,45 +4,54 @@ from pathlib import Path
 import pytest
 import yaml
 
+from hactors_cli.core.paths import require_run_directory
 from hactors_cli.core.plan_run import PlanRunError, create_plan_run
 from hactors_cli.core.project import create_project
 from hactors_cli.core.rfc_run import RfcRunError, create_rfc_run
-from hactors_cli.core.state import load_state, set_active_project
-from hactors_cli.core.task_run import create_task_run
+from hactors_cli.core.state import load_state, select_parent_run, set_active_run
+from hactors_cli.core.task_run import TaskRunError, create_task_run
 from hactors_cli.core.templates import load_template, render_run_yaml
 from hactors_cli.core.workflow import create_workflow
+
+
+def snapshot(directory):
+    return {
+        path.relative_to(directory).as_posix(): (
+            ("link", str(path.readlink())) if path.is_symlink() else
+            ("directory",) if path.is_dir() else ("file", path.read_bytes())
+        )
+        for path in directory.rglob("*")
+    }
 
 
 @pytest.fixture(params=["rfc_run", "plan_run"])
 def run_case(request, hactors_root):
     project = create_project("test-proj", hactors_root)
-    set_active_project(hactors_root, project.name)
     workflow = create_workflow(hactors_root, project.name)
-    task = create_task_run(hactors_root, project.name, workflow.name)
-    args = [hactors_root, project.name, workflow.name, task.name]
+    task = create_task_run(hactors_root, project.name, workflow.relative_to(project).as_posix())
+    args = [hactors_root, project.name, task.relative_to(project).as_posix()]
     if request.param == "rfc_run":
         return create_rfc_run, RfcRunError, args, task, "rfc_run", "rfc_ref", "RFC-A00001"
     rfc = create_rfc_run(*args, rfc_ref="RFC-A00001")
-    args.append(rfc.name)
+    args[2] = rfc.relative_to(project).as_posix()
     return create_plan_run, PlanRunError, args, rfc, "plan_run", "plan_ref", "PLAN-00001"
 
 
 def test_run_matches_template_and_preserves_source(run_case, load_yaml):
     create, _, args, parent, prefix, field, ref = run_case
     root = args[0]
-    template = load_template(root, f"{prefix}_template.yaml")
-    original = deepcopy(template)
+    source = root / "specs" / "templates" / f"{prefix}_template.yaml"
+    original = source.read_bytes()
+    expected = deepcopy(load_template(root, source.name))
     run = create(*args, **{field: ref})
-    expected = deepcopy(template)
     expected["identity"].update(id=run.name, **{field: ref})
     assert run.parent == parent
     assert run.name == f"{prefix}_000001"
     assert load_yaml(run / "manifest.yaml") == expected
-    assert load_template(root, f"{prefix}_template.yaml") == original
-    if prefix == "rfc_run":
-        assert load_state(root)["current_rfc_run"] == run.name
-    else:
-        assert load_state(root)["current_rfc_run"] == parent.name
+    assert source.read_bytes() == original
+    assert load_state(root) == {
+        "active_project": args[1], "active_run_path": f"{args[2]}/{run.name}",
+    }
 
 
 def test_optional_reference_is_empty(run_case, load_yaml):
@@ -61,13 +70,28 @@ def test_defaults_come_from_template(run_case, load_yaml):
     assert load_yaml(run / "manifest.yaml")["state"] == template["state"]
 
 
-def test_run_ids_are_sequential(run_case, load_yaml):
+def test_run_ids_are_sequential_and_counters_independent(run_case, load_yaml):
     create, _, args, _, prefix, _, _ = run_case
+    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
+    expected = load_yaml(manifest)["counters"].copy()
     first, second = create(*args), create(*args)
     assert first.name == f"{prefix}_000001"
     assert second.name == f"{prefix}_000002"
-    manifest = load_yaml(args[0] / "projects" / args[1] / "manifest.yaml")
-    assert manifest["counters"][prefix] == 2
+    expected[prefix] += 2
+    assert load_yaml(manifest)["counters"] == expected
+
+
+def test_core_uses_explicit_parent_even_in_another_project(run_case):
+    create, _, args, parent, _, _, _ = run_case
+    other = create_project("other", args[0])
+    create_workflow(args[0], other.name)
+    before = snapshot(other)
+    run = create(*args)
+    assert run.parent == parent
+    assert load_state(args[0]) == {
+        "active_project": args[1], "active_run_path": f"{args[2]}/{run.name}",
+    }
+    assert snapshot(other) == before
 
 
 def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
@@ -75,110 +99,221 @@ def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
         project = create_project(project_name, hactors_root)
         for index in (1, 2):
             workflow = create_workflow(hactors_root, project_name)
-            task = create_task_run(hactors_root, project_name, workflow.name)
-            rfc = create_rfc_run(hactors_root, project_name, workflow.name, task.name)
-            plan = create_plan_run(hactors_root, project_name, workflow.name, task.name, rfc.name)
+            task = create_task_run(hactors_root, project_name, workflow.relative_to(project).as_posix())
+            rfc = create_rfc_run(hactors_root, project_name, task.relative_to(project).as_posix())
+            plan = create_plan_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
             assert rfc.name == f"rfc_run_{index:06d}"
             assert plan.name == f"plan_run_{index:06d}"
-        counters = load_yaml(project / "manifest.yaml")["counters"]
-        assert counters["rfc_run"] == counters["plan_run"] == 2
-        assert counters["task"] == 0
+        assert load_yaml(project / "manifest.yaml")["counters"] == {
+            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2,
+        }
 
 
-def test_missing_template_does_not_change_manifest_or_state(run_case):
-    create, error, args, parent, prefix, _, _ = run_case
-    root = args[0]
-    manifest = root / "projects" / args[1] / "manifest.yaml"
-    before = manifest.read_bytes(), load_state(root)
-    (root / "specs" / "templates" / f"{prefix}_template.yaml").unlink()
+def test_missing_template_does_not_change_manifest_state_or_directories(run_case):
+    create, error, args, _, prefix, _, _ = run_case
+    (args[0] / "specs" / "templates" / f"{prefix}_template.yaml").unlink()
+    before = snapshot(args[0] / "projects")
     with pytest.raises(error, match="Plantilla no encontrada"):
         create(*args)
-    assert (manifest.read_bytes(), load_state(root)) == before
-    assert not (parent / f"{prefix}_000001").exists()
+    assert snapshot(args[0] / "projects") == before
 
 
-def test_missing_parent_manifest_does_not_consume_counter(run_case):
+@pytest.mark.parametrize("level", ["project", "workflow", "parent"])
+def test_missing_ancestor_manifest_has_no_side_effects(run_case, level):
     create, error, args, parent, _, _, _ = run_case
-    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
-    before = manifest.read_bytes()
-    (parent / "manifest.yaml").unlink()
-    with pytest.raises(error, match="sin manifest"):
+    project = args[0] / "projects" / args[1]
+    ancestor = {
+        "project": project, "workflow": project / Path(args[2]).parts[0] / Path(args[2]).parts[1],
+        "parent": parent,
+    }[level]
+    (ancestor / "manifest.yaml").unlink()
+    before = snapshot(args[0] / "projects")
+    with pytest.raises(error, match="manifest"):
         create(*args)
-    assert manifest.read_bytes() == before
+    assert snapshot(args[0] / "projects") == before
 
 
-@pytest.mark.parametrize("parent_index", [1, 2, 3])
-def test_nonexistent_ancestor_does_not_consume_counter(run_case, parent_index):
+@pytest.mark.parametrize("component", ["project", "workflow", "parent"])
+def test_nonexistent_ancestor_has_no_side_effects(run_case, component):
     create, error, args, _, _, _, _ = run_case
-    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
-    before = manifest.read_bytes()
     args = list(args)
-    args[parent_index] = (
-        "nonexistent" if parent_index == 1 else
-        f"{('workflow_run' if parent_index == 2 else 'task_run')}_999999"
-    )
-    with pytest.raises(error, match="no encontrado"):
+    if component == "project":
+        args[1] = "nonexistent"
+    else:
+        parts = list(Path(args[2]).parts)
+        index = 1 if component == "workflow" else -1
+        parts[index] = parts[index].rsplit("_", 1)[0] + "_999999"
+        args[2] = "/".join(parts)
+    before = snapshot(args[0] / "projects")
+    with pytest.raises(error):
         create(*args)
-    assert manifest.read_bytes() == before
+    assert snapshot(args[0] / "projects") == before
 
 
-@pytest.mark.parametrize("bad_value", ["../outside", "/tmp/outside", "wrong_000001", 42])
-@pytest.mark.parametrize("parent_index", [2, 3])
-def test_invalid_parent_ids_are_rejected(run_case, parent_index, bad_value):
+@pytest.mark.parametrize("bad_value", ["../outside", "/tmp/outside", "workflow_run_000001", "wrong_000001", 42])
+def test_invalid_parent_paths_are_rejected(run_case, bad_value):
     create, error, args, _, _, _, _ = run_case
-    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
-    before = manifest.read_bytes()
-    args = list(args)
-    args[parent_index] = bad_value
-    with pytest.raises(error, match="inválido"):
+    args = [*args[:2], bad_value]
+    before = snapshot(args[0] / "projects")
+    with pytest.raises(error):
         create(*args)
-    assert manifest.read_bytes() == before
+    assert snapshot(args[0] / "projects") == before
 
 
 @pytest.mark.parametrize("bad_name", ["../outside", "/tmp/outside", 42])
 def test_invalid_project_context_is_rejected(run_case, bad_name):
     create, error, args, _, _, _, _ = run_case
-    args = list(args)
-    args[1] = bad_name
-    with pytest.raises(error, match="inválido"):
-        create(*args)
+    before = snapshot(args[0] / "projects")
+    with pytest.raises(error):
+        create(args[0], bad_name, args[2])
+    assert snapshot(args[0] / "projects") == before
 
 
-def test_existing_run_is_never_overwritten(run_case):
+@pytest.mark.parametrize("collision", ["directory", "file"])
+def test_existing_run_is_never_overwritten_or_counted(run_case, collision):
     create, error, args, parent, prefix, _, _ = run_case
     existing = parent / f"{prefix}_000001"
-    existing.mkdir()
-    manifest = existing / "manifest.yaml"
-    manifest.write_text("preserved: true\n")
-    state = load_state(args[0])
+    if collision == "directory":
+        existing.mkdir()
+        (existing / "manifest.yaml").write_text("preserved: true\n")
+    else:
+        existing.write_text("preserved file\n")
+    before = snapshot(args[0] / "projects")
     with pytest.raises(error, match="Ya existe"):
         create(*args)
-    assert manifest.read_text() == "preserved: true\n"
-    assert load_state(args[0]) == state
+    assert snapshot(args[0] / "projects") == before
 
 
-def test_parent_symlink_cannot_escape_project(run_case, tmp_path):
+@pytest.mark.parametrize("external", [False, True], ids=["internal", "external"])
+def test_parent_symlink_is_rejected_without_writing_target(run_case, tmp_path, external):
     create, error, args, parent, _, _, _ = run_case
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    (outside / "manifest.yaml").write_text("{}")
-    link = parent.parent / ("task_run_999999" if len(args) == 4 else "rfc_run_999999")
-    link.symlink_to(outside, target_is_directory=True)
-    args = list(args)
-    args[-1] = link.name
-    with pytest.raises(error, match="fuera del directorio"):
+    project = args[0] / "projects" / args[1]
+    target = (tmp_path if external else project) / "original-parent"
+    parent.rename(target)
+    parent.symlink_to(target, target_is_directory=True)
+    before = snapshot(args[0] / "projects"), snapshot(target)
+    with pytest.raises(error):
         create(*args)
-    assert list(outside.iterdir()) == [outside / "manifest.yaml"]
+    assert (snapshot(args[0] / "projects"), snapshot(target)) == before
 
 
-def test_plan_requires_existing_rfc(hactors_root):
-    create_project("proj", hactors_root)
-    workflow = create_workflow(hactors_root, "proj")
-    task = create_task_run(hactors_root, "proj", workflow.name)
-    with pytest.raises(PlanRunError, match="rfc_run no encontrado"):
-        create_plan_run(hactors_root, "proj", workflow.name, task.name, "rfc_run_999999")
-    with pytest.raises(PlanRunError, match="inválido"):
-        create_plan_run(hactors_root, "proj", workflow.name, task.name, "../outside")
+def test_new_counter_added_without_rewriting_ancestors(run_case, load_yaml):
+    create, _, args, parent, prefix, _, _ = run_case
+    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
+    data = load_yaml(manifest)
+    data["counters"].pop(prefix)
+    manifest.write_text(yaml.safe_dump(data))
+    before = (parent / "manifest.yaml").read_bytes()
+    run = create(*args)
+    assert run.name == f"{prefix}_000001"
+    assert load_yaml(manifest)["counters"][prefix] == 1
+    assert (parent / "manifest.yaml").read_bytes() == before
+
+
+@pytest.mark.parametrize("depth", [6, 10])
+def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_root, load_yaml, depth):
+    project = create_project("proj", hactors_root)
+    workflow = create_workflow(hactors_root, project.name, task_ref="task_000001")
+    runs = [workflow, create_task_run(hactors_root, project.name, workflow.relative_to(project).as_posix())]
+    originals = {run / "manifest.yaml": (run / "manifest.yaml").read_bytes() for run in runs}
+    templates = {name: load_template(hactors_root, f"{name}_template.yaml") for name in ("rfc_run", "plan_run")}
+    expected_counters = {"task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0}
+    for current_depth in range(2, depth + 1):
+        is_rfc = current_depth % 2 == 0
+        prefix, field, ref = ("rfc_run", "rfc_ref", "RFC-A00001") if is_rfc else ("plan_run", "plan_ref", "PLAN-00001")
+        create = create_rfc_run if is_rfc else create_plan_run
+        parent = runs[-1]
+        parent_path = parent.relative_to(project).as_posix()
+        assert require_run_directory(hactors_root, project.name, parent_path, child_type=prefix) == parent
+        run = create(hactors_root, project.name, parent_path, **{field: ref})
+        runs.append(run)
+        expected_counters[prefix] += 1
+        expected = deepcopy(templates[prefix])
+        expected["identity"].update(id=run.name, **{field: ref})
+        assert load_yaml(run / "manifest.yaml") == expected
+        assert run.name == f"{prefix}_{expected_counters[prefix]:06d}"
+        path = run.relative_to(project).as_posix()
+        assert Path(path).parts[1:] == tuple(ancestor.name for ancestor in runs)
+        assert len(Path(path).parts) - 2 == current_depth
+        assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": path}
+        assert load_yaml(project / "manifest.yaml")["counters"] == expected_counters
+        assert all(file.read_bytes() == content for file, content in originals.items())
+        originals[run / "manifest.yaml"] = (run / "manifest.yaml").read_bytes()
+
+    first_plan = runs[3]
+    set_active_run(hactors_root, project.name, first_plan.relative_to(project).as_posix())
+    sibling = create_rfc_run(hactors_root, project.name, load_state(hactors_root)["active_run_path"])
+    expected_counters["rfc_run"] += 1
+    assert sibling.parent == runs[4].parent == first_plan
+    assert sibling.name == f"rfc_run_{expected_counters['rfc_run']:06d}"
+    assert select_parent_run(hactors_root) == first_plan.relative_to(project).as_posix()
+    set_active_run(hactors_root, project.name, runs[-1].relative_to(project).as_posix())
+    assert load_state(hactors_root)["active_run_path"] == runs[-1].relative_to(project).as_posix()
+    assert load_yaml(project / "manifest.yaml")["counters"] == expected_counters
+    assert all(file.read_bytes() == content for file, content in originals.items())
+    assert list((project / "rfcs").iterdir()) == []
+    assert list((project / "tasks").iterdir()) == []
+    for prefix, template in templates.items():
+        assert load_template(hactors_root, f"{prefix}_template.yaml") == template
+
+
+@pytest.mark.parametrize("create,error,child_type,parent_index", [
+    (create_task_run, TaskRunError, "task_run", 1),
+    (create_task_run, TaskRunError, "task_run", 3),
+    (create_rfc_run, RfcRunError, "rfc_run", 0),
+    (create_rfc_run, RfcRunError, "rfc_run", 2),
+    (create_plan_run, PlanRunError, "plan_run", 0),
+    (create_plan_run, PlanRunError, "plan_run", 1),
+    (create_plan_run, PlanRunError, "plan_run", 3),
+])
+def test_incompatible_parent_never_falls_back_to_ancestor(
+    hactors_root, create, error, child_type, parent_index,
+):
+    project = create_project("proj", hactors_root)
+    runs = [create_workflow(hactors_root, project.name)]
+    for create_child in (create_task_run, create_rfc_run, create_plan_run):
+        runs.append(create_child(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
+    path = runs[parent_index].relative_to(project).as_posix()
+    set_active_run(hactors_root, project.name, path)
+    before = snapshot(hactors_root / "projects")
+    with pytest.raises(ValueError):
+        require_run_directory(hactors_root, project.name, path, child_type=child_type)
+    with pytest.raises(error, match="No se puede crear"):
+        create(hactors_root, project.name, path)
+    assert snapshot(hactors_root / "projects") == before
+
+
+@pytest.mark.parametrize("missing", [False, True], ids=["stale", "missing"])
+def test_next_id_cannot_repeat_an_ancestor_before_any_write(run_case, load_yaml, missing):
+    create, error, args, _, prefix, _, _ = run_case
+    first = create(*args)
+    project = args[0] / "projects" / args[1]
+    create_child = create_plan_run if prefix == "rfc_run" else create_rfc_run
+    parent = create_child(args[0], args[1], first.relative_to(project).as_posix())
+    manifest = project / "manifest.yaml"
+    data = load_yaml(manifest)
+    if missing:
+        data["counters"].pop(prefix)
+    else:
+        data["counters"][prefix] = 0
+    manifest.write_text(yaml.safe_dump(data))
+    before = snapshot(args[0] / "projects")
+    with pytest.raises(error, match="ancestral repetido"):
+        create(args[0], args[1], parent.relative_to(project).as_posix())
+    assert snapshot(args[0] / "projects") == before
+
+
+@pytest.mark.parametrize("value", [-1, True, "1", None, []])
+def test_invalid_counter_is_rejected_before_any_write(run_case, load_yaml, value):
+    create, error, args, _, prefix, _, _ = run_case
+    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
+    data = load_yaml(manifest)
+    data["counters"][prefix] = value
+    manifest.write_text(yaml.safe_dump(data))
+    before = snapshot(args[0] / "projects")
+    with pytest.raises(error, match="Contador inválido"):
+        create(*args)
+    assert snapshot(args[0] / "projects") == before
 
 
 def test_render_does_not_mutate_template(hactors_root):

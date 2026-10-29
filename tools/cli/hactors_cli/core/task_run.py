@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import yaml
+
 from .counters import next_counter_id
-from .state import set_current_task_run
+from .paths import require_run_directory
+from .state import set_active_run
 from .templates import load_template, render_run_yaml
 
 TASK_RUN_PREFIX = "task_run"
@@ -15,26 +18,21 @@ class TaskRunError(Exception):
 def create_task_run(
     hactors_root: Path,
     project_name: str,
-    workflow_run_id: str,
+    parent_run_path: str,
 ) -> Path:
-    project_dir = hactors_root / "projects" / project_name
-    if not project_dir.is_dir():
-        raise TaskRunError(f"Proyecto no encontrado: '{project_name}'.")
-
-    workflow_dir = project_dir / "hactors" / workflow_run_id
-    if not workflow_dir.is_dir():
-        raise TaskRunError(
-            f"Workflow run no encontrado: '{workflow_run_id}' en proyecto '{project_name}'."
+    try:
+        parent = require_run_directory(
+            hactors_root, project_name, parent_run_path, child_type=TASK_RUN_PREFIX
         )
-
-    manifest_path = project_dir / "manifest.yaml"
-    run_id, _ = next_counter_id(manifest_path, "task_run", TASK_RUN_PREFIX)
-
-    run_dir = workflow_dir / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    template = load_template(hactors_root, TASK_RUN_TEMPLATE)
-    (run_dir / "manifest.yaml").write_text(render_run_yaml(template, id_value=run_id))
-
-    set_current_task_run(hactors_root, run_id)
+        template = load_template(hactors_root, TASK_RUN_TEMPLATE)
+        manifest_path = hactors_root / "projects" / project_name / "manifest.yaml"
+        run_id, _ = next_counter_id(manifest_path, "task_run", TASK_RUN_PREFIX, parent)
+        run_dir = parent / run_id
+        run_dir.mkdir()
+        (run_dir / "manifest.yaml").write_text(render_run_yaml(template, id_value=run_id))
+    except FileExistsError as exc:
+        raise TaskRunError(f"Ya existe una instancia en '{exc.filename}'.") from exc
+    except (ValueError, OSError, yaml.YAMLError) as exc:
+        raise TaskRunError(str(exc)) from exc
+    set_active_run(hactors_root, project_name, f"{parent_run_path}/{run_id}")
     return run_dir
