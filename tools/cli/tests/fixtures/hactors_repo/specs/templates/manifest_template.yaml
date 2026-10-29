@@ -6,3 +6,4 @@ counters:
   task_run: 0
   rfc_run: 0
   plan_run: 0
+  test_run: 0

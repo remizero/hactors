@@ -13,7 +13,7 @@ def hactors_root(tmp_path: Path) -> Path:
     dst = tmp_path / "hactors_repo"
     shutil.copytree(src, dst)
     templates = Path(__file__).resolve().parents[3] / "specs" / "templates"
-    for name in ("rfc_run_template.yaml", "plan_run_template.yaml"):
+    for name in ("rfc_run_template.yaml", "plan_run_template.yaml", "test_run_template.yaml"):
         shutil.copy2(templates / name, dst / "specs" / "templates" / name)
     return dst
 

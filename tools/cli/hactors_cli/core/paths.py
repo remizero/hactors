@@ -6,13 +6,14 @@ import yaml
 from .project import ProjectError, validate_name
 
 HACTORS_MARKERS = ("specs/templates", "projects")
-RUN_PATTERN = re.compile(r"(workflow_run|task_run|rfc_run|plan_run)_[0-9]{6,}")
+RUN_PATTERN = re.compile(r"(workflow_run|task_run|rfc_run|plan_run|test_run)_[0-9]{6,}")
 RUN_CHILD_TYPES = {
-    "hactors": "workflow_run",
-    "workflow_run": "task_run",
-    "task_run": "rfc_run",
-    "rfc_run": "plan_run",
-    "plan_run": "rfc_run",
+    "hactors": ("workflow_run",),
+    "workflow_run": ("task_run",),
+    "task_run": ("rfc_run",),
+    "rfc_run": ("plan_run", "test_run"),
+    "plan_run": ("rfc_run",),
+    "test_run": (),
 }
 
 
@@ -79,7 +80,7 @@ def require_run_directory(
         if not match:
             raise ValueError(f"Identificador inválido en la ruta de ejecución: '{run_id}'.")
         run_type = match[1]
-        if run_type != RUN_CHILD_TYPES[parent_type]:
+        if run_type not in RUN_CHILD_TYPES[parent_type]:
             raise ValueError(f"Jerarquía inválida: {run_type} no puede vivir dentro de {parent_type}.")
         if run_id in seen:
             raise ValueError(f"Identificador repetido en la ruta: '{run_id}'.")
@@ -102,7 +103,7 @@ def require_run_directory(
             raise ValueError(f"La identidad del manifest no coincide con '{run_id}'.")
         parent_type = run_type
 
-    if child_type and RUN_CHILD_TYPES[parent_type] != child_type:
+    if child_type and child_type not in RUN_CHILD_TYPES[parent_type]:
         raise ValueError(
             f"No se puede crear un {child_type} dentro de un {parent_type}. "
             "Seleccione el padre con 'hactors use-run <ruta>'."

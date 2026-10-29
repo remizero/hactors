@@ -74,6 +74,10 @@ class TestCreateProject:
 
         assert data["project"] == "test-project"
         assert data["relations"] == []
+        assert data["counters"] == {
+            "task": 0, "workflow_run": 0, "task_run": 0,
+            "rfc_run": 0, "plan_run": 0, "test_run": 0,
+        }
 
     def test_created_at_is_valid_iso8601(self, hactors_root: Path, load_yaml):
         create_project("test-project", hactors_root)

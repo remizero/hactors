@@ -12,3 +12,7 @@ La última distinción es fundamental: reutilizar código no es reutilizar la id
 
 
 Una vez establecido un test como artefacto identificable, su contenido y propósito de verificación no se modifican. Cualquier adaptación que cambie su objetivo o comportamiento se materializa como un nuevo artefacto, con una relación explícita con su antecedente. Las ejecuciones y sus resultados mantienen identidades independientes.
+
+## Instancias de ejecución
+
+La instancia `test_run` referencia el artefacto TEST mediante `identity.test_ref` y vive dentro del `rfc_run` correspondiente, inicial o derivado. Su estructura, creación y contexto activo se definen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md); las reglas de evidencia siguen en [EVIDENCE.md](EVIDENCE.md). Crear la instancia no crea ni modifica el TEST, no lo ejecuta y no produce resultados ni evidencia automáticamente.

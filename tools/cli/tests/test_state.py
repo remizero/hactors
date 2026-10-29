@@ -20,6 +20,7 @@ from hactors_cli.core.state import (
     set_active_run,
 )
 from hactors_cli.core.task_run import create_task_run
+from hactors_cli.core.test_run import create_test_run
 from hactors_cli.core.workflow import create_workflow
 
 
@@ -33,8 +34,8 @@ def snapshot(directory):
     }
 
 
-@pytest.fixture
-def selected_chain(hactors_root):
+@pytest.fixture(params=["rfc_run", "test_run"])
+def selected_chain(hactors_root, request):
     project = create_project("proj", hactors_root)
     runs = [create_workflow(hactors_root, project.name)]
     for create in (
@@ -42,6 +43,8 @@ def selected_chain(hactors_root):
         create_rfc_run, create_plan_run, create_rfc_run,
     ):
         runs.append(create(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
+    if request.param == "test_run":
+        runs.append(create_test_run(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
     return project, runs
 
 
@@ -120,7 +123,7 @@ class TestActiveSelection:
         project, runs = selected_chain
         before = snapshot(project)
         expected_paths = [run.relative_to(project).as_posix() for run in runs]
-        assert len(Path(expected_paths[-1]).parts) - 2 == 6
+        assert len(Path(expected_paths[-1]).parts) - 2 == len(runs) - 1
         for expected in reversed(expected_paths):
             assert require_active_run_path(hactors_root) == expected
             assert require_run_directory(hactors_root, project.name, expected) == project / expected
@@ -218,7 +221,7 @@ def test_entire_run_path_is_validated_without_normalizing(hactors_root, selected
         "double-slash": valid.replace("/", "//", 1),
         "trailing-slash": valid + "/",
         "file": valid + "/manifest.yaml",
-        "missing": valid + "/plan_run_999999",
+        "missing": Path(valid).with_name(runs[-1].name.rsplit("_", 1)[0] + "_999999").as_posix(),
         "bare-id": runs[0].name,
         "hactors-only": "hactors",
         "empty": "",
@@ -276,6 +279,8 @@ def test_repeated_instance_id_rejected_but_not_repeated_type(hactors_root, selec
     (0, "wrong-wrapper"), (0, "wrong-id"), (1, "wrong-id"), (2, "wrong-id"),
     (3, "wrong-id"), (6, "wrong-id"), (0, "missing"), (3, "missing"), (6, "missing"),
     (0, "malformed"), (3, "non-mapping"), (6, "non-mapping-identity"),
+    (-1, "wrong-id"), (-1, "missing"), (-1, "malformed"),
+    (-1, "non-mapping"), (-1, "non-mapping-identity"),
 ])
 def test_every_ancestor_manifest_is_validated(hactors_root, selected_chain, load_yaml, index, problem):
     project, runs = selected_chain

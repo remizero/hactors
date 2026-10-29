@@ -34,7 +34,7 @@ Los tipos no cambian la autoridad de aprobación ni implican que todo entregable
 - La derivación se registra como relación explícita; no implica dependencia de ejecución ni aprobación heredada.
 - Un modificador usa un correlativo local de la RFC y del tipo de modificador, independiente de los contadores globales.
 
-La instancia de ejecución `rfc_run` referencia la RFC sin modificar su identidad documental. Puede estar contenida en un `task_run` o en el `plan_run` que organiza una derivación; sus planes pueden continuar esa jerarquía recursiva. Las reglas de contención, ruta activa y profundidad de ejecución se definen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md), separadas de la derivación documental.
+La instancia de ejecución `rfc_run` referencia la RFC sin modificar su identidad documental. Puede estar contenida en un `task_run` o en el `plan_run` que organiza una derivación; sus planes pueden continuar esa jerarquía recursiva. Si la RFC produce artefactos TEST, sus ejecuciones se representan como `test_run` dentro del `rfc_run`, junto a sus posibles `plan_run`. TEST es un artefacto distinto de una RFC de tipo T; su inmutabilidad se define en [TESTS.md](TESTS.md). Las reglas de contención, ruta activa y profundidad de ejecución se definen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md), separadas de la derivación documental.
 
 ## Modificadores
 

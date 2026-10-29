@@ -11,6 +11,7 @@ from hactors_cli.core.rfc_run import RfcRunError, create_rfc_run
 from hactors_cli.core.state import load_state, select_parent_run, set_active_run
 from hactors_cli.core.task_run import TaskRunError, create_task_run
 from hactors_cli.core.templates import load_template, render_run_yaml
+from hactors_cli.core.test_run import TestRunError as CreateTestRunError, create_test_run
 from hactors_cli.core.workflow import create_workflow
 
 
@@ -24,7 +25,7 @@ def snapshot(directory):
     }
 
 
-@pytest.fixture(params=["rfc_run", "plan_run"])
+@pytest.fixture(params=["rfc_run", "plan_run", "test_run"])
 def run_case(request, hactors_root):
     project = create_project("test-proj", hactors_root)
     workflow = create_workflow(hactors_root, project.name)
@@ -34,6 +35,8 @@ def run_case(request, hactors_root):
         return create_rfc_run, RfcRunError, args, task, "rfc_run", "rfc_ref", "RFC-A00001"
     rfc = create_rfc_run(*args, rfc_ref="RFC-A00001")
     args[2] = rfc.relative_to(project).as_posix()
+    if request.param == "test_run":
+        return create_test_run, CreateTestRunError, args, rfc, "test_run", "test_ref", "opaque test reference"
     return create_plan_run, PlanRunError, args, rfc, "plan_run", "plan_ref", "PLAN-00001"
 
 
@@ -64,10 +67,12 @@ def test_defaults_come_from_template(run_case, load_yaml):
     create, _, args, _, prefix, _, _ = run_case
     path = args[0] / "specs" / "templates" / f"{prefix}_template.yaml"
     template = load_yaml(path)
-    template["state"]["status"] = "pending"
+    template["state"].update(status="pending", blocked_reason="waiting for review")
     path.write_text(yaml.safe_dump(template))
+    before = path.read_bytes()
     run = create(*args)
     assert load_yaml(run / "manifest.yaml")["state"] == template["state"]
+    assert path.read_bytes() == before
 
 
 def test_run_ids_are_sequential_and_counters_independent(run_case, load_yaml):
@@ -102,10 +107,12 @@ def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
             task = create_task_run(hactors_root, project_name, workflow.relative_to(project).as_posix())
             rfc = create_rfc_run(hactors_root, project_name, task.relative_to(project).as_posix())
             plan = create_plan_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
+            test = create_test_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
             assert rfc.name == f"rfc_run_{index:06d}"
             assert plan.name == f"plan_run_{index:06d}"
+            assert test.name == f"test_run_{index:06d}"
         assert load_yaml(project / "manifest.yaml")["counters"] == {
-            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2,
+            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2, "test_run": 2,
         }
 
 
@@ -169,19 +176,26 @@ def test_invalid_project_context_is_rejected(run_case, bad_name):
     assert snapshot(args[0] / "projects") == before
 
 
-@pytest.mark.parametrize("collision", ["directory", "file"])
-def test_existing_run_is_never_overwritten_or_counted(run_case, collision):
+@pytest.mark.parametrize("collision", ["directory", "file", "symlink", "dangling-symlink"])
+def test_existing_run_is_never_overwritten_or_counted(run_case, collision, tmp_path):
     create, error, args, parent, prefix, _, _ = run_case
     existing = parent / f"{prefix}_000001"
+    target = tmp_path / "collision-target"
+    target.mkdir()
     if collision == "directory":
         existing.mkdir()
         (existing / "manifest.yaml").write_text("preserved: true\n")
-    else:
+    elif collision == "file":
         existing.write_text("preserved file\n")
-    before = snapshot(args[0] / "projects")
+    elif collision == "symlink":
+        (target / "manifest.yaml").write_text("preserved target\n")
+        existing.symlink_to(target, target_is_directory=True)
+    else:
+        existing.symlink_to(target / "missing", target_is_directory=True)
+    before = snapshot(args[0] / "projects"), snapshot(target)
     with pytest.raises(error, match="Ya existe"):
         create(*args)
-    assert snapshot(args[0] / "projects") == before
+    assert (snapshot(args[0] / "projects"), snapshot(target)) == before
 
 
 @pytest.mark.parametrize("external", [False, True], ids=["internal", "external"])
@@ -217,7 +231,7 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_roo
     runs = [workflow, create_task_run(hactors_root, project.name, workflow.relative_to(project).as_posix())]
     originals = {run / "manifest.yaml": (run / "manifest.yaml").read_bytes() for run in runs}
     templates = {name: load_template(hactors_root, f"{name}_template.yaml") for name in ("rfc_run", "plan_run")}
-    expected_counters = {"task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0}
+    expected_counters = {"task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0, "test_run": 0}
     for current_depth in range(2, depth + 1):
         is_rfc = current_depth % 2 == 0
         prefix, field, ref = ("rfc_run", "rfc_ref", "RFC-A00001") if is_rfc else ("plan_run", "plan_ref", "PLAN-00001")
@@ -265,6 +279,9 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_roo
     (create_plan_run, PlanRunError, "plan_run", 0),
     (create_plan_run, PlanRunError, "plan_run", 1),
     (create_plan_run, PlanRunError, "plan_run", 3),
+    (create_test_run, CreateTestRunError, "test_run", 0),
+    (create_test_run, CreateTestRunError, "test_run", 1),
+    (create_test_run, CreateTestRunError, "test_run", 3),
 ])
 def test_incompatible_parent_never_falls_back_to_ancestor(
     hactors_root, create, error, child_type, parent_index,
@@ -283,6 +300,7 @@ def test_incompatible_parent_never_falls_back_to_ancestor(
     assert snapshot(hactors_root / "projects") == before
 
 
+@pytest.mark.parametrize("run_case", ["rfc_run", "plan_run"], indirect=True)
 @pytest.mark.parametrize("missing", [False, True], ids=["stale", "missing"])
 def test_next_id_cannot_repeat_an_ancestor_before_any_write(run_case, load_yaml, missing):
     create, error, args, _, prefix, _, _ = run_case
