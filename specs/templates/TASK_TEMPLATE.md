@@ -36,7 +36,7 @@ execution:
 - `scope: full`: referenciar los criterios de la RFC, sin copiarlos.
 - `scope: partial`: referenciar únicamente los identificadores de criterios cubiertos por esta TASK.
 - `execution.status`: hecho observado, no resultado deseado; `target_status` expresa el objetivo.
-- `evidence`: referencias a registros con los mínimos de [TESTS.md](specs/TESTS.md).
+- `evidence`: referencias a registros con los mínimos de [EVIDENCE.md](../EVIDENCE.md).
 - `blockers`: condiciones que impiden avanzar, sin convertirlas en aprobaciones implícitas.
 
 Una tarea parcial no puede reducir ni reinterpretar los criterios originales.

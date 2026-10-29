@@ -33,7 +33,7 @@ Cada fila es un entregable individual bajo la RFC.
 | `decision` | Elección entre alternativas. | Registro en `decisions/` y ADR si aplica. |
 | `implementation` | Producción de código o configuración. | Archivo en el módulo afectado. |
 | `test` | Verificación automatizada o manual. | Resultado en `tests/`. |
-| `evidence` | Prueba de un resultado. | Registro en `evidence/`. |
+| `evidence` | Prueba de un resultado. | Registro EVD junto al artefacto que la generó; formato en [EVIDENCE.md](../EVIDENCE.md). |
 | `documentation` | Actualización de docs. | Documento afectado. |
 
 Un `plan` representa intención; no afirma ejecución.

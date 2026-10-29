@@ -1,6 +1,6 @@
 <!-- schema: finding/1.0 -->
 
-# Plantilla de hallazgo (FIND-nnnnn)
+# Plantilla de hallazgo (FND-nnnnn)
 
 [actor: human | agent] utiliza esta plantilla al registrar un hallazgo en `findings.yaml` dentro del proyecto.
 El formato, tipos, severidades y transiciones se definen aquí; las reglas de operación están en [FINDINGS.md](../FINDINGS.md).
@@ -16,7 +16,7 @@ No aprueba cambios ni reemplaza una RFC; puede derivar en una o quedar como ante
 Copiar como entrada en `findings.yaml` del proyecto.
 
 ```yaml
-- id: FIND-00001
+- id: FND-00001
   title: ""
   kind: ""
   severity: ""
@@ -34,7 +34,7 @@ Copiar como entrada en `findings.yaml` del proyecto.
 
 | Campo | Tipo | Descripción |
 |---|---|---|
-| `id` | `FIND-nnnnn` | Identificador único; no se reutiliza al retirar. |
+| `id` | `FND-nnnnn` | Identificador único; no se reutiliza al retirar. |
 | `title` | texto | Descripción concisa del hecho observado. |
 | `kind` | enum | Tipo de hallazgo; ver tabla de tipos. |
 | `severity` | enum | Impacto; ver tabla de severidad. |
