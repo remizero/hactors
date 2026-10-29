@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from hactors_cli.core.harness_run import HarnessRunError, create_harness_run
 from hactors_cli.core.paths import require_run_directory
 from hactors_cli.core.plan_run import PlanRunError, create_plan_run
 from hactors_cli.core.project import create_project
@@ -25,7 +26,7 @@ def snapshot(directory):
     }
 
 
-@pytest.fixture(params=["rfc_run", "plan_run", "test_run"])
+@pytest.fixture(params=["rfc_run", "plan_run", "test_run", "harness_run"])
 def run_case(request, hactors_root):
     project = create_project("test-proj", hactors_root)
     workflow = create_workflow(hactors_root, project.name)
@@ -37,6 +38,10 @@ def run_case(request, hactors_root):
     args[2] = rfc.relative_to(project).as_posix()
     if request.param == "test_run":
         return create_test_run, CreateTestRunError, args, rfc, "test_run", "test_ref", "opaque test reference"
+    if request.param == "harness_run":
+        test = create_test_run(*args)
+        args[2] = test.relative_to(project).as_posix()
+        return create_harness_run, HarnessRunError, args, test, "harness_run", "harness_ref", "HRN-00001@v1"
     return create_plan_run, PlanRunError, args, rfc, "plan_run", "plan_ref", "PLAN-00001"
 
 
@@ -108,11 +113,15 @@ def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
             rfc = create_rfc_run(hactors_root, project_name, task.relative_to(project).as_posix())
             plan = create_plan_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
             test = create_test_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
+            harness = create_harness_run(hactors_root, project_name, test.relative_to(project).as_posix())
             assert rfc.name == f"rfc_run_{index:06d}"
             assert plan.name == f"plan_run_{index:06d}"
             assert test.name == f"test_run_{index:06d}"
+            assert harness.name == f"harness_run_{index:06d}"
+            assert harness.parent == test
         assert load_yaml(project / "manifest.yaml")["counters"] == {
-            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2, "test_run": 2,
+            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2,
+            "test_run": 2, "harness_run": 2,
         }
 
 
@@ -126,16 +135,32 @@ def test_missing_template_does_not_change_manifest_state_or_directories(run_case
 
 
 @pytest.mark.parametrize("level", ["project", "workflow", "parent"])
-def test_missing_ancestor_manifest_has_no_side_effects(run_case, level):
+@pytest.mark.parametrize("problem", ["missing", "malformed", "non-mapping", "wrong-id", "non-mapping-identity"])
+def test_invalid_ancestor_manifest_has_no_side_effects(run_case, level, problem, load_yaml):
     create, error, args, parent, _, _, _ = run_case
     project = args[0] / "projects" / args[1]
     ancestor = {
         "project": project, "workflow": project / Path(args[2]).parts[0] / Path(args[2]).parts[1],
         "parent": parent,
     }[level]
-    (ancestor / "manifest.yaml").unlink()
+    manifest = ancestor / "manifest.yaml"
+    if problem == "missing":
+        manifest.unlink()
+    elif problem in ("malformed", "non-mapping"):
+        manifest.write_text("identity: [broken" if problem == "malformed" else "[]\n")
+    else:
+        data = load_yaml(manifest)
+        if level == "project":
+            data["project"] = "other" if problem == "wrong-id" else []
+        else:
+            body = data[ancestor.name] if level == "workflow" else data
+            if problem == "wrong-id":
+                body["identity"]["id"] = "wrong_999999"
+            else:
+                body["identity"] = []
+        manifest.write_text(yaml.safe_dump(data))
     before = snapshot(args[0] / "projects")
-    with pytest.raises(error, match="manifest"):
+    with pytest.raises(error, match="[Mm]anifest"):
         create(*args)
     assert snapshot(args[0] / "projects") == before
 
@@ -157,13 +182,26 @@ def test_nonexistent_ancestor_has_no_side_effects(run_case, component):
     assert snapshot(args[0] / "projects") == before
 
 
-@pytest.mark.parametrize("bad_value", ["../outside", "/tmp/outside", "workflow_run_000001", "wrong_000001", 42])
-def test_invalid_parent_paths_are_rejected(run_case, bad_value):
+@pytest.mark.parametrize("case", [
+    "outside", "absolute", "bare-id", "wrong-id", "number", "none", "empty", "hactors-only",
+    "dot", "dotdot", "backslash", "double-slash", "trailing-slash", "file", "short-id", "suffix",
+])
+def test_invalid_parent_paths_are_rejected(run_case, case):
     create, error, args, _, _, _, _ = run_case
-    args = [*args[:2], bad_value]
+    valid = args[2]
+    bad_value = {
+        "outside": "../outside", "absolute": "/tmp/outside", "bare-id": "workflow_run_000001",
+        "wrong-id": "wrong_000001", "number": 42, "none": None, "empty": "", "hactors-only": "hactors",
+        "dot": valid.replace("hactors/", "hactors/./", 1),
+        "dotdot": valid.replace("hactors/", "hactors/../hactors/", 1),
+        "backslash": valid.replace("/", "\\"), "double-slash": valid.replace("/", "//", 1),
+        "trailing-slash": valid + "/", "file": valid + "/manifest.yaml",
+        "short-id": valid.replace("workflow_run_000001", "workflow_run_1"),
+        "suffix": valid + "/unknown_000001",
+    }[case]
     before = snapshot(args[0] / "projects")
     with pytest.raises(error):
-        create(*args)
+        create(*args[:2], bad_value)
     assert snapshot(args[0] / "projects") == before
 
 
@@ -199,16 +237,21 @@ def test_existing_run_is_never_overwritten_or_counted(run_case, collision, tmp_p
 
 
 @pytest.mark.parametrize("external", [False, True], ids=["internal", "external"])
-def test_parent_symlink_is_rejected_without_writing_target(run_case, tmp_path, external):
+@pytest.mark.parametrize("location", ["parent", "ancestor", "parent-manifest", "ancestor-manifest"])
+def test_parent_chain_symlink_is_rejected_without_writing_target(run_case, tmp_path, external, location):
     create, error, args, parent, _, _, _ = run_case
     project = args[0] / "projects" / args[1]
-    target = (tmp_path if external else project) / "original-parent"
-    parent.rename(target)
-    parent.symlink_to(target, target_is_directory=True)
-    before = snapshot(args[0] / "projects"), snapshot(target)
+    node = project / "hactors" / Path(args[2]).parts[1] if location.startswith("ancestor") else parent
+    if location.endswith("manifest"):
+        node /= "manifest.yaml"
+    is_directory = node.is_dir()
+    target = (tmp_path if external else project) / "original-node"
+    node.rename(target)
+    node.symlink_to(target, target_is_directory=is_directory)
+    before = snapshot(tmp_path)
     with pytest.raises(error):
         create(*args)
-    assert (snapshot(args[0] / "projects"), snapshot(target)) == before
+    assert snapshot(tmp_path) == before
 
 
 def test_new_counter_added_without_rewriting_ancestors(run_case, load_yaml):
@@ -220,7 +263,8 @@ def test_new_counter_added_without_rewriting_ancestors(run_case, load_yaml):
     before = (parent / "manifest.yaml").read_bytes()
     run = create(*args)
     assert run.name == f"{prefix}_000001"
-    assert load_yaml(manifest)["counters"][prefix] == 1
+    data["counters"][prefix] = 1
+    assert load_yaml(manifest) == data
     assert (parent / "manifest.yaml").read_bytes() == before
 
 
@@ -231,7 +275,10 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_roo
     runs = [workflow, create_task_run(hactors_root, project.name, workflow.relative_to(project).as_posix())]
     originals = {run / "manifest.yaml": (run / "manifest.yaml").read_bytes() for run in runs}
     templates = {name: load_template(hactors_root, f"{name}_template.yaml") for name in ("rfc_run", "plan_run")}
-    expected_counters = {"task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0, "test_run": 0}
+    expected_counters = {
+        "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0,
+        "test_run": 0, "harness_run": 0,
+    }
     for current_depth in range(2, depth + 1):
         is_rfc = current_depth % 2 == 0
         prefix, field, ref = ("rfc_run", "rfc_ref", "RFC-A00001") if is_rfc else ("plan_run", "plan_ref", "PLAN-00001")
@@ -282,6 +329,10 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_roo
     (create_test_run, CreateTestRunError, "test_run", 0),
     (create_test_run, CreateTestRunError, "test_run", 1),
     (create_test_run, CreateTestRunError, "test_run", 3),
+    (create_harness_run, HarnessRunError, "harness_run", 0),
+    (create_harness_run, HarnessRunError, "harness_run", 1),
+    (create_harness_run, HarnessRunError, "harness_run", 2),
+    (create_harness_run, HarnessRunError, "harness_run", 3),
 ])
 def test_incompatible_parent_never_falls_back_to_ancestor(
     hactors_root, create, error, child_type, parent_index,
@@ -321,7 +372,7 @@ def test_next_id_cannot_repeat_an_ancestor_before_any_write(run_case, load_yaml,
     assert snapshot(args[0] / "projects") == before
 
 
-@pytest.mark.parametrize("value", [-1, True, "1", None, []])
+@pytest.mark.parametrize("value", [-1, True, False, 1.5, "1", None, [], {}])
 def test_invalid_counter_is_rejected_before_any_write(run_case, load_yaml, value):
     create, error, args, _, prefix, _, _ = run_case
     manifest = args[0] / "projects" / args[1] / "manifest.yaml"
@@ -332,6 +383,30 @@ def test_invalid_counter_is_rejected_before_any_write(run_case, load_yaml, value
     with pytest.raises(error, match="Contador inválido"):
         create(*args)
     assert snapshot(args[0] / "projects") == before
+
+
+@pytest.mark.parametrize("value", [None, [], "invalid", 1, False])
+def test_invalid_counters_mapping_is_rejected_before_any_write(run_case, load_yaml, value):
+    create, error, args, _, _, _, _ = run_case
+    manifest = args[0] / "projects" / args[1] / "manifest.yaml"
+    data = load_yaml(manifest)
+    data["counters"] = value
+    manifest.write_text(yaml.safe_dump(data))
+    before = snapshot(args[0])
+    with pytest.raises(error, match="Contadores inválidos"):
+        create(*args)
+    assert snapshot(args[0]) == before
+
+
+@pytest.mark.parametrize("content", ["identity: [broken", "[]\n", "null\n", "42\n"])
+def test_invalid_template_is_rejected_before_any_write(run_case, content):
+    create, error, args, _, prefix, _, _ = run_case
+    source = args[0] / "specs" / "templates" / f"{prefix}_template.yaml"
+    source.write_text(content)
+    before = snapshot(args[0])
+    with pytest.raises(error):
+        create(*args)
+    assert snapshot(args[0]) == before
 
 
 def test_render_does_not_mutate_template(hactors_root):

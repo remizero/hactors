@@ -1,6 +1,6 @@
 # Sistema de ejecución HACTORS.
 
-> **Alcance de la CLI:** implementa la jerarquía recursiva, la ruta activa completa y la navegación descritas en este documento. Los comandos crean y seleccionan instancias; no generan artefactos RFC/PLAN/TEST ni gestionan su aprobación, avance o cierre.
+> **Alcance de la CLI:** implementa la jerarquía recursiva, la ruta activa completa y la navegación descritas en este documento. Los comandos crean y seleccionan instancias; no generan artefactos RFC/PLAN/TEST/HARNESS ni gestionan su aprobación, avance o cierre. `create-harness-run` registra referencias declaradas: no resuelve catálogos, verifica contenido, publica versiones ni construye o ejecuta recetas.
 
 ## 1. ¿Qué es el sistema de ejecución HACTORS?
 
@@ -25,7 +25,9 @@ Este sistema se basa en tres principios:
 | PLAN | Documento que ordena pasos y puntos de decisión derivados de una RFC y puede proponer nuevas RFCs. |
 | plan_run | Instancia de ejecución de un PLAN, dentro de un rfc_run; puede contener ejecuciones de RFCs derivadas. |
 | TEST | Artefacto inmutable que define una verificación, distinto de sus ejecuciones y resultados. |
-| test_run | Instancia de ejecución de un TEST, dentro de un rfc_run inicial o derivado. |
+| test_run | Instancia de ejecución de un TEST, dentro de un rfc_run inicial o derivado; puede contener harness_runs. |
+| HARNESS | Receta con identidad estable y versiones publicadas inmutables; reglas en [HARNESS.md](HARNESS.md). |
+| harness_run | Instancia de uso de una versión de HARNESS bajo el test_run solicitante; crearla no ejecuta ni valida la receta. |
 | EVIDENCE | Registros verificables que respaldan las afirmaciones de cada paso. |
 
 ### Relación entre WORKFLOW y workflow_run
@@ -36,7 +38,7 @@ La distinción es importante: el WORKFLOW dice *cómo debería ser* el proceso; 
 
 ## 2. Estructura de directorios de ejecución
 
-La ejecución se organiza físicamente dentro del directorio del proyecto. Cada artefacto tiene una ubicación propia y anidada:
+La ejecución se organiza físicamente dentro del directorio del proyecto. Cada instancia tiene una ubicación propia y anidada; los catálogos y versiones de HARNESS se almacenan separadamente conforme a [HARNESS.md](HARNESS.md):
 
 ```
 projects/<project_name>/
@@ -56,11 +58,17 @@ projects/<project_name>/
 │   │   │       │   │       └── rfc_run_000003/
 │   │   │       │   │           ├── manifest.yaml
 │   │   │       │   │           └── test_run_000002/
-│   │   │       │   │               └── manifest.yaml
+│   │   │       │   │               ├── manifest.yaml
+│   │   │       │   │               └── harness_run_000003/
+│   │   │       │   │                   └── manifest.yaml
 │   │   │       │   └── rfc_run_000004/
 │   │   │       │       └── manifest.yaml
 │   │   │       └── test_run_000001/
-│   │   │           └── manifest.yaml
+│   │   │           ├── manifest.yaml
+│   │   │           ├── harness_run_000001/
+│   │   │           │   └── manifest.yaml
+│   │   │           └── harness_run_000002/
+│   │   │               └── manifest.yaml
 │   │   └── task_run_000002/
 │   │       └── manifest.yaml
 │   └── workflow_run_000002/
@@ -91,7 +99,8 @@ projects/.state.yaml
 | `hactors/workflow_run_XXXXXX/task_run_XXXXXX/` | task_run | Unidad de trabajo que contiene ejecuciones de RFC. |
 | `…/task_run_XXXXXX/rfc_run_XXXXXX/` o `…/plan_run_XXXXXX/rfc_run_XXXXXX/` | rfc_run | Ejecución que referencia una RFC inicial o derivada. |
 | `…/rfc_run_XXXXXX/plan_run_XXXXXX/` | plan_run | Ejecución que referencia un PLAN y puede contener nuevos rfc_runs. |
-| `…/rfc_run_XXXXXX/test_run_XXXXXX/` | test_run | Ejecución que referencia un TEST, sin hijos de ejecución en este modelo. |
+| `…/rfc_run_XXXXXX/test_run_XXXXXX/` | test_run | Ejecución que referencia un TEST y puede contener harness_runs. |
+| `…/test_run_XXXXXX/harness_run_XXXXXX/` | harness_run | Uso de una versión de HARNESS; hoja de ejecución. |
 | `projects/.state.yaml` | Estado activo | Proyecto y ruta completa de la instancia seleccionada, con todos sus ancestros. |
 
 ### Reglas de anidamiento
@@ -103,10 +112,11 @@ projects/.state.yaml
 | `task_run` | `rfc_run` |
 | `rfc_run` | `plan_run`, `test_run` |
 | `plan_run` | `rfc_run` |
-| `test_run` | Ninguno en el modelo actual |
+| `test_run` | `harness_run` |
+| `harness_run` | Ninguno |
 
-- Cada padre puede contener cero o varias instancias de los tipos permitidos. No toda RFC produce un PLAN o un TEST ni todo PLAN deriva nuevas RFCs; plan_runs y test_runs pueden coexistir bajo un mismo rfc_run.
-- Tras `workflow_run → task_run`, las ramas recursivas alternan `rfc_run → plan_run → rfc_run → …`, sin una profundidad fija del modelo. Desde cualquier rfc_run puede abrirse una rama `rfc_run → test_run`, que termina allí. Cada ruta concreta es finita y queda sujeta a los límites del sistema de archivos.
+- Cada padre puede contener cero o varias instancias de los tipos permitidos. No toda RFC produce un PLAN o un TEST ni todo PLAN deriva nuevas RFCs; plan_runs y test_runs pueden coexistir bajo un mismo rfc_run. Un TEST no necesita usar un HARNESS, pero puede contener varios usos concretos.
+- Tras `workflow_run → task_run`, las ramas recursivas alternan `rfc_run → plan_run → rfc_run → …`, sin una profundidad fija del modelo. Desde cualquier rfc_run puede abrirse una rama `rfc_run → test_run → harness_run`, que termina en el HARNESS. Cada ruta concreta es finita y queda sujeta a los límites del sistema de archivos.
 - Cada instancia tiene un único padre inmediato y conserva su ubicación. No se reutiliza una instancia como hija de otro padre ni se enlaza un ancestro como descendiente; el árbol de cada workflow_run no contiene ciclos.
 - Pueden repetirse los tipos, pero no la identidad de una instancia dentro del proyecto. Ejecutar de nuevo un documento requiere otra instancia con otro ID; el mismo documento referenciado no convierte esas instancias en una sola.
 - Los IDs son secuenciales por tipo y proyecto, con un mínimo de seis dígitos. El número no codifica parentesco ni profundidad.
@@ -128,8 +138,9 @@ Para la rama más profunda del árbol anterior:
 | 5 | `plan_run_000002` | `rfc_run_000002` |
 | 6 | `rfc_run_000003` | `plan_run_000002` |
 | 7 | `test_run_000002` | `rfc_run_000003` |
+| 8 | `harness_run_000003` | `test_run_000002` |
 
-`rfc_run_000004` es hermano de `rfc_run_000002`: ambos tienen profundidad `4`. No es descendiente de `rfc_run_000003`, aunque su número sea mayor. `test_run_000001` tiene profundidad `3`, igual que su hermano `plan_run_000001`; `test_run_000002` conserva todos los ancestros de su RFC padre y suma un nivel.
+`rfc_run_000004` es hermano de `rfc_run_000002`: ambos tienen profundidad `4`. No es descendiente de `rfc_run_000003`, aunque su número sea mayor. `test_run_000001` tiene profundidad `3`, igual que su hermano `plan_run_000001`; `test_run_000002` conserva todos los ancestros de su RFC padre y suma un nivel. Sus harness_runs añaden otro nivel: `harness_run_000001` y `harness_run_000002` tienen profundidad `4`; `harness_run_000003`, profundidad `8`.
 
 La ascendencia se reconstruye como una **secuencia ordenada de instancias**, mediante todos los prefijos de la ruta. No se reduce a un mapa por tipo ni se elimina un ancestro porque otro tenga el mismo tipo. Para `rfc_run_000003`, las RFCs ancestras son las instancias `rfc_run_000001` y `rfc_run_000002`, en sus posiciones originales; ninguna sustituye a la otra.
 
@@ -159,8 +170,9 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 | `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
 | `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
 | `test_run` | Un test_run dentro de un rfc_run | `test_run_000001` |
+| `harness_run` | Un harness_run dentro de un test_run | `harness_run_000001` |
 
-Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y su propio contador. Los contadores de ejecución no numeran artefactos RFC, PLAN ni TEST y no se reinician al abrir una rama.
+Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos RFC, PLAN, TEST, HRN ni versiones de receta y no se reinician al abrir una rama.
 
 Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
@@ -178,6 +190,7 @@ counters:
   rfc_run: 0
   plan_run: 0
   test_run: 0
+  harness_run: 0
 ```
 
 Los contadores registran la numeración asignada, no la ubicación ni una comprobación de existencia. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
@@ -232,12 +245,13 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-rfc-run` | La instancia activa es un task_run o un plan_run | Crea su hijo rfc_run y añade el ID a la ruta activa. |
 | `hactors create-plan-run` | La instancia activa es un rfc_run | Crea su hijo plan_run y añade el ID a la ruta activa. |
 | `hactors create-test-run` | La instancia activa es un rfc_run | Crea su hijo test_run y añade el ID a la ruta activa. |
+| `hactors create-harness-run` | La instancia activa es un test_run | Crea su hijo harness_run y añade el ID a la ruta activa. |
 
 `use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
 
-Cada creación de un hijo opera sobre la **instancia seleccionada**, nunca sobre el ancestro compatible más cercano. Para crear un hermano, se selecciona primero el padre compartido; para crear varios plan_runs o test_runs de una RFC, se vuelve a ese rfc_run después de cada creación. Un test_run seleccionado no admite crear hijos; debe seleccionarse otro padre compatible. Crear un hijo preserva todos los prefijos ancestrales, aunque se repitan sus tipos. Seleccionar otra rama reemplaza la ruta activa, pero no la ascendencia almacenada físicamente en ninguna de las ramas.
+Cada creación de un hijo opera sobre la **instancia seleccionada**, nunca sobre el ancestro compatible más cercano. Para crear un hermano, se selecciona primero el padre compartido; para crear varios plan_runs o test_runs de una RFC, se vuelve a ese rfc_run después de cada creación; para varios harness_runs, se vuelve al test_run solicitante. Un harness_run seleccionado no admite crear hijos. Crear un hijo preserva todos los prefijos ancestrales, aunque se repitan sus tipos. Seleccionar otra rama reemplaza la ruta activa, pero no la ascendencia almacenada físicamente en ninguna de las ramas.
 
-Los comandos crean únicamente instancias y sus manifiestos, no los artefactos RFC/PLAN/TEST ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del artefacto referenciado. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no ejecuta su trabajo, no produce resultados ni evidencia, no autoriza la ejecución ni modifica los estados de sus ancestros.
+Los comandos crean únicamente instancias y sus manifiestos, no los artefactos RFC/PLAN/TEST/HARNESS ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del artefacto referenciado. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no ejecuta su trabajo, no produce resultados ni evidencia, no autoriza la ejecución ni modifica los estados de sus ancestros.
 
 ### Secuencia CLI
 
@@ -276,7 +290,20 @@ hactors create-test-run --test-ref verificacion-autenticacion
 
 Se crean `test_run_000001` a profundidad `3` y `test_run_000002` a profundidad `7`, como en el árbol de la sección 2. Queda seleccionada la ruta completa del segundo test_run. La referencia es ilustrativa, no una convención de nombres TEST; reutilizar un TEST compatible no reutiliza la identidad de su ejecución, conforme a [TESTS.md](TESTS.md).
 
-Todos los comandos anteriores admiten `--root <directorio-hactors>`. `--rfc-ref` pertenece a `create-rfc-run`, no a `create-task-run`; `--plan-ref` pertenece a `create-plan-run` y `--test-ref` a `create-test-run`.
+Para crear usos de una receta bajo ambos TESTs, preservando el contexto solicitante:
+
+```bash
+hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001
+hactors create-harness-run --harness-ref HRN-00001@v002
+hactors use-run --parent
+hactors create-harness-run --harness-ref HRN-00001@v002
+hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003/test_run_000002
+hactors create-harness-run --harness-ref HRN-00001@v002
+```
+
+Se crean `harness_run_000001` y `harness_run_000002` a profundidad `4`, y `harness_run_000003` a profundidad `8`; queda seleccionado el tercero. La referencia HRN es ilustrativa y declarada, no resuelta ni verificada. `content_ref`, revisión examinada y parámetros conservan los valores de la plantilla; este ejemplo no satisface los requisitos para ejecutar la receta.
+
+Todos los comandos anteriores admiten `--root <directorio-hactors>`. `--rfc-ref` pertenece a `create-rfc-run`, no a `create-task-run`; `--plan-ref` pertenece a `create-plan-run`, `--test-ref` a `create-test-run`, y `--harness-ref` / `--content-ref` a `create-harness-run`.
 
 ### Transición desde el formato anterior
 
@@ -399,7 +426,7 @@ review:
 
 ## 6. task_run: unidad de ejecución dentro del workflow
 
-Un `task_run` es una unidad de trabajo dentro de un `workflow_run`. Agrupa instancias `rfc_run` iniciales, cada una asociada a una RFC específica, sin duplicar sus referencias documentales. Sus descendientes pueden alternar rfc_runs y plan_runs y contener test_runs bajo cualquier rfc_run según la sección 2; todos conservan el mismo task_run y workflow_run ancestrales.
+Un `task_run` es una unidad de trabajo dentro de un `workflow_run`. Agrupa instancias `rfc_run` iniciales, cada una asociada a una RFC específica, sin duplicar sus referencias documentales. Sus descendientes pueden alternar rfc_runs y plan_runs y contener test_runs con harness_runs bajo cualquier rfc_run según la sección 2; todos conservan el mismo task_run y workflow_run ancestrales.
 
 ### Ubicación
 
@@ -469,7 +496,7 @@ workflow_run_000001:
     task_ref: "task_000001"
 ```
 
-Esto inicia la cadena de trazabilidad descrita en la sección 8. Cada nuevo rfc_run, plan_run o test_run conserva la TASK iniciadora a través de todos sus ancestros, no mediante una copia de `task_ref` en cada nivel.
+Esto inicia la cadena de trazabilidad descrita en la sección 8. Cada nuevo rfc_run, plan_run, test_run o harness_run conserva la TASK iniciadora a través de todos sus ancestros, no mediante una copia de `task_ref` en cada nivel.
 
 ## 8. Cadena de trazabilidad
 
@@ -490,6 +517,7 @@ Las flechas hacia TASK, RFC y PLAN representan referencias documentales; entre i
 - **rfc_run → RFC**: `identity.rfc_ref` identifica la especificación de esa instancia, a cualquier profundidad.
 - **plan_run → PLAN**: `identity.plan_ref` identifica el plan; su documento conserva el origen RFC y las decisiones, sin duplicarlos en la ejecución.
 - **rfc_run → test_run → TEST**: el primer vínculo es contención; `identity.test_ref` establece el segundo sin copiar el TEST ni la referencia RFC del padre.
+- **test_run → harness_run → versión de HARNESS**: el primer vínculo es contención; `identity.harness_ref` declara la versión usada y `identity.content_ref` registra la referencia a su contenido, sin convertir el catálogo en padre de la instancia.
 
 ### Derivación documental y contención de ejecuciones
 
@@ -552,11 +580,13 @@ El `plan_run_000001` intermedio referencia `PLAN-00001` mediante `identity.plan_
 Dado cualquier artefacto vinculado, es posible reconstruir la cadena completa:
 
 - Desde un **plan_run**, `plan_ref` identifica el **PLAN** y el directorio padre lleva al **rfc_run** de origen.
+- Desde un **harness_run**, `harness_ref` identifica la versión de **HARNESS** y el directorio padre lleva al **test_run solicitante**, no al TEST histórico de origen del HRN.
 - Desde un **test_run**, `test_ref` identifica el **TEST** y el directorio padre lleva al **rfc_run** correspondiente; se conserva toda su ascendencia, aunque incluya otros rfc_runs.
 - Desde un **rfc_run**, `rfc_ref` identifica su **RFC**. Su padre es un **task_run** si es inicial, o un **plan_run** si es derivado; en este último caso se sigue ascendiendo por todos los plan_runs y rfc_runs anteriores, sin colapsarlos por tipo.
 - Desde un **task_run**, se navega al padre **workflow_run** y de su `task_ref` se obtiene la **TASK**.
 - Desde una **TASK**, se buscan los workflow_runs que la referencian en `task_ref`.
 - Desde una **RFC**, un **PLAN** o un **TEST**, se buscan todas sus instancias por `rfc_ref`, `plan_ref` o `test_ref`, respectivamente, recorriendo recursivamente las ramas a cualquier profundidad. Una referencia documental puede devolver varias rutas de ejecución, no una selección activa implícita.
+- Desde una **versión de HARNESS**, se buscan las instancias que declaran esa referencia exacta en `harness_ref`. La consulta no valida la publicación, la compatibilidad ni los resultados de esas instancias.
 
 La reconstrucción parte de la ruta de la instancia y sus manifiestos, no requiere que esa rama esté activa. Al ascender se elimina un componente cada vez; al descender se añade uno por hijo. Así se preservan la identidad de cada ancestro y su profundidad original, incluso cuando los tipos se repiten.
 
@@ -594,6 +624,66 @@ El modelo de contención no añade reglas de aprobación, avance o cierre autom�
 
 El artefacto TEST y su inmutabilidad se definen en [TESTS.md](TESTS.md). El `test_run` representa una instancia independiente; su manifiesto se define en [test_run_template.yaml](templates/test_run_template.yaml). `identity.id` identifica la ejecución, `identity.test_ref` referencia el TEST y `state` registra su estado y motivo de bloqueo. Los valores iniciales proceden de la plantilla.
 
-Su padre inmediato es un rfc_run, inicial o derivado, y no contiene otros runs en el modelo actual. La RFC de contexto se obtiene del padre, sin duplicar `rfc_ref`; la ruta conserva todos los ancestros y determina la profundidad. Un mismo TEST puede tener varias instancias con IDs distintos, bajo el mismo rfc_run o bajo otros rfc_runs cuando el escenario sea compatible.
+Su padre inmediato es un rfc_run, inicial o derivado, y puede contener cero o varios harness_runs según la sección 2. La RFC de contexto se obtiene del padre, sin duplicar `rfc_ref`; la ruta conserva todos los ancestros y determina la profundidad. Un mismo TEST puede tener varias instancias con IDs distintos, bajo el mismo rfc_run o bajo otros rfc_runs cuando el escenario sea compatible.
 
 `create-test-run` crea el directorio y su manifiesto y selecciona la nueva ruta. No genera ni modifica el artefacto TEST, no lo ejecuta y no produce resultados ni evidencia. Las reglas de evidencia se definen en [EVIDENCE.md](EVIDENCE.md); crear una instancia no acredita una verificación satisfactoria ni cierra su RFC.
+
+## 12. harness_run: ejecución de una versión de HARNESS
+
+La CLI crea y selecciona la estructura de `harness_run`; no automatiza la publicación, resolución, verificación o ejecución de recetas. El HARNESS y sus versiones publicadas siguen [HARNESS.md](HARNESS.md); sus campos y referencias exactas se definen en [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md).
+
+Un `harness_run` registra una instancia concreta del uso de **una versión publicada** de HARNESS. Puede crearse su estructura antes de completar y verificar esa asociación; crearla no acredita que la versión exista o esté publicada. La receta, su versión y la ejecución tienen identidades distintas. El padre es el `test_run` que solicita ese uso, independientemente del TEST que originó el HRN o del lugar donde se almacena su receta.
+
+### Contención y multiplicidad
+
+El anidamiento sigue la tabla de la sección 2:
+
+- Cada `harness_run` tiene un solo `test_run` padre, bajo una RFC inicial o derivada a cualquier profundidad. No se anida directamente bajo `rfc_run`, `plan_run`, el catálogo HRN o una carpeta de versión.
+- Un TEST puede usar distintos HRN o distintas versiones, y repetir un uso; cada uso concreto obtiene otro `harness_run`. Para repetir el TEST completo se crea además otro `test_run`.
+- Dos TESTs pueden usar la misma versión, pero cada contexto conserva sus propias instancias. No se mueve, comparte o reutiliza un directorio de ejecución como hijo de otro TEST.
+- La instancia conserva la ubicación e identidad de todos sus ancestros. La reutilización de la receta es una referencia documental, no un segundo padre ni una rama que salte al TEST de origen.
+
+El árbol y las profundidades se muestran en la sección 2, y su creación en la secuencia CLI de la sección 4. Los tres harness_runs pueden referenciar `HRN-00001@v002` sin compartir su ejecución. Cada harness_run suma un nivel al TEST solicitante; los ancestros RFC/PLAN repetidos conservan sus posiciones.
+
+### Contrato del manifiesto
+
+Cada instancia conserva su propio `manifest.yaml`, cuya estructura y valores iniciales proceden de [harness_run_template.yaml](templates/harness_run_template.yaml). Los campos son:
+
+| Campo | Responsabilidad |
+|---|---|
+| `identity.id` | ID `harness_run_` con un mínimo de seis dígitos; coincide con el directorio. |
+| `identity.harness_ref` | Referencia exacta a la versión publicada, con la notación de HRN_TEMPLATE; nunca `current`, `latest` ni un HRN sin versión. |
+| `identity.content_ref` | Referencia al contenido inmutable resuelta al asociar la versión; coincide con la asociación publicada en el catálogo y queda fijada para esta ejecución. |
+| `execution.source_revision` | Revisión exacta examinada, no la revisión de la receta ni un tag o rama mutable. |
+| `execution.parameters` | Valores efectivos de los parámetros admitidos por la receta, incluidos los predeterminados utilizados. |
+| `state.status` | Estado de esta instancia, independiente del estado de disponibilidad de la versión y del resultado del TEST. |
+| `state.blocked_reason` | Motivo de bloqueo de esta instancia, cuando corresponda. |
+
+El TEST solicitante se obtiene de `identity.test_ref` en el padre; la RFC y la TASK se recuperan siguiendo la ruta y sus manifiestos. No se duplican `test_ref`, `rfc_ref`, `task_ref`, origen del HRN, padre, ascendencia ni profundidad en el harness_run.
+
+Antes de ejecutar deben quedar resueltas las referencias documentales del contexto, la versión publicada, su contenido conservado, la revisión examinada y los parámetros efectivos. Publicar un `draft` permite verificar esa versión concreta sin declarar que ya es reproducible. Se comprueba que el contenido coincide con lo fijado; una discrepancia no se corrige apuntando silenciosamente a otra versión. No se ejecuta un borrador mutable bajo una identidad que después cambiará de contenido.
+
+La referencia de contenido se conserva como registro histórico de lo seleccionado, no como un segundo catálogo editable. Una vez iniciado el uso no se cambia su versión, revisión o parametrización para representar otro intento: se crea otra instancia. El estado puede evolucionar sin reescribir lo observado.
+
+### Creación, numeración y contexto activo
+
+`create-harness-run` exige que la instancia seleccionada sea un `test_run`, añade un único componente y selecciona el nuevo hijo; no busca un TEST ancestral compatible. Usa el contador global `harness_run` de la sección 3, también en proyectos anteriores que todavía no lo tengan. Ascender quita solo el harness_run y vuelve al TEST solicitante.
+
+Las opciones `--harness-ref` y `--content-ref` registran literalmente las referencias declaradas. Si se omiten, conservan los valores de la plantilla; un valor vacío explícito sustituye el valor de ese campo. La creación no comprueba su sintaxis, existencia, publicación, correspondencia con el catálogo ni hashes, y no resuelve alias de versión vigente. Los campos de revisión y parámetros efectivos también proceden de la plantilla: no se ejecuta la receta para deducirlos. Las referencias incompletas o inválidas no impiden crear la estructura, pero no satisfacen el contrato de ejecución anterior.
+
+La ruta activa mantiene exactamente los dos campos de la sección 4. Estado resultante de su secuencia CLI:
+
+```yaml
+active_project: "mi_proyecto"
+active_run_path: "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003/test_run_000002/harness_run_000003"
+```
+
+Cambiar de rama o la versión vigente del catálogo no modifica ejecuciones anteriores. El comando no mueve recetas, modifica catálogos, copia ancestros ni registra relaciones documentales automáticamente.
+
+### Resultados y trazabilidad
+
+Crear o seleccionar un harness_run no construye ni ejecuta el HARNESS, no publica versiones, no produce EVD/FND ni aprueba o cierra el TEST o la RFC. La resolución y verificación de recetas, así como la automatización de su ejecución, no están implementadas por este comando.
+
+Las EVD producidas se registran directamente junto a esta instancia. `source.harness` identifica la misma versión que `identity.harness_ref`, y `source.execution` conserva la ruta completa hasta el harness_run, no solo hasta el TEST o la RFC. El contexto observado conserva revisión examinada, construcción, configuración, plataforma, comandos y resultados conforme a [EVIDENCE.md](EVIDENCE.md), sin copiar la receta ni depender de la instalación efímera.
+
+La aplicabilidad a otros criterios o artefactos sigue [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md); compartir receta no propaga validez. Los hallazgos permanecen en el registro del proyecto definido por [FND_TEMPLATE.md](templates/FND_TEMPLATE.md), con esta ejecución como origen cuando corresponda y afectados explícitos; no se atribuye un defecto al HRN por el solo hecho de haberlo utilizado.

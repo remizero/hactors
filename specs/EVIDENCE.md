@@ -7,8 +7,8 @@ Una evidencia afirma un hecho observado; no interpreta, no aprueba cambios y no 
 ## Mínimos de una evidencia.
 
 1. Ser referenciable: ruta de artefacto, hash de commit, salida de prueba o documento.
-2. Quedar vinculada a su RFC y a la revisión examinada.
-3. Indicar qué criterios respalda, referenciándolos sin redefinirlos.
+2. Identificar su procedencia y la revisión examinada, sin confundir el contexto de origen con su aplicabilidad.
+3. Declarar mediante relaciones qué criterios, objetivos o afirmaciones de otros artefactos respalda, referenciándolos sin redefinirlos; puede respaldar varios destinos sin cambiar su origen.
 4. Cuando proviene de un harness, quedar vinculada a la versión concreta del harness (HRN) y a su ejecución, conforme a la regla de aislamiento de [HARNESS.md](HARNESS.md).
 5. Bastarse a sí misma: la evidencia conserva el contexto completo de la observación (plataforma, comandos, retornos) y no depende de la existencia posterior del harness que la produjo.
 

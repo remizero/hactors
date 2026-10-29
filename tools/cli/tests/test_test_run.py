@@ -3,14 +3,13 @@ from pathlib import Path
 import pytest
 import yaml
 
+from hactors_cli.core.harness_run import create_harness_run
 from hactors_cli.core.paths import require_run_directory
 from hactors_cli.core.plan_run import PlanRunError, create_plan_run
-from hactors_cli.core.project import create_project
 from hactors_cli.core.rfc_run import RfcRunError, create_rfc_run
 from hactors_cli.core.state import StateError, load_state, set_active_run
 from hactors_cli.core.task_run import TaskRunError, create_task_run
 from hactors_cli.core.test_run import TestRunError as CreateTestRunError, create_test_run
-from hactors_cli.core.workflow import create_workflow
 
 
 def snapshot(directory):
@@ -21,17 +20,6 @@ def snapshot(directory):
         )
         for path in directory.rglob("*")
     }
-
-
-@pytest.fixture(params=[0, 4], ids=["initial-rfc", "deep-derived-rfc"])
-def rfc_parent(hactors_root, request):
-    project = create_project("proj", hactors_root)
-    runs = [create_workflow(hactors_root, project.name)]
-    creators = [create_task_run, create_rfc_run]
-    creators += [create_plan_run, create_rfc_run] * request.param
-    for create in creators:
-        runs.append(create(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
-    return project, runs
 
 
 def test_creation_only_adds_manifest_and_updates_counter_and_selection(hactors_root, rfc_parent, load_yaml):
@@ -124,6 +112,7 @@ def test_sibling_tests_coexist_with_plans_and_do_not_interrupt_recursion(hactors
     assert snapshot(project) == before
 
 
+@pytest.mark.parametrize("parent_type", ["test_run", "harness_run"])
 @pytest.mark.parametrize("child_type,create,error", [
     ("workflow_run", None, None),
     ("task_run", create_task_run, TaskRunError),
@@ -131,9 +120,13 @@ def test_sibling_tests_coexist_with_plans_and_do_not_interrupt_recursion(hactors
     ("plan_run", create_plan_run, PlanRunError),
     ("test_run", create_test_run, CreateTestRunError),
 ])
-def test_test_run_rejects_every_child_without_falling_back(hactors_root, rfc_parent, child_type, create, error):
+def test_test_and_harness_reject_non_harness_children_without_falling_back(
+    hactors_root, rfc_parent, parent_type, child_type, create, error,
+):
     project, runs = rfc_parent
     run = create_test_run(hactors_root, project.name, runs[-1].relative_to(project).as_posix())
+    if parent_type == "harness_run":
+        run = create_harness_run(hactors_root, project.name, run.relative_to(project).as_posix())
     path = run.relative_to(project).as_posix()
     before = snapshot(hactors_root)
     with pytest.raises(ValueError, match="No se puede crear"):
@@ -145,15 +138,21 @@ def test_test_run_rejects_every_child_without_falling_back(hactors_root, rfc_par
     assert snapshot(hactors_root) == before
 
 
+@pytest.mark.parametrize("parent_type", ["test_run", "harness_run"])
 @pytest.mark.parametrize("child_type", ["workflow_run", "task_run", "rfc_run", "plan_run", "test_run"])
-def test_existing_child_inside_test_cannot_be_selected(hactors_root, rfc_parent, child_type, load_yaml):
+def test_existing_non_harness_child_inside_test_or_harness_cannot_be_selected(
+    hactors_root, rfc_parent, parent_type, child_type, load_yaml,
+):
     project, runs = rfc_parent
     parent = runs[-1].relative_to(project).as_posix()
     plan = create_plan_run(hactors_root, project.name, parent)
     test = create_test_run(hactors_root, project.name, parent)
     sources = {"workflow_run": runs[0], "task_run": runs[1], "rfc_run": runs[2], "plan_run": plan, "test_run": test}
     source = sources[child_type]
-    child = test / f"{child_type}_999999"
+    parent = test
+    if parent_type == "harness_run":
+        parent = create_harness_run(hactors_root, project.name, test.relative_to(project).as_posix())
+    child = parent / f"{child_type}_999999"
     child.mkdir()
     data = load_yaml(source / "manifest.yaml")
     if child_type == "workflow_run":

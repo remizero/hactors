@@ -1,5 +1,6 @@
 import click
 
+from .commands.create_harness_run import create_harness_run_cmd
 from .commands.create_plan_run import create_plan_run_cmd
 from .commands.create_project import create_project_cmd
 from .commands.create_rfc_run import create_rfc_run_cmd
@@ -24,3 +25,4 @@ cli.add_command(create_task_run_cmd)
 cli.add_command(create_rfc_run_cmd)
 cli.add_command(create_plan_run_cmd)
 cli.add_command(create_test_run_cmd)
+cli.add_command(create_harness_run_cmd)

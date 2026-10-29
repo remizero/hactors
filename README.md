@@ -55,7 +55,7 @@ Especificaciones, plantillas y estándares que rigen la metodología HACTORS y l
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 
-Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`), crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`, `create-test-run`) y seleccionar su ruta activa completa o ascender al padre (`use-run`). La jerarquía recursiva RFC/PLAN con ejecuciones TEST bajo RFC, el contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md).
+Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`), crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`, `create-test-run`, `create-harness-run`) y seleccionar su ruta activa completa o ascender al padre (`use-run`). La jerarquía recursiva RFC/PLAN con TEST bajo RFC y HARNESS bajo TEST, el contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md). Crear instancias HARNESS no publica ni ejecuta recetas ni verifica su contenido.
 
 
 

@@ -6,14 +6,15 @@ import yaml
 from .project import ProjectError, validate_name
 
 HACTORS_MARKERS = ("specs/templates", "projects")
-RUN_PATTERN = re.compile(r"(workflow_run|task_run|rfc_run|plan_run|test_run)_[0-9]{6,}")
+RUN_PATTERN = re.compile(r"(workflow_run|task_run|rfc_run|plan_run|test_run|harness_run)_[0-9]{6,}")
 RUN_CHILD_TYPES = {
     "hactors": ("workflow_run",),
     "workflow_run": ("task_run",),
     "task_run": ("rfc_run",),
     "rfc_run": ("plan_run", "test_run"),
     "plan_run": ("rfc_run",),
-    "test_run": (),
+    "test_run": ("harness_run",),
+    "harness_run": (),
 }
 
 

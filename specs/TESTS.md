@@ -16,3 +16,5 @@ Una vez establecido un test como artefacto identificable, su contenido y propós
 ## Instancias de ejecución
 
 La instancia `test_run` referencia el artefacto TEST mediante `identity.test_ref` y vive dentro del `rfc_run` correspondiente, inicial o derivado. Su estructura, creación y contexto activo se definen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md); las reglas de evidencia siguen en [EVIDENCE.md](EVIDENCE.md). Crear la instancia no crea ni modifica el TEST, no lo ejecuta y no produce resultados ni evidencia automáticamente.
+
+La reutilización de recetas versionadas sigue [HARNESS.md](HARNESS.md). Las instancias de ese uso y su vinculación al TEST solicitante se definen en [harness_run](HACTORS_SYSTEM.md#12-harness_run-ejecución-de-una-versión-de-harness): la CLI crea y selecciona estos hijos, sin ejecutar recetas ni transferir al TEST los resultados de ejecuciones anteriores.

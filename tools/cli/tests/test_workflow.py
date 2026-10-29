@@ -177,7 +177,8 @@ def test_task_counters_span_workflows_not_projects(hactors_root, load_yaml):
             assert task.parent == workflow
             assert task.name == f"task_run_{index:06d}"
         assert load_yaml(project / "manifest.yaml")["counters"] == {
-            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 0, "plan_run": 0, "test_run": 0,
+            "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 0, "plan_run": 0,
+            "test_run": 0, "harness_run": 0,
         }
 
 

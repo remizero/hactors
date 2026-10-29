@@ -20,3 +20,4 @@ un artefacto puede tener identidad propia y al mismo tiempo relacionarse con cer
 * RFC_RUN
 * PLAN_RUN
 * TEST_RUN
+* HARNESS_RUN — [instancia de uso de una versión de HARNESS](HACTORS_SYSTEM.md#12-harness_run-ejecución-de-una-versión-de-harness)

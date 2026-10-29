@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from hactors_cli.core.harness_run import create_harness_run
 from hactors_cli.core.paths import require_project_directory, require_run_directory
 from hactors_cli.core.plan_run import create_plan_run
 from hactors_cli.core.project import create_project
@@ -34,7 +35,7 @@ def snapshot(directory):
     }
 
 
-@pytest.fixture(params=["rfc_run", "test_run"])
+@pytest.fixture(params=["rfc_run", "test_run", "harness_run"])
 def selected_chain(hactors_root, request):
     project = create_project("proj", hactors_root)
     runs = [create_workflow(hactors_root, project.name)]
@@ -43,8 +44,10 @@ def selected_chain(hactors_root, request):
         create_rfc_run, create_plan_run, create_rfc_run,
     ):
         runs.append(create(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
-    if request.param == "test_run":
+    if request.param in ("test_run", "harness_run"):
         runs.append(create_test_run(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
+    if request.param == "harness_run":
+        runs.append(create_harness_run(hactors_root, project.name, runs[-1].relative_to(project).as_posix()))
     return project, runs
 
 
@@ -281,6 +284,8 @@ def test_repeated_instance_id_rejected_but_not_repeated_type(hactors_root, selec
     (0, "malformed"), (3, "non-mapping"), (6, "non-mapping-identity"),
     (-1, "wrong-id"), (-1, "missing"), (-1, "malformed"),
     (-1, "non-mapping"), (-1, "non-mapping-identity"),
+    (-2, "wrong-id"), (-2, "missing"), (-2, "malformed"),
+    (-2, "non-mapping"), (-2, "non-mapping-identity"),
 ])
 def test_every_ancestor_manifest_is_validated(hactors_root, selected_chain, load_yaml, index, problem):
     project, runs = selected_chain

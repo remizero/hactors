@@ -1,0 +1,12 @@
+identity:
+  id: ""
+  harness_ref: ""
+  content_ref: ""
+
+execution:
+  source_revision: ""
+  parameters: {}
+
+state:
+  status: ""
+  blocked_reason: ""
