@@ -18,7 +18,10 @@ Este sistema se basa en tres principios:
 |-----------|---------------------|
 | TASK | Inicia el proceso. Define qué se pretende hacer y qué RFCs están involucradas. |
 | workflow_run | Instancia concreta de ejecución. Contiene el estado global, los pasos y los intentos. |
-| task_run | Unidad de ejecución dentro del workflow, asociada a una RFC específica. |
+| task_run | Unidad de trabajo dentro del workflow que contiene ejecuciones de RFC. |
+| rfc_run | Instancia de ejecución de una RFC, dentro de un task_run. |
+| PLAN | Documento que ordena pasos y puntos de decisión derivados de una RFC. |
+| plan_run | Instancia de ejecución de un PLAN, dentro de un rfc_run. |
 | EVIDENCE | Registros verificables que respaldan las afirmaciones de cada paso. |
 
 ### Relación entre WORKFLOW y workflow_run
@@ -37,7 +40,11 @@ projects/<project_name>/
 │   ├── workflow_run_000001/
 │   │   ├── manifest.yaml
 │   │   ├── task_run_000001/
-│   │   │   └── manifest.yaml
+│   │   │   ├── manifest.yaml
+│   │   │   └── rfc_run_000001/
+│   │   │       ├── manifest.yaml
+│   │   │       └── plan_run_000001/
+│   │   │           └── manifest.yaml
 │   │   └── task_run_000002/
 │   │       └── manifest.yaml
 │   └── workflow_run_000002/
@@ -65,15 +72,19 @@ projects/.state.yaml
 | `rfcs/` | RFCs | Especificaciones normativas originales e inmutables. |
 | `standards/` | Normas del proyecto | Convenciones de documentación, Git y estilo de código. |
 | `hactors/workflow_run_XXXXXX/` | workflow_run | Instancia de ejecución con su propio manifest. |
-| `hactors/workflow_run_XXXXXX/task_run_XXXXXX/` | task_run | Unidad de ejecución asociada a una RFC, anidada dentro del workflow_run. |
-| `projects/.state.yaml` | Estado activo | Proyecto en uso y workflow_run actual. |
+| `hactors/workflow_run_XXXXXX/task_run_XXXXXX/` | task_run | Unidad de trabajo que contiene ejecuciones de RFC. |
+| `…/task_run_XXXXXX/rfc_run_XXXXXX/` | rfc_run | Ejecución que referencia una RFC. |
+| `…/rfc_run_XXXXXX/plan_run_XXXXXX/` | plan_run | Ejecución que referencia un PLAN derivado de esa RFC. |
+| `projects/.state.yaml` | Estado activo | Proyecto, workflow_run, task_run y rfc_run en uso. |
 
 ### Reglas de anidamiento
 
 - Un `task_run` siempre vive dentro de un `workflow_run`. No existe un task_run suelto fuera de un workflow.
 - Un `workflow_run` siempre vive dentro de `hactors/` en el directorio del proyecto.
-- Los contadores son secuenciales y con formato de seis dígitos: `workflow_run_000001`, `task_run_000042`.
-- El estado activo (`.state.yaml`) es compartido por todos los proyectos; indica sobre cuál se trabaja y cuál es el workflow_run en curso.
+- Un `rfc_run` siempre vive dentro de un `task_run`; un `plan_run`, dentro de un `rfc_run`.
+- Cada padre puede contener varias instancias del nivel siguiente. No toda RFC produce un PLAN.
+- Los contadores son secuenciales y con un mínimo de seis dígitos: `workflow_run_000001`, `rfc_run_000042`, `plan_run_000003`.
+- El estado activo (`.state.yaml`) es compartido por todos los proyectos; conserva la cadena de contexto necesaria para crear el siguiente nivel.
 
 ## 3. Manifest del proyecto: contadores y relaciones
 
@@ -96,8 +107,12 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 | `task` | Una TASK en `tasks/` | `task_000001` |
 | `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001` |
 | `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
+| `rfc_run` | Un rfc_run dentro de un task_run | `rfc_run_000001` |
+| `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
 
-Los contadores son independientes por tipo. Un proyecto puede tener `workflow_run: 3` y `task_run: 7` si el tercer workflow contiene siete task_runs en total.
+Los contadores son independientes por tipo y globales al proyecto, no al padre. Un proyecto puede tener `workflow_run: 3` y `task_run: 7` si se han creado siete task_runs entre sus tres workflows. Los contadores de ejecución no numeran documentos RFC ni PLAN.
+
+Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores.
 
 ### Ejemplo
 
@@ -110,6 +125,8 @@ counters:
   task: 0
   workflow_run: 1
   task_run: 2
+  rfc_run: 0
+  plan_run: 0
 ```
 
 Esto indica que existe `workflow_run_000001` y, dentro de él, `task_run_000001` y `task_run_000002`.
@@ -123,19 +140,41 @@ El archivo `.state.yaml` mantiene el contexto de trabajo actual. Se encuentra en
 ```yaml
 active_project: ""
 current_workflow_run: ""
+current_task_run: ""
+current_rfc_run: ""
 ```
 
 ### Campos
 
 **`active_project`** — Nombre del proyecto sobre el cual operan los comandos CLI. Debe referenciar un proyecto existente en `projects/`.
 
-**`current_workflow_run`** — ID del workflow_run activo (ej: `workflow_run_000001`). Los comandos que crean task_runs lo usan para saber dónde crear.
+**`current_workflow_run`** — ID del workflow_run activo, dentro del proyecto.
+
+**`current_task_run`** — ID del task_run activo, dentro de ese workflow_run.
+
+**`current_rfc_run`** — ID del rfc_run activo, dentro de ese task_run. Determina dónde se crea un plan_run.
 
 ### Comportamiento
 
-- **`hactors use-project <nombre>`** establece `active_project` y limpia `current_workflow_run`. Cambiar de proyecto resetea el contexto de ejecución.
-- **`hactors create-workflow`** crea un nuevo workflow_run y actualiza `current_workflow_run` con su ID.
-- **`hactors create-task-run`** lee ambos campos: necesita un proyecto activo y un workflow_run activo para crear el task_run en la ubicación correcta.
+- **`hactors use-project <nombre>`** establece `active_project` y limpia todos los niveles de ejecución.
+- **`hactors create-workflow`** establece `current_workflow_run` y limpia task_run y rfc_run activos.
+- **`hactors create-task-run`** requiere proyecto y workflow activos; establece `current_task_run` y limpia `current_rfc_run`.
+- **`hactors create-rfc-run`** requiere proyecto, workflow y task activos; establece `current_rfc_run`.
+- **`hactors create-plan-run`** requiere la cadena activa completa y no cambia el contexto. Permite crear varios planes bajo la misma ejecución de RFC.
+
+Los comandos crean únicamente instancias y sus manifiestos, no los documentos RFC/PLAN ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del documento referenciado. Crear una instancia no autoriza a ejecutar su trabajo.
+
+### Secuencia CLI
+
+```bash
+hactors use-project mi_proyecto
+hactors create-workflow --task-ref task_000001
+hactors create-task-run
+hactors create-rfc-run --rfc-ref RFC-A00001
+hactors create-plan-run --plan-ref PLAN-00001
+```
+
+Todos estos comandos admiten `--root <directorio-hactors>`. `--rfc-ref` pertenece a `create-rfc-run`, no a `create-task-run`; los registros anteriores no se migran automáticamente.
 
 ### Ejemplo
 
@@ -144,6 +183,8 @@ Estado con proyecto activo y workflow en curso:
 ```yaml
 active_project: "mi_proyecto"
 current_workflow_run: "workflow_run_000001"
+current_task_run: "task_run_000001"
+current_rfc_run: "rfc_run_000001"
 ```
 
 Estado tras cambiar de proyecto:
@@ -151,6 +192,8 @@ Estado tras cambiar de proyecto:
 ```yaml
 active_project: "otro_proyecto"
 current_workflow_run: ""
+current_task_run: ""
+current_rfc_run: ""
 ```
 
 El archivo se crea automáticamente la primera vez que se ejecuta `use-project`. Si no existe, los comandos que lo requieren fallan con un mensaje claro.
@@ -259,7 +302,7 @@ review:
 
 ## 6. task_run: unidad de ejecución dentro del workflow
 
-Un `task_run` es una unidad de ejecución concreta asociada a una RFC específica. Vive dentro de un `workflow_run` y representa el trabajo necesario para cumplir los criterios de esa RFC.
+Un `task_run` es una unidad de trabajo dentro de un `workflow_run`. Agrupa instancias `rfc_run`, cada una asociada a una RFC específica, sin duplicar sus referencias documentales.
 
 ### Ubicación
 
@@ -273,9 +316,7 @@ Cada task_run tiene su propio directorio dentro del workflow_run que lo contiene
 
 La estructura del manifiesto se define en [task_run_template.yaml](templates/task_run_template.yaml). Los campos son:
 
-**`identity.id`** — Identificador único del task_run. Coincide con el nombre del directorio.
-
-**`identity.rfc_ref`** — Referencia a la RFC que este task_run ejecuta. Puede estar vacío si el task_run se crea antes de asociarlo a una RFC.
+**`identity.id`** — Identificador único del task_run. Coincide con el nombre del directorio. La referencia a cada RFC pertenece a su `rfc_run`, no al task_run.
 
 **`state.status`** — Estado de ejecución del task_run (ej: `pending`, `in_progress`, `blocked`, `completed`).
 
@@ -283,17 +324,21 @@ La estructura del manifiesto se define en [task_run_template.yaml](templates/tas
 
 ### Relación con workflow_run
 
-Mientras el `workflow_run` registra el estado global del proceso (qué paso se está ejecutando, cuántos intentos se han hecho, si está bloqueado), el `task_run` registra el estado de una unidad de trabajo específica asociada a una RFC.
+Mientras el `workflow_run` registra el estado global del proceso (qué paso se está ejecutando, cuántos intentos se han hecho, si está bloqueado), el `task_run` registra el estado de una unidad de trabajo que puede contener varias ejecuciones de RFC.
 
-Un workflow_run puede contener múltiples task_runs, cada uno ejecutando una RFC diferente. Por ejemplo:
+Un workflow_run puede contener múltiples task_runs. Por ejemplo:
 
 ```
 workflow_run_000001/
-├── manifest.yaml          # estado global del workflow
+├── manifest.yaml
 ├── task_run_000001/
-│   └── manifest.yaml      # ejecución de RFC-001
+│   ├── manifest.yaml
+│   ├── rfc_run_000001/
+│   │   └── manifest.yaml
+│   └── rfc_run_000002/
+│       └── manifest.yaml
 └── task_run_000002/
-    └── manifest.yaml      # ejecución de RFC-002
+    └── manifest.yaml
 ```
 
 ### Contador
@@ -327,7 +372,7 @@ workflow_run_000001:
     task_ref: "task_000001"
 ```
 
-Esto establece la cadena de trazabilidad: TASK → workflow_run → task_runs → RFCs.
+Esto inicia la cadena de trazabilidad: TASK → workflow_run → task_run → rfc_run → plan_run. Los dos últimos niveles referencian los documentos RFC y PLAN, respectivamente.
 
 ## 8. Cadena de trazabilidad
 
@@ -336,14 +381,17 @@ El sistema de ejecución HACTORS mantiene una cadena de trazabilidad completa de
 ### La cadena
 
 ```
-TASK → workflow_run → task_run → RFC
+TASK ← workflow_run → task_run → rfc_run → plan_run
+                                  ↓          ↓
+                                 RFC        PLAN
 ```
 
-Cada artefacto referencia al anterior y al siguiente:
+Las flechas hacia TASK, RFC y PLAN representan referencias documentales; entre instancias representan anidamiento:
 
-- **TASK → workflow_run**: El workflow_run tiene `task_ref` que apunta a la TASK que lo inició.
-- **workflow_run → task_run**: Los task_runs viven físicamente dentro del directorio del workflow_run.
-- **task_run → RFC**: El task_run tiene `rfc_ref` que apunta a la RFC que ejecuta.
+- **workflow_run → TASK**: `task_ref` apunta a la TASK que inició la ejecución.
+- **workflow_run → task_run → rfc_run → plan_run**: cada instancia vive dentro de su padre.
+- **rfc_run → RFC**: `identity.rfc_ref` identifica la especificación que se ejecuta.
+- **plan_run → PLAN**: `identity.plan_ref` identifica el plan; su documento conserva el origen RFC y las decisiones, sin duplicarlos en la ejecución.
 
 ### Ejemplo completo
 
@@ -353,8 +401,8 @@ Dada una TASK `task_000001` que ejecuta dos RFCs:
 # tasks/task_000001.md
 task: "Implementar sistema de autenticación"
 rfcs:
-  - "RFC-001"
-  - "RFC-002"
+  - "RFC-A00001"
+  - "RFC-F00001"
 actor: "human"
 ```
 
@@ -371,33 +419,37 @@ workflow_run_000001:
     current_step: "step_001"
 ```
 
-Dentro del workflow_run, se crean dos task_runs, uno por cada RFC:
+Dentro del workflow_run se crea un task_run y, dentro de él, dos rfc_runs. Estos fragmentos ilustran su estado durante el trabajo, no valores asignados por los comandos de creación:
 
 ```yaml
-# hactors/workflow_run_000001/task_run_000001/manifest.yaml
+# hactors/workflow_run_000001/task_run_000001/rfc_run_000001/manifest.yaml
 identity:
-  id: "task_run_000001"
-  rfc_ref: "RFC-001"
+  id: "rfc_run_000001"
+  rfc_ref: "RFC-A00001"
 state:
   status: "completed"
 ```
 
 ```yaml
-# hactors/workflow_run_000001/task_run_000002/manifest.yaml
+# hactors/workflow_run_000001/task_run_000001/rfc_run_000002/manifest.yaml
 identity:
-  id: "task_run_000002"
-  rfc_ref: "RFC-002"
+  id: "rfc_run_000002"
+  rfc_ref: "RFC-F00001"
 state:
   status: "in_progress"
 ```
 
+Si la primera RFC produce `PLAN-00001`, su ejecución vive en `rfc_run_000001/plan_run_000001/` y lo referencia mediante `identity.plan_ref`.
+
 ### Reconstrucción del estado
 
-Dado cualquier artefacto, es posible reconstruir la cadena completa:
+Dado cualquier artefacto vinculado, es posible reconstruir la cadena completa:
 
-- Desde un **task_run**, se navega al directorio padre para encontrar el **workflow_run**, y del `rfc_ref` se obtiene la **RFC**. Del `task_ref` del workflow_run se obtiene la **TASK**.
-- Desde una **TASK**, se buscan en el manifest del proyecto los workflow_runs que la referencian en `task_ref`.
-- Desde una **RFC**, se buscan los task_runs que la referencian en `rfc_ref`.
+- Desde un **plan_run**, `plan_ref` identifica el **PLAN** y el directorio padre lleva al **rfc_run**.
+- Desde un **rfc_run**, `rfc_ref` identifica la **RFC** y su padre lleva al **task_run**.
+- Desde un **task_run**, se navega al padre **workflow_run** y de su `task_ref` se obtiene la **TASK**.
+- Desde una **TASK**, se buscan los workflow_runs que la referencian en `task_ref`.
+- Desde una **RFC**, se buscan los rfc_runs que la referencian en `rfc_ref`; desde un **PLAN**, los plan_runs que lo referencian en `plan_ref`.
 
 El manifest del proyecto (`manifest.yaml`) puede registrar estas relaciones en su campo `relations` para facilitar la navegación sin recorrer el árbol de directorios.
 
@@ -410,3 +462,15 @@ La trazabilidad no es opcional. Cada artefacto debe poder responder:
 - ¿Qué evidencia lo respalda? (evidence, verification_refs)
 
 Si un artefacto no puede responder estas preguntas, el sistema está incompleto.
+
+## 9. rfc_run: ejecución de una RFC
+
+La RFC es la especificación; el `rfc_run` registra una instancia de su ejecución. Su manifiesto se define en [rfc_run_template.yaml](templates/rfc_run_template.yaml), con `identity.rfc_ref` como única referencia a la RFC dentro de la cadena de ejecución. La identidad documental y sus convenciones siguen en [RFC.md](RFC.md).
+
+Cada rfc_run puede contener varios plan_runs si la RFC produce planes. Los estados de ejecución no sustituyen el ciclo de vida ni la aprobación del documento RFC. Una nueva instancia no modifica la especificación original ni una ejecución anterior.
+
+## 10. plan_run: ejecución de un PLAN
+
+El PLAN define la secuencia, los criterios de avance y los puntos de decisión; el `plan_run` registra una instancia de su ejecución. La estructura del manifiesto se define en [plan_run_template.yaml](templates/plan_run_template.yaml): `identity.plan_ref` apunta al documento, mientras `state` registra el estado de la instancia y su motivo de bloqueo.
+
+El documento PLAN conserva su contenido, origen y ciclo de vida conforme a [PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md). El rfc_run padre proporciona el contexto de ejecución de su RFC de origen; esa referencia no se repite en plan_run. Crear el manifiesto no aprueba el plan ni supera ninguno de sus puntos de decisión.

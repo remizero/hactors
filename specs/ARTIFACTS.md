@@ -16,3 +16,6 @@ un artefacto puede tener identidad propia y al mismo tiempo relacionarse con cer
 * FINDING
 * SUMMARY
 * WORKFLOW_RUN
+* TASK_RUN
+* RFC_RUN
+* PLAN_RUN

@@ -2,8 +2,8 @@
 * [x] hactors project create
 * [x] hactors workflow create
 * [x] hactors task create
-* [] hactors rfc create
-* [] hactors plan create
+* [x] hactors create-rfc-run — crea instancias de ejecución; CLI y pruebas verificadas, no genera documentos RFC.
+* [x] hactors create-plan-run — crea instancias de ejecución; CLI y pruebas verificadas, no genera documentos PLAN.
 * [] hactors evidence add
 * [] hactors finding add
 * [] hactors harness create

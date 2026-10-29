@@ -101,7 +101,8 @@ Si el plan cambia después de aprobado, se registra la enmienda o se crea un pla
 
 ## Ubicación
 
-Los planes se ubican en `plans/` dentro del contexto de la RFC que los produce, o en `docs/plans/` si son transversales.
+Los documentos PLAN se ubican en `plans/` dentro del contexto de la RFC que los produce, o en `docs/plans/` si son transversales.
+Su instancia de ejecución `plan_run` vive dentro del `rfc_run` correspondiente y referencia el documento sin copiar sus pasos, gates ni aprobación. Su ubicación y creación se definen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md).
 
 ## Restricciones
 

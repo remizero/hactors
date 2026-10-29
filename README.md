@@ -55,7 +55,7 @@ Especificaciones, plantillas y estándares que rigen la metodología HACTORS y l
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 
-Herramientas de automatización para la gestión de proyectos HACTORS. Actualmente contiene la [CLI](tools/cli/) con el comando `create-project`; los demás se incorporarán progresivamente.
+Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`) y crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`). El contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md).
 
 
 

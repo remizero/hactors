@@ -78,7 +78,7 @@ class TestCreateTaskRun:
         create_project("test-proj", hactors_root)
 
         wf = create_workflow(hactors_root, "test-proj")
-        tr = create_task_run(hactors_root, "test-proj", wf.name, rfc_ref="RFC-001")
+        tr = create_task_run(hactors_root, "test-proj", wf.name)
 
         assert tr.is_dir()
         assert tr.name == "task_run_000001"
@@ -104,15 +104,16 @@ class TestCreateTaskRun:
         assert tr1.name == "task_run_000001"
         assert tr2.name == "task_run_000002"
 
-    def test_manifest_has_rfc_ref(self, hactors_root: Path, load_yaml):
+    def test_manifest_does_not_duplicate_rfc_ref(self, hactors_root: Path, load_yaml):
         create_project("test-proj", hactors_root)
 
         wf = create_workflow(hactors_root, "test-proj")
-        tr = create_task_run(hactors_root, "test-proj", wf.name, rfc_ref="RFC-001")
+        tr = create_task_run(hactors_root, "test-proj", wf.name)
 
         manifest = load_yaml(tr / "manifest.yaml")
-        assert manifest["identity"]["id"] == "task_run_000001"
-        assert manifest["identity"]["rfc_ref"] == "RFC-001"
+        assert manifest["identity"] == {"id": "task_run_000001"}
+        state = load_yaml(hactors_root / "projects" / ".state.yaml")
+        assert state["current_task_run"] == tr.name
 
     def test_error_for_nonexistent_project(self, hactors_root: Path):
         with pytest.raises(TaskRunError, match="no encontrado"):

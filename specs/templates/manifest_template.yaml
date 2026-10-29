@@ -4,3 +4,5 @@ counters:
   task: 0
   workflow_run: 0
   task_run: 0
+  rfc_run: 0
+  plan_run: 0
