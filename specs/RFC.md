@@ -3,8 +3,8 @@
 ## Alcance
 
 [actor: human | agent] utiliza estas convenciones al redactar, derivar o evolucionar una RFC.
-La definición del artefacto está en [GLOSSARY.md](GLOSSARY.md), sus estados en [LIFECYCLE.md](LIFECYCLE.md)
-y las operaciones de registro en [RFC_SYSTEM.md](RFC_SYSTEM.md).
+La definición del artefacto está en GLOSSARY.md, sus estados en LIFECYCLE.md
+y las operaciones de registro en RFC_SYSTEM.md.
 
 ## Identidad y tipos
 
@@ -76,15 +76,15 @@ Marcar como no aplicables y justificar los campos ajenos al tipo de trabajo.
 
 ## Guía de construcción por tipo
 
-[actor: human | agent] sigue esta guía en la fase 1 de [WORKFLOW.md](WORKFLOW.md) («Proponer y aprobar»).
-La guía conecta la intención de trabajo con la plantilla adecuada; no cambia la autoridad de aprobación ni los estados de [LIFECYCLE.md](LIFECYCLE.md).
+[actor: human | agent] sigue esta guía en la fase 1 de WORKFLOW.md («Proponer y aprobar»).
+La guía conecta la intención de trabajo con la plantilla adecuada; no cambia la autoridad de aprobación ni los estados de LIFECYCLE.md.
 
 ### Paso común inicial
 
 1. Identificar el tipo de trabajo: análisis, feature, integración, tests o documentación.
 2. Resolver el alcance conforme a la tabla de «Ubicaciones de la instancia» más abajo.
 3. Leer la plantilla general [templates/RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md) y la variante correspondiente.
-4. Consultar [rfc_active.md](rfc/rfc_active.md) para comprobar la ausencia del identificador y resolver relaciones.
+4. Consultar rfc_active.md para comprobar la ausencia del identificador y resolver relaciones.
 
 ### RFC-A — Análisis
 

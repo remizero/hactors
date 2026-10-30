@@ -3,8 +3,8 @@
 # Plantilla de acción derivada (AC-nnnnn)
 
 [actor: human | agent] utiliza esta plantilla al registrar o actualizar una acción derivada dentro del `CONTEXT.md` de una RFC.
-El formato y los valores permitidos se definen aquí; las reglas de transición y propiedad están en [PROJECT_STATE.md](../PROJECT_STATE.md).
-Los identificadores y relaciones siguen [RELATIONSHIPS.md](../RELATIONSHIPS.md).
+El formato y los valores permitidos se definen aquí; las reglas de transición y propiedad están en PROJECT_STATE.md.
+Los identificadores y relaciones siguen RELATIONSHIPS.md.
 
 ## Identidad
 

@@ -16,7 +16,11 @@ La inexistencia del harness construido no contradice los resultados, evidencias 
 
 ## Ubicación.
 
-La evidencia se registra directamente en el directorio del artefacto que la generó. No existe un directorio central de evidencias.
+La evidencia se registra directamente en el directorio del artefacto que la generó, en un archivo propio `EVD-nnnnn.yaml` por evidencia. No existe un directorio central de evidencias.
+
+Cuando el origen es una ejecución, el archivo queda dentro de su instancia y `source.execution` conserva la ruta completa; cuando el origen es otro artefacto del proyecto, el archivo queda en su directorio —o en el padre, si el origen es un archivo— y `source.artifact` registra literalmente la ruta declarada. La numeración es única en el proyecto aunque los archivos se repartan entre varios directorios.
+
+`hactors create-evidence` crea ese archivo con el ID y la procedencia: `--origin <ruta>` declara el origen y, si se omite, el origen es la instancia activa. Las reglas del origen admitido y de los valores que no rellena se describen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#13-registro-de-evidencia-desde-cualquier-origen).
 
 ## Esquema.
 

@@ -37,13 +37,15 @@ hactors/
 
 ### `docs/` — Cómo usar HACTORS.
 
+Guías aún no incorporadas al repositorio; su migración está registrada en [TODO.md](TODO.md).
+
 | Archivo | Contenido |
 |---|---|
-| [QUICKSTARTER.md](docs/QUICKSTARTER.md) | Tutorial paso a paso: primera RFC, primer TRV. |
-| [CHEAT_SHEET.md](docs/CHEAT_SHEET.md) | Tabla de decisión: qué artefacto usar según la situación. |
-| [LIFECYCLE_DIAGRAMS.md](docs/LIFECYCLE_DIAGRAMS.md) | Diagramas Mermaid del flujo completo y ciclos de vida. |
-| [EXAMPLES.md](docs/EXAMPLES.md) | Ejemplo real extremo a extremo con RFC-A00001. |
-| [TOOLS.md](docs/TOOLS.md) | Herramientas disponibles y plan de CI. |
+| QUICKSTARTER.md | Tutorial paso a paso: primera RFC, primer TRV. |
+| CHEAT_SHEET.md | Tabla de decisión: qué artefacto usar según la situación. |
+| LIFECYCLE_DIAGRAMS.md | Diagramas Mermaid del flujo completo y ciclos de vida. |
+| EXAMPLES.md | Ejemplo real extremo a extremo con RFC-A00001. |
+| TOOLS.md | Herramientas disponibles y plan de CI. |
 
 ### `projects/` — Instancias de proyectos basados en HACTORS.
 
@@ -51,11 +53,11 @@ Cada subdirectorio es un proyecto HACTORS con su propia identidad, artefactos, R
 
 ### `specs/` — Contenido normativo.
 
-Especificaciones, plantillas y estándares que rigen la metodología HACTORS y la estructura de los proyectos. Actualmente contiene [PROJECTS.md](specs/PROJECTS.md) como única especificación normativa; las demás se incorporarán progresivamente.
+Especificaciones, plantillas y estándares que rigen la metodología HACTORS y la estructura de los proyectos: ocho especificaciones normativas en `specs/` y las plantillas documentales y YAML de los artefactos y de las instancias de ejecución en `specs/templates/`. El resto de la normativa original se incorporará progresivamente.
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 
-Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`), crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`, `create-test-run`, `create-harness-run`) y seleccionar su ruta activa completa o ascender al padre (`use-run`). La jerarquía recursiva RFC/PLAN con TEST bajo RFC y HARNESS bajo TEST, el contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md). Crear instancias HARNESS no publica ni ejecuta recetas ni verifica su contenido.
+Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`), crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`, `create-test-run`, `create-harness-run`), seleccionar su ruta activa completa o ascender al padre (`use-run`) y registrar evidencias junto a su origen (`create-evidence`). La jerarquía recursiva RFC/PLAN con TEST bajo RFC y HARNESS bajo TEST, el contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md). Crear instancias HARNESS no publica ni ejecuta recetas ni verifica su contenido; registrar una evidencia no captura su contexto observado ni declara su aplicabilidad.
 
 
 
@@ -82,6 +84,6 @@ RFCs = structural unit of evolution
 Artifacts / Evidence / Decisions = traceability mechanisms
 ```
 
-Los artefactos(enlace a ARTIFACTS.md) contienen conocimiento; el índice contiene identidad y estado; las relaciones contienen estructura.
+Los [artefactos](specs/ARTIFACTS.md) contienen conocimiento; el índice contiene identidad y estado; las relaciones contienen estructura.
 
 La provenance debe ser preservable y auditable, pero no necesariamente embebida en el artefacto que la describe.

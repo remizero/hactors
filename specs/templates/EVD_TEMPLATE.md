@@ -91,5 +91,13 @@ La aplicabilidad se declara únicamente en `relations`: no mantener una lista `v
 
 ## Ubicación
 
-La evidencia se registra directamente en el directorio del artefacto que la generó.
+La evidencia se registra directamente en el directorio del artefacto que la generó, en un archivo `EVD-nnnnn.yaml` por evidencia.
 No existe un directorio central de evidencias.
+
+El esquema anterior muestra la entrada como elemento de lista; el archivo escrito contiene esa misma entrada sin el guion de lista, con `id` ya asignado. Las reglas de ubicación según el origen se definen en [EVIDENCE.md](../EVIDENCE.md).
+
+## Registro con la CLI
+
+`hactors create-evidence` asigna el `id` y la procedencia, y acepta `--origin`, `--title`, `--kind` y `--recorded`. Sin `--origin` la procedencia es la ruta de la instancia activa. Los valores declarados se registran literalmente; los campos omitidos conservan los de [evidence_template.yaml](evidence_template.yaml), y un valor vacío explícito sustituye al de la plantilla.
+
+El comando no rellena `relations`, `environment` ni el resto de `source`: la aplicabilidad y el contexto observado los completa quien registra, conforme a los mínimos de [EVIDENCE.md](../EVIDENCE.md). Tampoco valida `kind` contra la tabla de tipos ni el formato de `recorded`. El origen admitido y lo que el comando no hace se describen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#13-registro-de-evidencia-desde-cualquier-origen).

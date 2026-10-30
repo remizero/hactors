@@ -121,7 +121,7 @@ def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
             assert harness.parent == test
         assert load_yaml(project / "manifest.yaml")["counters"] == {
             "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2,
-            "test_run": 2, "harness_run": 2,
+            "test_run": 2, "harness_run": 2, "evidence": 0,
         }
 
 
@@ -277,7 +277,7 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_roo
     templates = {name: load_template(hactors_root, f"{name}_template.yaml") for name in ("rfc_run", "plan_run")}
     expected_counters = {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0,
-        "test_run": 0, "harness_run": 0,
+        "test_run": 0, "harness_run": 0, "evidence": 0,
     }
     for current_depth in range(2, depth + 1):
         is_rfc = current_depth % 2 == 0

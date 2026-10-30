@@ -528,7 +528,7 @@ def test_cli_process_chain(hactors_root, load_yaml):
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deepest}
     counters = {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 3, "plan_run": 2,
-        "test_run": 0, "harness_run": 0,
+        "test_run": 0, "harness_run": 0, "evidence": 0,
     }
     assert load_yaml(project / "manifest.yaml")["counters"] == counters
 
@@ -662,14 +662,14 @@ def test_cli_process_chain(hactors_root, load_yaml):
     assert load_yaml(state_file) == {"active_project": "other", "active_run_path": other_path}
     assert load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"] == {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "plan_run": 0,
-        "test_run": 1, "harness_run": 0,
+        "test_run": 1, "harness_run": 0, "evidence": 0,
     }
     process("create-harness-run")
     other_path += "/harness_run_000001"
     assert load_yaml(state_file) == {"active_project": "other", "active_run_path": other_path}
     assert load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"] == {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "plan_run": 0,
-        "test_run": 1, "harness_run": 1,
+        "test_run": 1, "harness_run": 1, "evidence": 0,
     }
     assert load_yaml(hactors_root / "projects" / "other" / other_path / "manifest.yaml") == {
         "identity": {"id": "harness_run_000001", "harness_ref": "", "content_ref": ""},

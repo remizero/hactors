@@ -66,7 +66,8 @@ projects/<project_name>/
 │   │   │       └── test_run_000001/
 │   │   │           ├── manifest.yaml
 │   │   │           ├── harness_run_000001/
-│   │   │           │   └── manifest.yaml
+│   │   │           │   ├── manifest.yaml
+│   │   │           │   └── EVD-00001.yaml
 │   │   │           └── harness_run_000002/
 │   │   │               └── manifest.yaml
 │   │   └── task_run_000002/
@@ -101,6 +102,7 @@ projects/.state.yaml
 | `…/rfc_run_XXXXXX/plan_run_XXXXXX/` | plan_run | Ejecución que referencia un PLAN y puede contener nuevos rfc_runs. |
 | `…/rfc_run_XXXXXX/test_run_XXXXXX/` | test_run | Ejecución que referencia un TEST y puede contener harness_runs. |
 | `…/test_run_XXXXXX/harness_run_XXXXXX/` | harness_run | Uso de una versión de HARNESS; hoja de ejecución. |
+| `EVD-nnnnn.yaml` junto a su origen | EVIDENCE | Registro verificable escrito en el directorio del artefacto o ejecución que lo originó; ver sección 13. |
 | `projects/.state.yaml` | Estado activo | Proyecto y ruta completa de la instancia seleccionada, con todos sus ancestros. |
 
 ### Reglas de anidamiento
@@ -171,8 +173,11 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 | `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
 | `test_run` | Un test_run dentro de un rfc_run | `test_run_000001` |
 | `harness_run` | Un harness_run dentro de un test_run | `harness_run_000001` |
+| `evidence` | Una evidencia en el directorio de su origen | `EVD-00001` |
 
 Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos RFC, PLAN, TEST, HRN ni versiones de receta y no se reinician al abrir una rama.
+
+El contador `evidence` no es de ejecución: numera registros EVD cuya ubicación depende de su origen, conforme a la sección 13, por lo que un mismo proyecto reparte sus evidencias entre varios directorios sin reiniciar la numeración.
 
 Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
@@ -191,6 +196,7 @@ counters:
   plan_run: 0
   test_run: 0
   harness_run: 0
+  evidence: 0
 ```
 
 Los contadores registran la numeración asignada, no la ubicación ni una comprobación de existencia. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
@@ -246,12 +252,13 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-plan-run` | La instancia activa es un rfc_run | Crea su hijo plan_run y añade el ID a la ruta activa. |
 | `hactors create-test-run` | La instancia activa es un rfc_run | Crea su hijo test_run y añade el ID a la ruta activa. |
 | `hactors create-harness-run` | La instancia activa es un test_run | Crea su hijo harness_run y añade el ID a la ruta activa. |
+| `hactors create-evidence [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `EVD-nnnnn.yaml` en el directorio del origen. |
 
 `use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
 
 Cada creación de un hijo opera sobre la **instancia seleccionada**, nunca sobre el ancestro compatible más cercano. Para crear un hermano, se selecciona primero el padre compartido; para crear varios plan_runs o test_runs de una RFC, se vuelve a ese rfc_run después de cada creación; para varios harness_runs, se vuelve al test_run solicitante. Un harness_run seleccionado no admite crear hijos. Crear un hijo preserva todos los prefijos ancestrales, aunque se repitan sus tipos. Seleccionar otra rama reemplaza la ruta activa, pero no la ascendencia almacenada físicamente en ninguna de las ramas.
 
-Los comandos crean únicamente instancias y sus manifiestos, no los artefactos RFC/PLAN/TEST/HARNESS ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del artefacto referenciado. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no ejecuta su trabajo, no produce resultados ni evidencia, no autoriza la ejecución ni modifica los estados de sus ancestros.
+Los comandos crean únicamente instancias y sus manifiestos, no los artefactos RFC/PLAN/TEST/HARNESS ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del artefacto referenciado. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no ejecuta su trabajo, no produce resultados ni evidencia, no autoriza la ejecución ni modifica los estados de sus ancestros. La evidencia se registra aparte, con el comando de la sección 13.
 
 ### Secuencia CLI
 
@@ -687,3 +694,22 @@ Crear o seleccionar un harness_run no construye ni ejecuta el HARNESS, no public
 Las EVD producidas se registran directamente junto a esta instancia. `source.harness` identifica la misma versión que `identity.harness_ref`, y `source.execution` conserva la ruta completa hasta el harness_run, no solo hasta el TEST o la RFC. El contexto observado conserva revisión examinada, construcción, configuración, plataforma, comandos y resultados conforme a [EVIDENCE.md](EVIDENCE.md), sin copiar la receta ni depender de la instalación efímera.
 
 La aplicabilidad a otros criterios o artefactos sigue [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md); compartir receta no propaga validez. Los hallazgos permanecen en el registro del proyecto definido por [FND_TEMPLATE.md](templates/FND_TEMPLATE.md), con esta ejecución como origen cuando corresponda y afectados explícitos; no se atribuye un defecto al HRN por el solo hecho de haberlo utilizado.
+
+## 13. Registro de evidencia desde cualquier origen
+
+Una evidencia no es una instancia de ejecución: no se anida, no tiene hijos ni cambia el contexto activo. Pertenece al proyecto y se escribe junto al artefacto o la ejecución que la originó, conforme a [EVIDENCE.md](EVIDENCE.md); su esquema y tipos se definen únicamente en [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md).
+
+`create-evidence` exige un proyecto activo y un origen: una ruta relativa al proyecto, sin `.` ni `..`, separadores alternativos ni componentes vacíos. `--origin` declara esa ruta; si se omite, el origen es la ruta de la instancia activa, que entonces debe existir. En ambos casos el origen determina a la vez la ubicación del registro y el campo de procedencia:
+
+| `--origin` | Validación | Campo de procedencia | Ubicación del archivo |
+|------------|------------|----------------------|-----------------------|
+| Ruta con el prefijo `hactors/` | Ruta de ejecución completa válida, con la validación de la sección 4 | `source.execution` | El directorio de esa instancia |
+| Cualquier otra ruta del proyecto | Debe existir y no ser un enlace simbólico | `source.artifact`, literal | Su propio directorio, o el padre si es un archivo |
+
+Un origen que empieza por `hactors/` se trata siempre como ejecución: si la ruta es inválida se rechaza, sin reinterpretarla como artefacto. `hactors` a secas no identifica ni una ejecución ni un artefacto. Omitir `--origin` toma la ruta activa completa tal como está, sin ascender a un ancestro ni descender a un hijo; un `--origin` vacío explícito sigue siendo un origen inválido y no se confunde con la omisión. Tomar la instancia activa como origen no modifica la selección. El comando no registra rutas absolutas, referencias externas ni revisiones de Git como ubicación.
+
+Cada evidencia se escribe en su propio archivo `EVD-nnnnn.yaml`, con el ID del contador global `evidence` de la sección 3; la numeración es única en el proyecto aunque los archivos queden repartidos en varios directorios. El comando no crea un directorio central de evidencias ni subdirectorios por tipo.
+
+Las opciones `--title`, `--kind` y `--recorded` se registran literalmente, sin validar el tipo contra la tabla normativa ni el formato de la fecha. Si se omiten, conservan los valores de [evidence_template.yaml](templates/evidence_template.yaml); un valor vacío explícito sustituye el valor de ese campo. `relations`, `environment` y el resto de `source` proceden siempre de la plantilla: el comando no declara aplicabilidad, no captura plataforma, comandos ni salidas, y no rellena `source.rfc`, `source.harness` ni `source.commit` a partir de la ascendencia o del manifiesto del origen.
+
+Crear el archivo no satisface por sí solo los mínimos de [EVIDENCE.md](EVIDENCE.md): el registro queda estructuralmente válido con campos por resolver, y quien registra debe completar el contexto observado y las relaciones de aplicabilidad. El comando no ejecuta pruebas ni recetas, no modifica el artefacto de origen, no altera `.state.yaml`, no consume contadores de ejecución ni registra relaciones en el manifest del proyecto. Un origen inválido, la ausencia de instancia activa cuando `--origin` se omite, una plantilla ausente o rota, un contador inválido o un archivo `EVD-nnnnn.yaml` ya existente en el directorio de destino se rechazan sin escribir nada y sin consumir el contador.

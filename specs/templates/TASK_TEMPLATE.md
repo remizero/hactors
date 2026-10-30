@@ -3,7 +3,7 @@
 # Plantilla de TASK
 
 [actor: human | agent] delimita una unidad de ejecución sin redefinir el diseño de sus RFC.
-La semántica de actores está en [GLOSSARY.md](specs/GLOSSARY.md) y los estados en [LIFECYCLE.md](specs/LIFECYCLE.md).
+La semántica de actores está en GLOSSARY.md y los estados en LIFECYCLE.md.
 El ejemplo parte de redacción humana en `draft`; una propuesta nueva de agente comienza en `proposed`.
 Crear una TASK directamente en `approved` solo es válido cuando su alcance ya está autorizado conforme al ciclo de vida.
 
