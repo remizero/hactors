@@ -64,7 +64,7 @@ references: []
 
 Los objetivos y criterios deben tener identificadores estables para enlazarlos desde TASK y evidencias.
 Cada criterio declara la condición verificable, los objetivos que cubre y cómo se comprobará.
-Las acciones indican actor conforme a GLOSSARY.md; no conceden nuevas facultades de aprobación.
+Las acciones indican actor conforme a [DEFINITIONS.md](../DEFINITIONS.md); no conceden nuevas facultades de aprobación.
 Los contratos incluyen errores, invariantes, propiedad y compatibilidad; indicar expresamente si hay ruptura.
 Marcar como no aplicables y justificar los campos ajenos al tipo de trabajo; no inventar código para una RFC de análisis o documentación.
 La ruta del índice es relativa al proyecto de esta copia y debe adaptarse al instalar SPECS en otro proyecto.

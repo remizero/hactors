@@ -3,7 +3,7 @@
 ## Alcance
 
 [actor: human | agent] utiliza estas convenciones al redactar, derivar o evolucionar una RFC.
-La definición del artefacto está en GLOSSARY.md, sus estados en [LIFECYCLE.md](LIFECYCLE.md)
+La definición del artefacto está en [DEFINITIONS.md](DEFINITIONS.md), sus estados en [LIFECYCLE.md](LIFECYCLE.md)
 y las operaciones de registro en RFC_SYSTEM.md.
 
 ## Identidad y tipos

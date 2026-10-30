@@ -53,7 +53,7 @@ Cada subdirectorio es un proyecto HACTORS con su propia identidad, artefactos, R
 
 ### `specs/` — Contenido normativo.
 
-Especificaciones, plantillas y estándares que rigen la metodología HACTORS y la estructura de los proyectos: doce especificaciones normativas en `specs/` y las plantillas documentales y YAML de los artefactos y de las instancias de ejecución en `specs/templates/`. El resto de la normativa original se incorporará progresivamente.
+Especificaciones, plantillas y estándares que rigen la metodología HACTORS y la estructura de los proyectos: trece especificaciones normativas en `specs/` y las plantillas documentales y YAML de los artefactos y de las instancias de ejecución en `specs/templates/`. El resto de la normativa original se incorporará progresivamente.
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 

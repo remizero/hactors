@@ -3,7 +3,7 @@
 ## Alcance
 
 Establece cuándo registrar una decisión y cómo relacionar ADR y RFC sin duplicar su contenido.
-Las definiciones están en GLOSSARY.md y la autoridad documental en [ARTIFACTS.md](ARTIFACTS.md).
+Las definiciones están en [DEFINITIONS.md](DEFINITIONS.md) y la autoridad documental en [ARTIFACTS.md](ARTIFACTS.md).
 
 ## Cuándo registrar
 

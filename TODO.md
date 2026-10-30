@@ -18,5 +18,6 @@
 * [] hactors transition
 * [] hactors render
 * [x] definir los identificadores y las transiciones de las fases del resumen — `in-progress` ⇄ `consolidated` con su tabla de actores en LIFECYCLE.md; SUMMARY.md, SUMMARY_TEMPLATE.md y summary_template.yaml ajustados, y RFC.md fija la consolidación en el estado terminal. La CLI no valida la fase.
-* [] migrar GLOSSARY.md, RFC_SYSTEM.md, WORKFLOW.md, PROJECT_STATE.md, RELATIONSHIPS.md, TRANSACTIONS.md, EXCEPTIONS.md y rfc_active.md desde docs/specs/specs/ (repo COSA) a specs/ — citados sin enlace mientras falten.
+* [x] migrar GLOSSARY.md a specs/DEFINITIONS.md — ajustado a la fuente de verdad de HACTORS: `FND-nnnnn` en lugar de `FIND-nnnnn`, identificadores de EVIDENCE y DECISION, los artefactos y las instancias de ejecución que faltaban, la nomenclatura de cinco y seis cifras, y el vocabulario de COSA acotado a su proyecto. Referencias a GLOSSARY repuntadas en RFC.md, DECISIONS.md, HACTORS_SYSTEM.md, TASK_TEMPLATE.md y RFC_TEMPLATE.md.
+* [] migrar RFC_SYSTEM.md, WORKFLOW.md, PROJECT_STATE.md, RELATIONSHIPS.md, TRANSACTIONS.md, EXCEPTIONS.md y rfc_active.md desde docs/specs/specs/ (repo COSA) a specs/ — citados sin enlace mientras falten.
 * [] migrar QUICKSTARTER.md, CHEAT_SHEET.md, LIFECYCLE_DIAGRAMS.md, EXAMPLES.md y TOOLS.md desde docs/specs/docs/ (repo COSA) a docs/ — anunciados sin enlace mientras falten.

@@ -3,7 +3,7 @@
 # Plantilla de TASK
 
 [actor: human | agent] delimita una unidad de ejecución sin redefinir el diseño de sus RFC.
-La semántica de actores está en GLOSSARY.md y los estados en [LIFECYCLE.md](../LIFECYCLE.md).
+La semántica de actores está en [DEFINITIONS.md](../DEFINITIONS.md) y los estados en [LIFECYCLE.md](../LIFECYCLE.md).
 El ejemplo parte de redacción humana en `draft`; una propuesta nueva de agente comienza en `proposed`.
 Crear una TASK directamente en `approved` solo es válido cuando su alcance ya está autorizado conforme al ciclo de vida.
 
@@ -31,7 +31,7 @@ execution:
 - `task`: descripción breve en imperativo.
 - `rfcs`: identidades de las RFC cuyo alcance se ejecuta; una tarea de propuesta inicial puede no tenerlas aún.
 - `required_knowledge`: índice y fuentes pertinentes; derivar módulos de las RFC, sin duplicar la lista de normas obligatorias.
-- `actor`: ejecutor autorizado; la combinación de actores permitidos se expresa conforme al glosario.
+- `actor`: ejecutor autorizado; la combinación de actores permitidos se expresa conforme a [DEFINITIONS.md](../DEFINITIONS.md).
 - `deliverables`: resultados concretos de esta unidad de trabajo.
 - `scope: full`: referenciar los criterios de la RFC, sin copiarlos.
 - `scope: partial`: referenciar únicamente los identificadores de criterios cubiertos por esta TASK.
@@ -48,4 +48,4 @@ Actualizar el índice de conocimiento al instalar SPECS fuera de esta copia.
 
 `hactors create-task` escribe el bloque YAML de esta plantilla como frontmatter, seguido de una remisión a ella; no copia la cumplimentación ni redacta su contenido. Asigna el identificador `TASK-nnnnn` con el contador `task` del manifest del proyecto y acepta `--task` y `--actor`. Los valores declarados se registran literalmente, los campos omitidos conservan los de [task_template.yaml](task_template.yaml) y un valor vacío explícito sustituye al de la plantilla.
 
-El comando no rellena `rfcs`, `required_knowledge`, `deliverables`, `acceptance_criteria` ni `execution`: el alcance, el conocimiento requerido, los entregables, los criterios y el estado observado los completa quien crea la TASK, conforme a la cumplimentación anterior. Tampoco valida `actor` contra el glosario ni aprueba la TASK, que corresponde a [actor: human] según [LIFECYCLE.md](../LIFECYCLE.md#task). Lo que el comando exige y lo que no hace se describen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#7-task-artefacto-iniciador).
+El comando no rellena `rfcs`, `required_knowledge`, `deliverables`, `acceptance_criteria` ni `execution`: el alcance, el conocimiento requerido, los entregables, los criterios y el estado observado los completa quien crea la TASK, conforme a la cumplimentación anterior. Tampoco valida `actor` contra las etiquetas de [DEFINITIONS.md](../DEFINITIONS.md) ni aprueba la TASK, que corresponde a [actor: human] según [LIFECYCLE.md](../LIFECYCLE.md#task). Lo que el comando exige y lo que no hace se describen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#7-task-artefacto-iniciador).
