@@ -122,9 +122,10 @@ Las consecuencias de cada estado sobre la TASK de origen se definen en [FINDING.
 
 ## Ubicación
 
-El hallazgo se registra como entrada de la lista `findings.yaml` en la raíz del proyecto; no existe un archivo por hallazgo ni un directorio de hallazgos por ejecución.
+El hallazgo se registra directamente en el directorio del artefacto o de la ejecución que lo originó, en un archivo `FND-nnnnn.yaml` por hallazgo.
+No existe un registro central de hallazgos.
 
-El esquema anterior muestra la entrada como elemento de lista; [finding_template.yaml](finding_template.yaml) contiene esa misma entrada sin el guion de lista, y es la forma que se añade al archivo con `id` ya asignado. Las reglas de ubicación y procedencia se definen en [FINDING.md](../FINDING.md).
+El esquema anterior muestra la entrada como elemento de lista; el archivo escrito contiene esa misma entrada sin el guion de lista, con `id` ya asignado. Las reglas de ubicación según el origen se definen en [FINDING.md](../FINDING.md).
 
 ## Registro con la CLI
 

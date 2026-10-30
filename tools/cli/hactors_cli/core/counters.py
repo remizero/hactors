@@ -48,24 +48,22 @@ def next_counter_id(
     return formatted, new_value
 
 
-def next_evidence_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
-    data, new_value = _incremented_manifest(manifest_path, EVIDENCE_COUNTER)
-    formatted = EVIDENCE_ID_FORMAT.format(number=new_value)
+def _next_record_id(
+    manifest_path: Path, counter_name: str, id_format: str, directory: Path
+) -> tuple[str, int]:
+    data, new_value = _incremented_manifest(manifest_path, counter_name)
+    formatted = id_format.format(number=new_value)
     target = directory / f"{formatted}.yaml"
     if target.exists() or target.is_symlink():
-        raise FileExistsError(errno.EEXIST, "Ya existe una evidencia", str(target))
+        raise FileExistsError(errno.EEXIST, "Ya existe un registro", str(target))
 
     _persist(manifest_path, data)
     return formatted, new_value
 
 
-def next_finding_id(manifest_path: Path, existing_ids: set) -> tuple[str, int]:
-    data, new_value = _incremented_manifest(manifest_path, FINDING_COUNTER)
-    formatted = FINDING_ID_FORMAT.format(number=new_value)
-    if formatted in existing_ids:
-        raise ValueError(
-            f"El contador '{FINDING_COUNTER}' produciría un ID ya registrado en findings.yaml: '{formatted}'."
-        )
+def next_evidence_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
+    return _next_record_id(manifest_path, EVIDENCE_COUNTER, EVIDENCE_ID_FORMAT, directory)
 
-    _persist(manifest_path, data)
-    return formatted, new_value
+
+def next_finding_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
+    return _next_record_id(manifest_path, FINDING_COUNTER, FINDING_ID_FORMAT, directory)

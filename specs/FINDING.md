@@ -9,16 +9,18 @@ Un hallazgo afirma lo observado; no interpreta, no aprueba cambios y no sustituy
 1. Ser identificable: `FND-nnnnn` único en el proyecto, que no se reutiliza al retirar el hallazgo.
 2. Identificar su procedencia —la actividad, ejecución o fuente donde se detectó— sin confundirla con los artefactos afectados ni atribuirle por sí sola la causa del defecto.
 3. Declarar mediante relaciones qué artefactos están afectados, referenciándolos sin redefinirlos; identificar nuevos afectados no cambia el origen ni crea copias del hallazgo.
-4. Registrar su tipo, su severidad y su estado, y conservar la entrada con un estado terminal cuando se retira.
+4. Registrar su tipo, su severidad y su estado, y conservarlo con un estado terminal cuando se retira.
 5. Resolverlo solo con al menos una evidencia verificada que lo respalde, conforme a [EVIDENCE.md](EVIDENCE.md).
 
 ## Ubicación.
 
-El hallazgo se registra en un único `findings.yaml` en la raíz del proyecto, como entrada de una lista. No hay un archivo por hallazgo ni registros repartidos entre directorios: los hallazgos que impactan varios artefactos se mantienen centralizados y los afectados solo los referencian por `id`.
+El hallazgo se registra directamente en el directorio del artefacto o de la ejecución que lo originó, en un archivo propio `FND-nnnnn.yaml` por hallazgo. No existe un registro central de hallazgos ni un directorio dedicado a ellos.
 
-Ese archivo es una representación consultable derivada de las observaciones; su autoridad proviene de la fuente documentada. La procedencia conserva la ruta completa del origen: cuando es una ejecución, `source.execution` guarda todos sus ancestros; cuando es otro artefacto del proyecto, `source.artifact` registra literalmente la ruta declarada. La numeración es única en el proyecto.
+Cuando el origen es una ejecución, el archivo queda dentro de su instancia y `source.execution` conserva la ruta completa; cuando el origen es otro artefacto del proyecto, el archivo queda en su directorio —o en el padre, si el origen es un archivo— y `source.artifact` registra literalmente la ruta declarada. La numeración es única en el proyecto aunque los archivos se repartan entre varios directorios.
 
-`hactors create-finding` añade la entrada con el ID y la procedencia: `--origin <ruta>` declara el origen y, si se omite, el origen es la instancia activa. El archivo se escribe siempre en la raíz del proyecto activo, cualquiera que sea el origen. Las reglas del origen admitido y de los valores que no rellena se describen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#14-registro-de-hallazgos-desde-cualquier-origen).
+La procedencia fija la ubicación y la aplicabilidad viaja en `relations`: un hallazgo puede tratar artefactos sin relación directa con su origen, o ajenos a su árbol de ejecución, sin moverse ni copiarse.
+
+`hactors create-finding` crea ese archivo con el ID y la procedencia: `--origin <ruta>` declara el origen y, si se omite, el origen es la instancia activa. Las reglas del origen admitido y de los valores que no rellena se describen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#14-registro-de-hallazgos-desde-cualquier-origen).
 
 ## Esquema.
 
@@ -45,7 +47,7 @@ Las evidencias que sustentan un hallazgo lo referencian mediante `supports`, con
 
 ## Consultas mínimas.
 
-[actor: human | agent] debe poder responder desde el registro:
+[actor: human | agent] debe poder responder sobre los hallazgos registrados:
 
 - ¿Qué hallazgos abiertos afectan a mi TASK o a mi RFC?
 - ¿Qué acciones tratan cada hallazgo y en qué estado están?

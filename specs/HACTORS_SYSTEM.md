@@ -67,7 +67,8 @@ projects/<project_name>/
 │   │   │           ├── manifest.yaml
 │   │   │           ├── harness_run_000001/
 │   │   │           │   ├── manifest.yaml
-│   │   │           │   └── EVD-00001.yaml
+│   │   │           │   ├── EVD-00001.yaml
+│   │   │           │   └── FND-00001.yaml
 │   │   │           └── harness_run_000002/
 │   │   │               └── manifest.yaml
 │   │   └── task_run_000002/
@@ -77,7 +78,6 @@ projects/<project_name>/
 ├── rfcs/
 ├── standards/
 ├── tasks/
-├── findings.yaml
 ├── manifest.yaml
 └── project.yaml
 ```
@@ -104,7 +104,7 @@ projects/.state.yaml
 | `…/rfc_run_XXXXXX/test_run_XXXXXX/` | test_run | Ejecución que referencia un TEST y puede contener harness_runs. |
 | `…/test_run_XXXXXX/harness_run_XXXXXX/` | harness_run | Uso de una versión de HARNESS; hoja de ejecución. |
 | `EVD-nnnnn.yaml` junto a su origen | EVIDENCE | Registro verificable escrito en el directorio del artefacto o ejecución que lo originó; ver sección 13. |
-| `findings.yaml` en la raíz del proyecto | FINDING | Lista centralizada de hallazgos, cada uno con su procedencia y sus afectados; ver sección 14. |
+| `FND-nnnnn.yaml` junto a su origen | FINDING | Hecho observado escrito en el directorio del artefacto o ejecución que lo originó, con su procedencia y sus afectados; ver sección 14. |
 | `projects/.state.yaml` | Estado activo | Proyecto y ruta completa de la instancia seleccionada, con todos sus ancestros. |
 
 ### Reglas de anidamiento
@@ -176,11 +176,11 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 | `test_run` | Un test_run dentro de un rfc_run | `test_run_000001` |
 | `harness_run` | Un harness_run dentro de un test_run | `harness_run_000001` |
 | `evidence` | Una evidencia en el directorio de su origen | `EVD-00001` |
-| `finding` | Un hallazgo en el `findings.yaml` del proyecto | `FND-00001` |
+| `finding` | Un hallazgo en el directorio de su origen | `FND-00001` |
 
 Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos RFC, PLAN, TEST, HRN ni versiones de receta y no se reinician al abrir una rama.
 
-El contador `evidence` no es de ejecución: numera registros EVD cuya ubicación depende de su origen, conforme a la sección 13, por lo que un mismo proyecto reparte sus evidencias entre varios directorios sin reiniciar la numeración. El contador `finding` tampoco lo es: numera entradas FND que se acumulan en un único registro por proyecto, conforme a la sección 14, cualquiera que sea su origen.
+Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración.
 
 Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
@@ -257,7 +257,7 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-test-run` | La instancia activa es un rfc_run | Crea su hijo test_run y añade el ID a la ruta activa. |
 | `hactors create-harness-run` | La instancia activa es un test_run | Crea su hijo harness_run y añade el ID a la ruta activa. |
 | `hactors create-evidence [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `EVD-nnnnn.yaml` en el directorio del origen. |
-| `hactors create-finding [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: añade la entrada `FND-nnnnn` al `findings.yaml` del proyecto. |
+| `hactors create-finding [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `FND-nnnnn.yaml` en el directorio del origen. |
 
 `use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
 
@@ -698,7 +698,7 @@ Crear o seleccionar un harness_run no construye ni ejecuta el HARNESS, no public
 
 Las EVD producidas se registran directamente junto a esta instancia. `source.harness` identifica la misma versión que `identity.harness_ref`, y `source.execution` conserva la ruta completa hasta el harness_run, no solo hasta el TEST o la RFC. El contexto observado conserva revisión examinada, construcción, configuración, plataforma, comandos y resultados conforme a [EVIDENCE.md](EVIDENCE.md), sin copiar la receta ni depender de la instalación efímera.
 
-La aplicabilidad a otros criterios o artefactos sigue [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md); compartir receta no propaga validez. Los hallazgos permanecen en el registro del proyecto definido por [FINDING.md](FINDING.md), con esta ejecución como origen cuando corresponda y afectados explícitos; no se atribuye un defecto al HRN por el solo hecho de haberlo utilizado.
+La aplicabilidad a otros criterios o artefactos sigue [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md); compartir receta no propaga validez. Los FND producidos se registran directamente junto a esta instancia, con esta ejecución como origen y afectados explícitos conforme a [FINDING.md](FINDING.md); no se atribuye un defecto al HRN por el solo hecho de haberlo utilizado.
 
 ## 13. Registro de evidencia desde cualquier origen
 
@@ -721,19 +721,19 @@ Crear el archivo no satisface por sí solo los mínimos de [EVIDENCE.md](EVIDENC
 
 ## 14. Registro de hallazgos desde cualquier origen
 
-Un hallazgo no es una instancia de ejecución: no se anida, no tiene hijos ni cambia el contexto activo. Pertenece al proyecto y se registra en su único `findings.yaml`, conforme a [FINDING.md](FINDING.md); su esquema, campos, tipos, severidades y estados se definen únicamente en [FND_TEMPLATE.md](templates/FND_TEMPLATE.md).
+Un hallazgo no es una instancia de ejecución: no se anida, no tiene hijos ni cambia el contexto activo. Pertenece al proyecto y se escribe junto al artefacto o la ejecución que lo originó, conforme a [FINDING.md](FINDING.md); su esquema, campos, tipos, severidades y estados se definen únicamente en [FND_TEMPLATE.md](templates/FND_TEMPLATE.md).
 
-`create-finding` exige un proyecto activo y un origen: una ruta relativa al proyecto, sin `.` ni `..`, separadores alternativos ni componentes vacíos. `--origin` declara esa ruta; si se omite, el origen es la ruta de la instancia activa, que entonces debe existir. Las reglas de validación son las de la sección 13, pero el origen determina solo el campo de procedencia, nunca la ubicación del registro:
+`create-finding` exige un proyecto activo y un origen: una ruta relativa al proyecto, sin `.` ni `..`, separadores alternativos ni componentes vacíos. `--origin` declara esa ruta; si se omite, el origen es la ruta de la instancia activa, que entonces debe existir. Las reglas de validación son las de la sección 13, y el origen determina a la vez la ubicación del registro y el campo de procedencia:
 
-| `--origin` | Validación | Campo de procedencia | Ubicación de la entrada |
-|------------|------------|----------------------|-------------------------|
-| Ruta con el prefijo `hactors/` | Ruta de ejecución completa válida, con la validación de la sección 4 | `source.execution` | `findings.yaml` en la raíz del proyecto activo |
-| Cualquier otra ruta del proyecto | Debe existir y no ser un enlace simbólico | `source.artifact`, literal | `findings.yaml` en la raíz del proyecto activo |
+| `--origin` | Validación | Campo de procedencia | Ubicación del archivo |
+|------------|------------|----------------------|-----------------------|
+| Ruta con el prefijo `hactors/` | Ruta de ejecución completa válida, con la validación de la sección 4 | `source.execution` | El directorio de esa instancia |
+| Cualquier otra ruta del proyecto | Debe existir y no ser un enlace simbólico | `source.artifact`, literal | Su propio directorio, o el padre si es un archivo |
 
-Un origen que empieza por `hactors/` se trata siempre como ejecución: si la ruta es inválida se rechaza, sin reinterpretarla como artefacto. `hactors` a secas no identifica ni una ejecución ni un artefacto. Omitir `--origin` toma la ruta activa completa tal como está, sin ascender a un ancestro ni descender a un hijo; un `--origin` vacío explícito sigue siendo un origen inválido y no se confunde con la omisión. Tomar la instancia activa como origen no modifica la selección. El comando no escribe un archivo por hallazgo junto al origen ni crea directorios de hallazgos, y no registra rutas absolutas ni referencias externas como procedencia.
+Un origen que empieza por `hactors/` se trata siempre como ejecución: si la ruta es inválida se rechaza, sin reinterpretarla como artefacto. `hactors` a secas no identifica ni una ejecución ni un artefacto. Omitir `--origin` toma la ruta activa completa tal como está, sin ascender a un ancestro ni descender a un hijo; un `--origin` vacío explícito sigue siendo un origen inválido y no se confunde con la omisión. Tomar la instancia activa como origen no modifica la selección. El comando no registra rutas absolutas ni referencias externas como procedencia.
 
-Cada hallazgo se añade como entrada de la lista `findings.yaml`, con el ID del contador global `finding` de la sección 3. Si el archivo no existe se crea con la primera entrada; si existe, las entradas anteriores se conservan en su orden y la nueva se añade al final, reescribiendo el archivo con la lista completa. La numeración es única en el proyecto y un ID ya registrado no se reutiliza.
+Cada hallazgo se escribe en su propio archivo `FND-nnnnn.yaml`, con el ID del contador global `finding` de la sección 3; la numeración es única en el proyecto aunque los archivos queden repartidos en varios directorios. El comando no crea un registro central de hallazgos ni subdirectorios por tipo.
 
 Las opciones `--title`, `--kind`, `--severity`, `--opened` y `--updated` se registran literalmente, sin validar el tipo ni la severidad contra sus tablas normativas ni el formato de las fechas. Si se omiten, conservan los valores de [finding_template.yaml](templates/finding_template.yaml); un valor vacío explícito sustituye el valor de ese campo. `state`, `actions`, `relations`, `resolved` y el resto de `source` proceden siempre de la plantilla: el comando no declara afectados, no asocia acciones, no cierra el hallazgo y no rellena `source.workflow`, `source.task` ni `source.rfc` a partir de la ascendencia o del manifiesto del origen.
 
-Añadir la entrada no satisface por sí sola los mínimos de [FINDING.md](FINDING.md): el registro queda estructuralmente válido con campos por resolver, y quien registra debe completar la afectación y el contexto documental. El comando no resuelve ni valida las referencias declaradas, no modifica el artefacto de origen ni otras entradas del registro, no altera `.state.yaml`, no consume contadores de ejecución ni registra relaciones en el manifest del proyecto. Un origen inválido, la ausencia de instancia activa cuando `--origin` se omite, una plantilla ausente o rota, un contador inválido, un `findings.yaml` que no sea una lista de mapeos y un ID candidato ya registrado se rechazan sin escribir nada y sin consumir el contador.
+Crear el archivo no satisface por sí solo los mínimos de [FINDING.md](FINDING.md): el registro queda estructuralmente válido con campos por resolver, y quien registra debe completar la afectación y el contexto documental. El comando no resuelve ni valida las referencias declaradas, no modifica el artefacto de origen ni otros hallazgos ya registrados, no altera `.state.yaml`, no consume contadores de ejecución ni registra relaciones en el manifest del proyecto. Un origen inválido, la ausencia de instancia activa cuando `--origin` se omite, una plantilla ausente o rota, un contador inválido o un archivo `FND-nnnnn.yaml` ya existente en el directorio de destino se rechazan sin escribir nada y sin consumir el contador.

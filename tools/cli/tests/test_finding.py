@@ -29,8 +29,6 @@ TEMPLATE_DEFAULTS = {
     "resolved": None,
 }
 
-REGISTER = "findings.yaml"
-
 
 def snapshot(directory):
     return {
@@ -78,9 +76,7 @@ def test_finding_template_matches_the_normative_schema(hactors_root, load_yaml):
     assert load_yaml(hactors_root / "specs" / "templates" / "finding_template.yaml") == TEMPLATE_DEFAULTS
 
 
-def test_execution_origin_records_full_path_in_the_project_register(
-    hactors_root, harness_origin, load_yaml,
-):
+def test_execution_origin_records_full_path_next_to_the_run(hactors_root, harness_origin, load_yaml):
     project, ancestors = harness_origin
     harness = ancestors[-1]
     origin = harness.relative_to(project).as_posix()
@@ -93,30 +89,45 @@ def test_execution_origin_records_full_path_in_the_project_register(
     finding_id, path = create_finding(hactors_root, project.name, origin)
 
     assert finding_id == "FND-00001"
-    assert path == project / REGISTER
-    assert load_yaml(path) == [expected_finding("FND-00001", "execution", origin)]
+    assert path == harness / "FND-00001.yaml"
+    assert load_yaml(path) == expected_finding("FND-00001", "execution", origin)
     assert load_yaml(project / "manifest.yaml") == expected_project
     assert (hactors_root / "projects" / ".state.yaml").read_bytes() == state_before
     assert load_state(hactors_root)["active_run_path"] == origin
+    added = path.relative_to(hactors_root).as_posix()
     after = snapshot(hactors_root)
-    assert after.keys() - before.keys() == {path.relative_to(hactors_root).as_posix()}
+    assert after.keys() - before.keys() == {added}
     assert before.keys() - after.keys() == set()
     assert [p for p in before if before[p] != after[p]] == ["projects/proj/manifest.yaml"]
     assert all(p.read_bytes() == content for p, content in originals.items())
-    assert not list(harness.glob("FND-*.yaml"))
+    assert not (project / "findings.yaml").exists()
 
 
-@pytest.mark.parametrize("origin", [
-    "rfcs/RFC-A00001.md",
-    "tasks/task_000001.md",
-    "standards/GIT.md",
-    "rfcs",
-    "standards",
-    "project.yaml",
-    "manifest.yaml",
+def test_execution_origin_works_at_any_depth_and_for_any_run_type(hactors_root, harness_origin, load_yaml):
+    project, ancestors = harness_origin
+    counter = 0
+    for run in ancestors:
+        origin = run.relative_to(project).as_posix()
+        counter += 1
+        finding_id, path = create_finding(hactors_root, project.name, origin)
+        assert finding_id == f"FND-{counter:05d}"
+        assert path == run / f"FND-{counter:05d}.yaml"
+        assert load_yaml(path) == expected_finding(f"FND-{counter:05d}", "execution", origin)
+    assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == counter
+    assert not (project / "findings.yaml").exists()
+
+
+@pytest.mark.parametrize("origin,directory", [
+    ("rfcs/RFC-A00001.md", "rfcs"),
+    ("tasks/task_000001.md", "tasks"),
+    ("standards/GIT.md", "standards"),
+    ("rfcs", "rfcs"),
+    ("standards", "standards"),
+    ("project.yaml", ""),
+    ("manifest.yaml", ""),
 ])
-def test_artifact_origin_is_recorded_verbatim_in_the_project_register(
-    hactors_root, artifacts, load_yaml, origin,
+def test_artifact_origin_is_recorded_verbatim_in_its_own_directory(
+    hactors_root, artifacts, load_yaml, origin, directory,
 ):
     project = artifacts
     before = snapshot(project)
@@ -124,14 +135,14 @@ def test_artifact_origin_is_recorded_verbatim_in_the_project_register(
     finding_id, path = create_finding(hactors_root, project.name, origin)
 
     assert finding_id == "FND-00001"
-    assert path == project / REGISTER
-    assert load_yaml(path) == [expected_finding("FND-00001", "artifact", origin)]
+    assert path == project / directory / "FND-00001.yaml"
+    assert load_yaml(path) == expected_finding("FND-00001", "artifact", origin)
     assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == 1
     after = snapshot(project)
-    assert after.keys() - before.keys() == {REGISTER}
+    assert after.keys() - before.keys() == {path.relative_to(project).as_posix()}
     assert {p for p in before if before[p] != after[p]} == {"manifest.yaml"}
     assert (project / "rfcs" / "RFC-A00001.md").read_text() == "# RFC original\n"
-    assert not list(project.rglob("FND-*.yaml"))
+    assert not (project / "findings.yaml").exists()
     assert not (project / "findings").exists()
 
 
@@ -145,9 +156,9 @@ def test_artifact_origin_is_recorded_verbatim_in_the_project_register(
 def test_explicit_options_override_only_their_own_field(hactors_root, artifacts, load_yaml, field, value):
     project = artifacts
     _, path = create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md", **{field: value})
-    assert load_yaml(path) == [
-        expected_finding("FND-00001", "artifact", "rfcs/RFC-A00001.md", **{field: value})
-    ]
+    assert load_yaml(path) == expected_finding(
+        "FND-00001", "artifact", "rfcs/RFC-A00001.md", **{field: value}
+    )
 
 
 @pytest.mark.parametrize("kwargs", [
@@ -181,14 +192,15 @@ def test_template_defaults_are_preserved_unless_a_value_is_explicit(
     expected["id"] = "FND-00001"
     expected["source"] = dict(template["source"], artifact="rfcs/RFC-A00001.md")
     expected.update(kwargs)
-    assert load_yaml(path) == [expected]
+    assert load_yaml(path) == expected
     assert source.read_bytes() == original_bytes
 
-    create_finding(hactors_root, project.name, "tasks/task_000001.md")
-    second = yaml.safe_load(yaml.safe_dump(template))
-    second["id"] = "FND-00002"
-    second["source"] = dict(template["source"], artifact="tasks/task_000001.md")
-    assert load_yaml(path) == [expected, second]
+    _, sibling = create_finding(hactors_root, project.name, "tasks/task_000001.md")
+    expected_sibling = yaml.safe_load(yaml.safe_dump(template))
+    expected_sibling["id"] = "FND-00002"
+    expected_sibling["source"] = dict(template["source"], artifact="tasks/task_000001.md")
+    assert load_yaml(sibling) == expected_sibling
+    assert load_yaml(path) == expected
 
 
 @pytest.mark.parametrize("value", [
@@ -201,25 +213,31 @@ def test_declared_values_are_stored_verbatim_without_validation(hactors_root, ar
         hactors_root, project.name, "rfcs/RFC-A00001.md",
         title=value, kind=value, severity=value, opened=value, updated=value,
     )
-    entry = load_yaml(path)[0]
+    entry = load_yaml(path)
     assert entry["title"] == entry["kind"] == entry["severity"] == value
     assert entry["opened"] == entry["updated"] == value
     assert not (project / "ejecutado").exists()
 
 
-def test_new_entries_are_appended_without_altering_the_previous_ones(hactors_root, artifacts, load_yaml):
-    project = artifacts
-    register = project / REGISTER
-    written = []
-    for index in range(1, 4):
-        finding_id, path = create_finding(
-            hactors_root, project.name, "rfcs/RFC-A00001.md", title=f"hallazgo {index}",
-        )
-        assert path == register
-        assert finding_id == f"FND-{index:05d}"
-        written.append(expected_finding(finding_id, "artifact", "rfcs/RFC-A00001.md", title=f"hallazgo {index}"))
-        assert load_yaml(register) == written
-    assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == 3
+def test_previous_findings_are_never_rewritten(hactors_root, harness_origin, load_yaml):
+    project, ancestors = harness_origin
+    (project / "rfcs" / "RFC-A00001.md").write_text("# RFC\n")
+    origin = ancestors[-1].relative_to(project).as_posix()
+
+    first_id, first = create_finding(hactors_root, project.name, origin, title="primero")
+    first_bytes = first.read_bytes()
+    second_id, second = create_finding(
+        hactors_root, project.name, "rfcs/RFC-A00001.md", title="segundo",
+    )
+
+    assert (first_id, second_id) == ("FND-00001", "FND-00002")
+    assert first.read_bytes() == first_bytes
+    assert second != first
+    assert load_yaml(first) == expected_finding(first_id, "execution", origin, title="primero")
+    assert load_yaml(second) == expected_finding(
+        second_id, "artifact", "rfcs/RFC-A00001.md", title="segundo",
+    )
+    assert not (project / "findings.yaml").exists()
 
 
 def test_counter_is_project_global_across_origins(hactors_root, harness_origin, load_yaml):
@@ -232,18 +250,18 @@ def test_counter_is_project_global_across_origins(hactors_root, harness_origin, 
         plan.relative_to(project).as_posix(),
         "rfcs",
     ]
-    ids = []
-    for origin in origins:
-        finding_id, path = create_finding(hactors_root, project.name, origin)
-        assert path == project / REGISTER
-        ids.append(finding_id)
-    assert ids == [f"FND-{index:05d}" for index in range(1, 5)]
+    paths = [create_finding(hactors_root, project.name, origin)[1] for origin in origins]
+    assert [path.name for path in paths] == [f"FND-{index:05d}.yaml" for index in range(1, 5)]
+    assert paths[0].parent == project / "rfcs"
+    assert paths[1].parent == ancestors[-1]
+    assert paths[2].parent == plan
+    assert paths[3].parent == project / "rfcs"
+    assert len({path.stat().st_ino for path in paths}) == 4
     assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == 4
     fields = ["artifact", "execution", "execution", "artifact"]
-    for entry, field, origin in zip(load_yaml(project / REGISTER), fields, origins):
-        assert entry["source"][field] == origin
-    assert not list(plan.glob("FND-*.yaml"))
-    assert not list(ancestors[-1].glob("FND-*.yaml"))
+    for path, field, origin in zip(paths, fields, origins):
+        assert load_yaml(path)["source"][field] == origin
+    assert not (project / "findings.yaml").exists()
 
 
 def test_other_project_counters_are_untouched(hactors_root, harness_origin, load_yaml):
@@ -308,60 +326,40 @@ def test_symlinked_origin_is_rejected_without_writing_target(hactors_root, artif
     assert snapshot(tmp_path) == before
 
 
-def test_symlinked_register_is_rejected_without_writing_target(hactors_root, artifacts, tmp_path):
+def test_symlinked_directory_origin_is_rejected(hactors_root, artifacts, tmp_path):
     project = artifacts
-    target = tmp_path / "findings-ajeno.yaml"
-    target.write_text("- id: FND-00099\n")
-    (project / REGISTER).symlink_to(target)
+    target = tmp_path / "rfcs-reales"
+    project.joinpath("rfcs").rename(target)
+    project.joinpath("rfcs").symlink_to(target, target_is_directory=True)
     before = snapshot(tmp_path)
     with pytest.raises(FindingError, match="enlaces simbólicos"):
-        create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md")
+        create_finding(hactors_root, project.name, "rfcs")
     assert snapshot(tmp_path) == before
-    assert target.read_text() == "- id: FND-00099\n"
 
 
-@pytest.mark.parametrize("content", ["", "\n", "# solo un comentario\n"])
-def test_empty_register_accepts_the_first_finding(hactors_root, artifacts, load_yaml, content):
+def test_existing_finding_is_never_overwritten_nor_counted(hactors_root, artifacts, load_yaml):
     project = artifacts
-    (project / REGISTER).write_text(content)
-    _, path = create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md")
-    assert load_yaml(path) == [expected_finding("FND-00001", "artifact", "rfcs/RFC-A00001.md")]
-
-
-@pytest.mark.parametrize("content,message", [
-    ("id: FND-00001\n", "debe ser una lista"),
-    ("roto: [sin cerrar\n", "inválido"),
-    ("- FND-00001\n", "no es un mapeo"),
-    ("- id: FND-00001\n- solo texto\n", "no es un mapeo"),
-])
-def test_invalid_register_shapes_are_rejected_before_any_write(hactors_root, artifacts, content, message):
-    project = artifacts
-    (project / REGISTER).write_text(content)
+    existing = project / "rfcs" / "FND-00001.yaml"
+    existing.write_text("id: FND-00001\nmanual: no sobrescribir\n")
     before = snapshot(hactors_root)
-    with pytest.raises(FindingError, match=message):
-        create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md")
-    assert snapshot(hactors_root) == before
-    assert (project / REGISTER).read_text() == content
-
-
-def test_registered_id_is_never_reused_nor_the_counter_consumed(hactors_root, artifacts, load_yaml):
-    project = artifacts
-    register = project / REGISTER
-    register.write_text("- id: FND-00001\n  title: registrado a mano\n")
-    before = snapshot(hactors_root)
-    with pytest.raises(FindingError, match="ya registrado"):
+    with pytest.raises(FindingError, match="Ya existe"):
         create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md")
     assert snapshot(hactors_root) == before
     assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == 0
 
-    manifest = project / "manifest.yaml"
-    data = load_yaml(manifest)
-    data["counters"]["finding"] = 1
-    manifest.write_text(yaml.safe_dump(data))
+    existing.unlink()
     create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md")
-    entries = load_yaml(register)
-    assert [entry["id"] for entry in entries] == ["FND-00001", "FND-00002"]
-    assert entries[0]["title"] == "registrado a mano"
+    assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == 1
+
+
+def test_existing_finding_in_a_run_directory_is_never_overwritten(hactors_root, harness_origin):
+    project, ancestors = harness_origin
+    harness = ancestors[-1]
+    (harness / "FND-00001.yaml").write_text("id: FND-00001\n")
+    before = snapshot(hactors_root)
+    with pytest.raises(FindingError, match="Ya existe"):
+        create_finding(hactors_root, project.name, harness.relative_to(project).as_posix())
+    assert snapshot(hactors_root) == before
 
 
 @pytest.mark.parametrize("value", [-1, True, False, 1.5, "1", None, [], {}])
@@ -401,6 +399,7 @@ def test_missing_counter_is_added_starting_at_one(hactors_root, artifacts, load_
     finding_id, path = create_finding(hactors_root, project.name, "rfcs/RFC-A00001.md")
 
     assert finding_id == "FND-00001"
+    assert path.name == "FND-00001.yaml"
     data["counters"]["finding"] = 1
     assert load_yaml(manifest) == data
     after = snapshot(hactors_root)
@@ -477,8 +476,7 @@ def test_cli_defaults_origin_to_the_active_run_at_any_depth(hactors_root, harnes
     result = invoke(hactors_root, "create-finding")
 
     assert "FND-00001" in result.output
-    assert load_yaml(project / REGISTER) == [expected_finding("FND-00001", "execution", origin)]
-    assert not list(run.glob("FND-*.yaml"))
+    assert load_yaml(run / "FND-00001.yaml") == expected_finding("FND-00001", "execution", origin)
     assert (hactors_root / "projects" / ".state.yaml").read_bytes() == state_before
 
 
@@ -509,7 +507,10 @@ def test_cli_creates_findings_from_execution_and_artifact_origins(hactors_root, 
 
     result = invoke(hactors_root, "create-finding", "--origin", harness.relative_to(project).as_posix())
     assert "FND-00001" in result.output
-    assert REGISTER in result.output
+    assert str(harness / "FND-00001.yaml") in result.output
+    assert load_yaml(harness / "FND-00001.yaml") == expected_finding(
+        "FND-00001", "execution", harness.relative_to(project).as_posix(),
+    )
 
     (project / "rfcs" / "RFC-A00001.md").write_text("# RFC\n")
     invoke(
@@ -517,15 +518,13 @@ def test_cli_creates_findings_from_execution_and_artifact_origins(hactors_root, 
         "--title", "Brecha observada", "--kind", "gap", "--severity", "medium",
         "--opened", "2026-10-30", "--updated", "2026-10-30",
     )
-    assert load_yaml(project / REGISTER) == [
-        expected_finding("FND-00001", "execution", harness.relative_to(project).as_posix()),
-        expected_finding(
-            "FND-00002", "artifact", "rfcs/RFC-A00001.md",
-            title="Brecha observada", kind="gap", severity="medium",
-            opened="2026-10-30", updated="2026-10-30",
-        ),
-    ]
+    assert load_yaml(project / "rfcs" / "FND-00002.yaml") == expected_finding(
+        "FND-00002", "artifact", "rfcs/RFC-A00001.md",
+        title="Brecha observada", kind="gap", severity="medium",
+        opened="2026-10-30", updated="2026-10-30",
+    )
     assert load_yaml(project / "manifest.yaml")["counters"]["finding"] == 2
+    assert not (project / "findings.yaml").exists()
     assert (hactors_root / "projects" / ".state.yaml").read_bytes() == state_before
 
 
@@ -539,7 +538,7 @@ def test_cli_root_is_autodetected_from_the_working_directory(hactors_root, harne
     result = CliRunner().invoke(cli, ["create-finding", "--origin", origin])
 
     assert result.exit_code == 0, result.output
-    assert load_yaml(project / REGISTER) == [expected_finding("FND-00001", "execution", origin)]
+    assert load_yaml(harness / "FND-00001.yaml") == expected_finding("FND-00001", "execution", origin)
 
 
 @pytest.mark.parametrize("args,message", [
@@ -565,14 +564,14 @@ def test_cli_works_with_an_unrelated_active_run(hactors_root, harness_origin, lo
 
     invoke(hactors_root, "create-finding", "--origin", "rfcs/RFC-A00001.md")
 
-    assert load_yaml(project / REGISTER) == [
-        expected_finding("FND-00001", "artifact", "rfcs/RFC-A00001.md")
-    ]
+    assert load_yaml(project / "rfcs" / "FND-00001.yaml") == expected_finding(
+        "FND-00001", "artifact", "rfcs/RFC-A00001.md",
+    )
     assert not list(ancestors[-1].glob("FND-*.yaml"))
     assert load_state(hactors_root)["active_run_path"] == ancestors[-1].relative_to(project).as_posix()
 
 
-def test_cli_process_appends_findings_in_a_separate_process(hactors_root, artifacts, load_yaml):
+def test_cli_process_creates_findings_in_a_separate_process(hactors_root, artifacts, load_yaml):
     project = artifacts
     env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]), PYTHONDONTWRITEBYTECODE="1")
 
@@ -590,10 +589,14 @@ def test_cli_process_appends_findings_in_a_separate_process(hactors_root, artifa
         "create-finding", "--origin", "rfcs/RFC-A00001.md", "--kind", "defect", "--severity", "low",
     )
     assert "FND-00002" in process("create-finding", "--origin", "standards/GIT.md", "--kind", "gap")
-    assert load_yaml(project / REGISTER) == [
-        expected_finding("FND-00001", "artifact", "rfcs/RFC-A00001.md", kind="defect", severity="low"),
-        expected_finding("FND-00002", "artifact", "standards/GIT.md", kind="gap"),
-    ]
+    assert load_yaml(project / "rfcs" / "FND-00001.yaml") == expected_finding(
+        "FND-00001", "artifact", "rfcs/RFC-A00001.md", kind="defect", severity="low",
+    )
+    assert load_yaml(project / "standards" / "FND-00002.yaml") == expected_finding(
+        "FND-00002", "artifact", "standards/GIT.md", kind="gap",
+    )
     after = snapshot(hactors_root)
-    assert after.keys() - before.keys() == {f"projects/proj/{REGISTER}"}
+    assert after.keys() - before.keys() == {
+        "projects/proj/rfcs/FND-00001.yaml", "projects/proj/standards/FND-00002.yaml",
+    }
     assert {p for p in before if before[p] != after[p]} == {"projects/proj/manifest.yaml"}

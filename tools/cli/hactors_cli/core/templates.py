@@ -22,7 +22,7 @@ def load_template(hactors_root: Path, template_name: str) -> dict:
     return data
 
 
-def render_yaml(data: dict | list) -> str:
+def render_yaml(data: dict) -> str:
     return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
 

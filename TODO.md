@@ -8,7 +8,7 @@
 * [x] hactors create-test-run — crea y activa instancias bajo rfc_run inicial o derivado; CLI y pruebas verificadas, no genera ni ejecuta artefactos TEST.
 * [x] hactors create-harness-run — crea y activa instancias bajo el test_run solicitante con referencias declaradas; no publica, verifica ni ejecuta recetas HARNESS.
 * [x] hactors create-evidence — registra EVD-nnnnn.yaml junto a su origen, declarado o tomado de la instancia activa; no captura el contexto observado ni declara aplicabilidad.
-* [x] hactors create-finding — añade la entrada FND-nnnnn al findings.yaml del proyecto desde cualquier origen, declarado o tomado de la instancia activa; no declara afectados ni acciones.
+* [x] hactors create-finding — registra FND-nnnnn.yaml junto a su origen, declarado o tomado de la instancia activa; no declara afectados ni acciones.
 * [] hactors relate-finding — declara las relaciones de afectación (affects) de un hallazgo existente.
 * [] hactors harness create
 * [] hactors validate

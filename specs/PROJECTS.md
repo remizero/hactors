@@ -30,7 +30,6 @@ projects/<project_name>/
 ├── rfcs/
 ├── standards/
 ├── tasks/
-├── findings.yaml
 ├── manifest.yaml
 └── project.yaml
 ```
@@ -43,7 +42,6 @@ La tabla siguiente explica lo que representa la estructura anterior.
 | rfcs/         | Especificaciones de evolución | Contenido normativo original inmutable de una RFC. Cada RFC conserva su contenido original y su identidad. El estado puede evolucionar mediante los mecanismos autorizados, sin reescribir retrospectivamente lo que se propuso. |
 | standards/    | Normas específicas del proyecto | Convenciones particulares de documentación, Git y estilo de código. Solo debe redefinir reglas cuando exista una necesidad real y se respete la autoridad normativa de SPECS. |
 | tasks/        | Artefactos iniciadores | Cada TASK inicia un proceso de ejecución y define su alcance y sus criterios de aceptación. Ver [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#7-task-artefacto-iniciador). |
-| findings.yaml | Registro de hallazgos | Lista centralizada de los hallazgos del proyecto, con su procedencia, sus afectados y su estado. Se crea al registrar el primer hallazgo; los artefactos afectados solo los referencian por `id`. Ver [FINDING.md](FINDING.md). |
 | manifest.yaml | Grafo de relaciones | Registra las relaciones entre los artefactos, sus referencias físicas, la genealogía y la temporalidad cuando corresponda. Debe permitir navegar por la evolución del proyecto sin mantener índices o tablas duplicadas manualmente. |
 | project.yaml  | Identidad y configuración | Identidad el proyecto, propósito, referencias normativas y configuración necesaria para interpretarlo. No debe duplicar información derivable de otros artefactos. |
 

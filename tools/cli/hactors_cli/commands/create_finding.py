@@ -37,7 +37,7 @@ def create_finding_cmd(
     updated: Optional[str],
     root: Optional[Path],
 ) -> None:
-    """Registrar un hallazgo FND en el findings.yaml del proyecto activo, sin validar su contenido."""
+    """Registrar un hallazgo FND junto al artefacto o ejecución que lo originó, sin validar su contenido."""
     hactors_root = root if root is not None else find_hactors_root(Path.cwd())
     try:
         project_name = require_active_project(hactors_root)
