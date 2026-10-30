@@ -29,6 +29,8 @@ projects/<project_name>/
 ├── hactors/
 ├── rfcs/
 ├── standards/
+├── tasks/
+├── findings.yaml
 ├── manifest.yaml
 └── project.yaml
 ```
@@ -40,6 +42,8 @@ La tabla siguiente explica lo que representa la estructura anterior.
 | hactors/      | Directorio de trabajo y evolución de las especificaciones RFCs | Donde viven los artefactos que describen la evolución y estado del proyecto. |
 | rfcs/         | Especificaciones de evolución | Contenido normativo original inmutable de una RFC. Cada RFC conserva su contenido original y su identidad. El estado puede evolucionar mediante los mecanismos autorizados, sin reescribir retrospectivamente lo que se propuso. |
 | standards/    | Normas específicas del proyecto | Convenciones particulares de documentación, Git y estilo de código. Solo debe redefinir reglas cuando exista una necesidad real y se respete la autoridad normativa de SPECS. |
+| tasks/        | Artefactos iniciadores | Cada TASK inicia un proceso de ejecución y define su alcance y sus criterios de aceptación. Ver [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#7-task-artefacto-iniciador). |
+| findings.yaml | Registro de hallazgos | Lista centralizada de los hallazgos del proyecto, con su procedencia, sus afectados y su estado. Se crea al registrar el primer hallazgo; los artefactos afectados solo los referencian por `id`. Ver [FINDING.md](FINDING.md). |
 | manifest.yaml | Grafo de relaciones | Registra las relaciones entre los artefactos, sus referencias físicas, la genealogía y la temporalidad cuando corresponda. Debe permitir navegar por la evolución del proyecto sin mantener índices o tablas duplicadas manualmente. |
 | project.yaml  | Identidad y configuración | Identidad el proyecto, propósito, referencias normativas y configuración necesaria para interpretarlo. No debe duplicar información derivable de otros artefactos. |
 
@@ -55,14 +59,17 @@ La tabla siguiente explica lo que representa la estructura anterior.
 4. Crear el directorio standards/, dentro del directorio hactors/projects/<project_name>, donde podrá contener los archivos DOCUMENTATION.md, GIT.md, CODING_STYLE.md.
 5. Crear el directorio rfcs/, dentro del directorio hactors/projects/<project_name>, que contendrá todas las RFCs originales definidas y que serán inmutables a lo largo del proyecto al cual se hará seguimiento. El único valor modificable de una RFC es el atributo status.
 6. Crear el directorio hactors/, dentro del directorio hactors/projects/<project_name>, que contendrá el flujo de ejecución de las RFC.
+7. Crear el directorio tasks/, dentro del directorio hactors/projects/<project_name>, que contendrá las TASKs que inician ese flujo.
 
 ### Plantilla.
 
-Copiar el directorio hactors/specs/templates/example_project/ dentro del directorio hactors/projects/ y renombrarlo con el nombre a hacer seguimiento.
+Copiar el directorio hactors/specs/templates/project_template/ como hactors/projects/<project_name>, con el nombre del proyecto a hacer seguimiento.
 
 ```bash
-cp hactors/specs/templates/example_project hactors/projects/<project_name>
+cp -r hactors/specs/templates/project_template hactors/projects/<project_name>
 ```
+
+La plantilla deja vacíos `name` en project.yaml y `project` en manifest.yaml; ambos deben rellenarse con el nombre del directorio, o la CLI rechazará el proyecto.
 
 ### CLI.
 

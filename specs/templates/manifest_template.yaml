@@ -9,3 +9,4 @@ counters:
   test_run: 0
   harness_run: 0
   evidence: 0
+  finding: 0

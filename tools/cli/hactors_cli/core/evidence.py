@@ -4,36 +4,14 @@ from typing import Optional
 import yaml
 
 from .counters import next_evidence_id
-from .paths import require_project_directory, require_run_directory
+from .paths import require_project_directory, resolve_origin
 from .templates import load_template, render_yaml
 
 EVIDENCE_TEMPLATE = "evidence_template.yaml"
-EXECUTION_ROOT = "hactors"
 
 
 class EvidenceError(Exception):
     pass
-
-
-def _origin_location(root: Path, project_name: str, project: Path, origin: str) -> tuple[Path, str]:
-    if not isinstance(origin, str) or not origin.strip():
-        raise ValueError("Origen inválido: use una ruta relativa al proyecto.")
-    parts = origin.split("/")
-    if Path(origin).is_absolute() or "\\" in origin or any(part in ("", ".", "..") for part in parts):
-        raise ValueError("Origen inválido: use una ruta relativa al proyecto sin '.' ni '..'.")
-    if parts[0] == EXECUTION_ROOT:
-        if len(parts) < 2:
-            raise ValueError("Origen inválido: 'hactors' no identifica una ejecución ni un artefacto.")
-        return require_run_directory(root, project_name, origin), "execution"
-
-    path = project / origin
-    if path.is_symlink():
-        raise ValueError("El origen no admite enlaces simbólicos.")
-    if not path.exists():
-        raise ValueError(f"Artefacto de origen no encontrado: '{origin}'.")
-    if not path.resolve().is_relative_to(project.resolve()):
-        raise ValueError("El origen está fuera del directorio del proyecto.")
-    return (path if path.is_dir() else path.parent), "artifact"
 
 
 def create_evidence(
@@ -46,7 +24,7 @@ def create_evidence(
 ) -> Path:
     try:
         project = require_project_directory(root, project_name)
-        directory, source_field = _origin_location(root, project_name, project, origin)
+        directory, source_field = resolve_origin(root, project_name, project, origin)
         template = load_template(root, EVIDENCE_TEMPLATE)
         if not isinstance(template.get("source"), dict):
             raise ValueError("La plantilla de evidencia requiere un bloque source.")

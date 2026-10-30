@@ -1,0 +1,16 @@
+id: ""
+title: ""
+kind: ""
+severity: ""
+state: open
+source:
+  execution: ""
+  artifact: ""
+  workflow: ""
+  task: ""
+  rfc: ""
+actions: []
+relations: []
+opened: ""
+updated: ""
+resolved: null

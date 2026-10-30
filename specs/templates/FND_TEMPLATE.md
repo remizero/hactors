@@ -2,19 +2,19 @@
 
 # Plantilla de hallazgo (FND-nnnnn)
 
-[actor: human | agent] utiliza esta plantilla al registrar un hallazgo en `findings.yaml` dentro del proyecto.
-El formato, los campos, las relaciones de afectación y las reglas de operación se definen aquí.
+[actor: human | agent] utiliza esta plantilla al registrar un hallazgo.
+Lo que debe contener un hallazgo, sus mínimos, su ubicación y sus reglas de operación se definen en [FINDING.md](../FINDING.md).
 Los campos vacíos son información por resolver, no hechos afirmados.
 
-## Qué es un hallazgo
+## Identidad
 
-Un hallazgo afirma un hecho observado: defecto, brecha, inconsistencia, riesgo o ausencia verificada.
-No aprueba cambios ni reemplaza una RFC; puede derivar en una o quedar como antecedente documentado.
-Pertenece al proyecto que lo registra, con identidad única; identificar nuevos afectados no cambia su origen ni crea copias del hallazgo.
+| Campo | Formato | Ejemplo |
+|---|---|---|
+| ID | `FND-nnnnn` único en el proyecto | `FND-00042` |
+
+Un identificador retirado no se reutiliza. El hallazgo pertenece al proyecto que lo registra, con identidad única; identificar nuevos afectados no cambia su origen ni crea copias del hallazgo.
 
 ## Esquema YAML
-
-Copiar como entrada en `findings.yaml` del proyecto.
 
 ```yaml
 - id: FND-00001
@@ -35,24 +35,26 @@ Copiar como entrada en `findings.yaml` del proyecto.
   resolved: null
 ```
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id` | `FND-nnnnn` | Identificador único en el proyecto; no se reutiliza al retirar. |
-| `title` | texto | Descripción concisa del hecho observado. |
-| `kind` | enum | Tipo de hallazgo; ver tabla de tipos. |
-| `severity` | enum | Impacto; ver tabla de severidad. |
-| `state` | enum | Estado actual; ver tabla de estados. |
-| `source` | objeto | Procedencia: actividad, ejecución o fuente donde se detectó el hallazgo; no enumera los afectados ni atribuye por sí sola la causa del defecto. |
-| `source.execution` | ruta | Ruta completa de la ejecución de origen desde `hactors/`, relativa al proyecto, cuando exista; conserva todos sus ancestros conforme a [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md). |
-| `source.artifact` | ruta | Fuente o artefacto cuya observación originó el hallazgo, cuando corresponda; no implica que ese artefacto esté afectado. |
-| `source.workflow` | referencia | WORKFLOW del contexto de origen, cuando corresponda; no sustituye la identidad de su ejecución. |
-| `source.task` | referencia | TASK del contexto de origen, cuando corresponda. |
-| `source.rfc` | referencia | RFC del contexto de origen, cuando corresponda; no declara afectación. |
-| `actions` | lista de `AC-nnnnn` | Acciones que tratan este hallazgo. |
-| `relations` | lista de relaciones | Artefactos afectados mediante vínculos `affects`; ver «Relaciones de afectación». |
-| `opened` | `YYYY-MM-DD` | Fecha de registro. |
-| `updated` | `YYYY-MM-DD` | Última modificación. |
-| `resolved` | `YYYY-MM-DD` o null | Fecha de cierre terminal; null si no resuelto. |
+## Campos
+
+| Campo | Descripción |
+|---|---|
+| `id` | `FND-nnnnn`; único en el proyecto; no se reutiliza al retirar. |
+| `title` | Descripción concisa del hecho observado. |
+| `kind` | Tipo de hallazgo; ver tabla de tipos. |
+| `severity` | Impacto; ver tabla de severidad. |
+| `state` | Estado actual; ver tabla de estados. |
+| `source` | Procedencia: actividad, ejecución o fuente donde se detectó el hallazgo; no enumera los afectados ni atribuye por sí sola la causa del defecto. |
+| `source.execution` | Ruta completa de la ejecución de origen desde `hactors/`, relativa al proyecto, cuando exista; conserva todos sus ancestros conforme a [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md). |
+| `source.artifact` | Fuente o artefacto cuya observación originó el hallazgo, cuando corresponda; no implica que ese artefacto esté afectado. |
+| `source.workflow` | WORKFLOW del contexto de origen, cuando corresponda; no sustituye la identidad de su ejecución. |
+| `source.task` | TASK del contexto de origen, cuando corresponda. |
+| `source.rfc` | RFC del contexto de origen, cuando corresponda; no declara afectación. |
+| `actions` | Lista de `AC-nnnnn`: acciones que tratan este hallazgo. |
+| `relations` | Artefactos afectados mediante vínculos `affects`; ver «Relaciones de afectación». |
+| `opened` | `YYYY-MM-DD` de registro. |
+| `updated` | `YYYY-MM-DD` de la última modificación. |
+| `resolved` | `YYYY-MM-DD` del cierre terminal; null si no está resuelto. |
 
 Omitir las referencias documentales de `source` que ya puedan recuperarse de `source.execution` y sus manifiestos; no copiar la ascendencia en campos por tipo. Si no existe una ejecución, identificar la fuente y el contexto documental disponible sin inventar un run.
 
@@ -77,8 +79,6 @@ relations:
 ```
 
 Los afectados se declaran únicamente en `relations`: no mantener una lista `affects` paralela ni usar `source` para enumerarlos. Añadir afectados no altera el origen ni resuelve el hallazgo automáticamente.
-
-Las evidencias que sustentan el hallazgo lo referencian mediante `supports`, conforme a [EVD_TEMPLATE.md](EVD_TEMPLATE.md); esa relación de respaldo no se confunde con la procedencia ni con `affects`.
 
 ## Tipos
 
@@ -118,21 +118,16 @@ open → superseded
 tracked → open   (si se retira la acción)
 ```
 
-Un `critical` o `high` en estado `open` bloquea el cierre de la TASK donde se originó.
+Las consecuencias de cada estado sobre la TASK de origen se definen en [FINDING.md](../FINDING.md).
 
-## Operación
+## Ubicación
 
-| Acción | Actor |
-|---|---|
-| Registrar un hallazgo detectado. | `[actor: human \| agent]` |
-| Clasificar severidad inicial. | `[actor: human \| agent]` |
-| Cambiar `open` a `tracked`. | `[actor: human \| agent]` |
-| Marcar `resolved`. | `[actor: human \| agent]` con evidencia. |
-| Decidir `wont-fix`. | `[actor: human]`. |
-| Modificar severidad tras análisis. | `[actor: human]` si afecta alcance aprobado. |
+El hallazgo se registra como entrada de la lista `findings.yaml` en la raíz del proyecto; no existe un archivo por hallazgo ni un directorio de hallazgos por ejecución.
 
-## Relación con RFC y TASK
+El esquema anterior muestra la entrada como elemento de lista; [finding_template.yaml](finding_template.yaml) contiene esa misma entrada sin el guion de lista, y es la forma que se añade al archivo con `id` ya asignado. Las reglas de ubicación y procedencia se definen en [FINDING.md](../FINDING.md).
 
-El contexto de origen se obtiene de `source`, no de la lista de afectados. La TASK de origen se recupera siguiendo `source.execution` hasta el workflow_run y su `identity.task_ref`; cuando exista una TASK de origen que no pueda recuperarse allí, se declara en `source.task`. Las relaciones `affects` no sustituyen esa TASK ni cambian la regla de bloqueo de cierre.
-Si la resolución cambia un contrato vigente, se crea la RFC correspondiente; el hallazgo queda como antecedente referenciado por `supersedes` o `informs`.
-Hallazgos que impactan varios artefactos se mantienen centralizados en el `findings.yaml` del proyecto; los artefactos afectados solo los referencian por `id`.
+## Registro con la CLI
+
+`hactors create-finding` asigna el `id` y la procedencia, y acepta `--origin`, `--title`, `--kind`, `--severity`, `--opened` y `--updated`. Sin `--origin` la procedencia es la ruta de la instancia activa. Los valores declarados se registran literalmente; los campos omitidos conservan los de [finding_template.yaml](finding_template.yaml), y un valor vacío explícito sustituye al de la plantilla.
+
+El comando no rellena `relations`, `actions` ni el resto de `source`: la afectación y el contexto documental los completa quien registra, conforme a los mínimos de [FINDING.md](../FINDING.md). Tampoco valida `kind` ni `severity` contra sus tablas, ni el formato de `opened`, `updated` o `resolved`. El origen admitido y lo que el comando no hace se describen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#14-registro-de-hallazgos-desde-cualquier-origen).

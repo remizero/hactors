@@ -1,6 +1,7 @@
 import click
 
 from .commands.create_evidence import create_evidence_cmd
+from .commands.create_finding import create_finding_cmd
 from .commands.create_harness_run import create_harness_run_cmd
 from .commands.create_plan_run import create_plan_run_cmd
 from .commands.create_project import create_project_cmd
@@ -28,3 +29,4 @@ cli.add_command(create_plan_run_cmd)
 cli.add_command(create_test_run_cmd)
 cli.add_command(create_harness_run_cmd)
 cli.add_command(create_evidence_cmd)
+cli.add_command(create_finding_cmd)

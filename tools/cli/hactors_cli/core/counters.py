@@ -6,6 +6,8 @@ import yaml
 COUNTER_FORMAT = "{prefix}_{number:06d}"
 EVIDENCE_ID_FORMAT = "EVD-{number:05d}"
 EVIDENCE_COUNTER = "evidence"
+FINDING_ID_FORMAT = "FND-{number:05d}"
+FINDING_COUNTER = "finding"
 
 
 def _incremented_manifest(manifest_path: Path, counter_name: str) -> tuple[dict, int]:
@@ -52,6 +54,18 @@ def next_evidence_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
     target = directory / f"{formatted}.yaml"
     if target.exists() or target.is_symlink():
         raise FileExistsError(errno.EEXIST, "Ya existe una evidencia", str(target))
+
+    _persist(manifest_path, data)
+    return formatted, new_value
+
+
+def next_finding_id(manifest_path: Path, existing_ids: set) -> tuple[str, int]:
+    data, new_value = _incremented_manifest(manifest_path, FINDING_COUNTER)
+    formatted = FINDING_ID_FORMAT.format(number=new_value)
+    if formatted in existing_ids:
+        raise ValueError(
+            f"El contador '{FINDING_COUNTER}' produciría un ID ya registrado en findings.yaml: '{formatted}'."
+        )
 
     _persist(manifest_path, data)
     return formatted, new_value
