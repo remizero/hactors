@@ -27,6 +27,7 @@ Esta estructura define la organización física de un proyecto HACTORS del proye
 ```
 projects/<project_name>/
 ├── hactors/
+├── decisions/
 ├── rfcs/
 ├── standards/
 ├── tasks/
@@ -39,6 +40,7 @@ La tabla siguiente explica lo que representa la estructura anterior.
 | Documento | ¿Qué es? | Descripción |
 |---------------|-------------|-------------|
 | hactors/      | Directorio de trabajo y evolución de las especificaciones RFCs | Donde viven los artefactos que describen la evolución y estado del proyecto. |
+| decisions/    | Decisiones registradas | Cada decisión vive en su propio archivo `ADR-nnnnn — nombre-descriptivo.md`, sin registro agregado. Ver [DECISIONS.md](DECISIONS.md). |
 | rfcs/         | Especificaciones de evolución | Contenido normativo original inmutable de una RFC. Cada RFC conserva su contenido original y su identidad. El estado puede evolucionar mediante los mecanismos autorizados, sin reescribir retrospectivamente lo que se propuso. |
 | standards/    | Normas específicas del proyecto | Convenciones particulares de documentación, Git y estilo de código. Solo debe redefinir reglas cuando exista una necesidad real y se respete la autoridad normativa de SPECS. |
 | tasks/        | Artefactos iniciadores | Cada TASK inicia un proceso de ejecución y define su alcance y sus criterios de aceptación. Ver [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#7-task-artefacto-iniciador). |
@@ -58,6 +60,7 @@ La tabla siguiente explica lo que representa la estructura anterior.
 5. Crear el directorio rfcs/, dentro del directorio hactors/projects/<project_name>, que contendrá todas las RFCs originales definidas y que serán inmutables a lo largo del proyecto al cual se hará seguimiento. El único valor modificable de una RFC es el atributo status.
 6. Crear el directorio hactors/, dentro del directorio hactors/projects/<project_name>, que contendrá el flujo de ejecución de las RFC.
 7. Crear el directorio tasks/, dentro del directorio hactors/projects/<project_name>, que contendrá las TASKs que inician ese flujo.
+8. Crear el directorio decisions/, dentro del directorio hactors/projects/<project_name>, que contendrá los ADR registrados por el proyecto.
 
 ### Plantilla.
 

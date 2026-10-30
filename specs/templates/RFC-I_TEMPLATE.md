@@ -4,7 +4,7 @@
 
 [actor: human | agent] completa esta plantilla siguiendo [RFC.md](../RFC.md).
 Los campos vacíos son información por resolver, no criterios satisfechos.
-Los estados y autorizaciones proceden de LIFECYCLE.md.
+Los estados y autorizaciones proceden de [LIFECYCLE.md](../LIFECYCLE.md).
 
 ## Metadatos y cuerpo común
 
@@ -51,6 +51,6 @@ Listar decisiones abiertas (UNRESOLVED) y dónde quedaron resueltas o dónde deb
 
 ## Resumen y continuidad
 
-Al completar la integración, [actor: human | agent] redacta un resumen conforme a [RFC_SUMMARY.md](RFC_SUMMARY.md).
+Al completar la integración, [actor: human | agent] redacta un resumen conforme a [SUMMARY_TEMPLATE.md](SUMMARY_TEMPLATE.md).
 El resumen sintetiza composición, adopción, pruebas de integración y decisiones abiertas.
 La integración prepara la ruta para RFC-T de verificación; esa RFC-T conserva su ciclo de vida independiente.

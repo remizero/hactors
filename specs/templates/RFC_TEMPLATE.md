@@ -4,7 +4,7 @@
 
 [actor: human | agent] completa esta plantilla siguiendo [RFC.md](../RFC.md).
 Los campos vacíos son información por resolver, no criterios satisfechos.
-Los estados y autorizaciones proceden de LIFECYCLE.md.
+Los estados y autorizaciones proceden de [LIFECYCLE.md](../LIFECYCLE.md).
 
 ## Metadatos
 

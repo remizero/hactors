@@ -4,7 +4,7 @@
 
 [actor: human | agent] completa esta plantilla siguiendo [RFC.md](../RFC.md).
 Los campos vacíos son información por resolver, no criterios satisfechos.
-Los estados y autorizaciones proceden de LIFECYCLE.md.
+Los estados y autorizaciones proceden de [LIFECYCLE.md](../LIFECYCLE.md).
 
 ## Metadatos y cuerpo común
 
@@ -57,6 +57,6 @@ evidence: ""
 
 ## Resumen y continuidad
 
-Al completar las pruebas, [actor: human | agent] redacta un resumen conforme a [RFC_SUMMARY.md](RFC_SUMMARY.md).
+Al completar las pruebas, [actor: human | agent] redacta un resumen conforme a [SUMMARY_TEMPLATE.md](SUMMARY_TEMPLATE.md).
 El resumen sintetiza propiedad bajo prueba, fixture, matriz de seguridad, resultados y límites de plataforma.
 No modificar la RFC fuente del usuario, reescribir evidencias históricas ni declarar superseded por iniciativa del harness.

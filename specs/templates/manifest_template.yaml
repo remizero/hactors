@@ -10,3 +10,4 @@ counters:
   harness_run: 0
   evidence: 0
   finding: 0
+  adr: 0

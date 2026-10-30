@@ -3,7 +3,7 @@
 # Plantilla de TASK
 
 [actor: human | agent] delimita una unidad de ejecución sin redefinir el diseño de sus RFC.
-La semántica de actores está en GLOSSARY.md y los estados en LIFECYCLE.md.
+La semántica de actores está en GLOSSARY.md y los estados en [LIFECYCLE.md](../LIFECYCLE.md).
 El ejemplo parte de redacción humana en `draft`; una propuesta nueva de agente comienza en `proposed`.
 Crear una TASK directamente en `approved` solo es válido cuando su alcance ya está autorizado conforme al ciclo de vida.
 
@@ -43,3 +43,9 @@ Una tarea parcial no puede reducir ni reinterpretar los criterios originales.
 Si un criterio necesita dividirse, acordar esa división en su fuente antes de declarar cobertura parcial.
 Una TASK no puede ser cerrada hasta que sus RFCs no hayan cerrado. La integración no puede garantizarse automáticamente, dado que quedan decisiones pendientes del humano.
 Actualizar el índice de conocimiento al instalar SPECS fuera de esta copia.
+
+## Creación con la CLI
+
+`hactors create-task` escribe el bloque YAML de esta plantilla como frontmatter, seguido de una remisión a ella; no copia la cumplimentación ni redacta su contenido. Asigna el identificador `TASK-nnnnn` con el contador `task` del manifest del proyecto y acepta `--task` y `--actor`. Los valores declarados se registran literalmente, los campos omitidos conservan los de [task_template.yaml](task_template.yaml) y un valor vacío explícito sustituye al de la plantilla.
+
+El comando no rellena `rfcs`, `required_knowledge`, `deliverables`, `acceptance_criteria` ni `execution`: el alcance, el conocimiento requerido, los entregables, los criterios y el estado observado los completa quien crea la TASK, conforme a la cumplimentación anterior. Tampoco valida `actor` contra el glosario ni aprueba la TASK, que corresponde a [actor: human] según [LIFECYCLE.md](../LIFECYCLE.md#task). Lo que el comando exige y lo que no hace se describen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#7-task-artefacto-iniciador).

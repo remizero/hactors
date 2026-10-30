@@ -45,6 +45,7 @@ projects/<project_name>/
 ├── hactors/
 │   ├── workflow_run_000001/
 │   │   ├── manifest.yaml
+│   │   ├── SUMMARY.md
 │   │   ├── task_run_000001/
 │   │   │   ├── manifest.yaml
 │   │   │   └── rfc_run_000001/
@@ -75,6 +76,7 @@ projects/<project_name>/
 │   │       └── manifest.yaml
 │   └── workflow_run_000002/
 │       └── manifest.yaml
+├── decisions/
 ├── rfcs/
 ├── standards/
 ├── tasks/
@@ -94,6 +96,7 @@ projects/.state.yaml
 |------|-----------|-----------|
 | `project.yaml` | Identidad del proyecto | Nombre, descripción, fecha de creación y referencia normativa. |
 | `manifest.yaml` | Grafo del proyecto | Relaciones entre artefactos y contadores de ejecución. |
+| `decisions/` | ADRs | Decisiones registradas del proyecto, cada una en su propio archivo; ver [DECISIONS.md](DECISIONS.md). |
 | `tasks/` | TASKs | Artefactos iniciadores. Cada TASK define qué se pretende ejecutar. |
 | `rfcs/` | RFCs | Especificaciones normativas originales e inmutables. |
 | `standards/` | Normas del proyecto | Convenciones de documentación, Git y estilo de código. |
@@ -105,6 +108,7 @@ projects/.state.yaml
 | `…/test_run_XXXXXX/harness_run_XXXXXX/` | harness_run | Uso de una versión de HARNESS; hoja de ejecución. |
 | `EVD-nnnnn.yaml` junto a su origen | EVIDENCE | Registro verificable escrito en el directorio del artefacto o ejecución que lo originó; ver sección 13. |
 | `FND-nnnnn.yaml` junto a su origen | FINDING | Hecho observado escrito en el directorio del artefacto o ejecución que lo originó, con su procedencia y sus afectados; ver sección 14. |
+| `SUMMARY.md` junto al manifiesto del workflow_run | SUMMARY | Síntesis del resultado de toda la ejecución; las instancias intermedias no tienen resumen propio. Ver [SUMMARY.md](SUMMARY.md). |
 | `projects/.state.yaml` | Estado activo | Proyecto y ruta completa de la instancia seleccionada, con todos sus ancestros. |
 
 ### Reglas de anidamiento
@@ -168,7 +172,7 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 
 | Contador | Se incrementa al crear | Formato del ID generado |
 |----------|------------------------|--------------------------|
-| `task` | Una TASK en `tasks/` | `task_000001` |
+| `task` | Una TASK en `tasks/` | `TASK-00001` |
 | `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001` |
 | `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
 | `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
@@ -177,10 +181,11 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 | `harness_run` | Un harness_run dentro de un test_run | `harness_run_000001` |
 | `evidence` | Una evidencia en el directorio de su origen | `EVD-00001` |
 | `finding` | Un hallazgo en el directorio de su origen | `FND-00001` |
+| `adr` | Una decisión en `decisions/` | `ADR-00001` |
 
 Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos RFC, PLAN, TEST, HRN ni versiones de receta y no se reinician al abrir una rama.
 
-Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración.
+Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, y el segundo las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md).
 
 Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
@@ -201,6 +206,7 @@ counters:
   harness_run: 0
   evidence: 0
   finding: 0
+  adr: 0
 ```
 
 Los contadores registran la numeración asignada, no la ubicación ni una comprobación de existencia. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
@@ -250,6 +256,7 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors use-project <nombre>` | Proyecto existente | Establece el proyecto y deja `active_run_path` vacía. |
 | `hactors use-run <ruta>` | Proyecto activo y ruta completa válida relativa a ese proyecto | Selecciona la instancia indicada con toda su ascendencia, aunque pertenezca a otra rama o workflow del mismo proyecto. |
 | `hactors use-run --parent` | Instancia activa válida | Quita exactamente el último componente; desde el workflow_run deja la ruta vacía y mantiene el proyecto. |
+| `hactors create-task` | Proyecto activo y su directorio `tasks/` | No cambia el estado activo: escribe `tasks/TASK-nnnnn.md` con el contador `task`. |
 | `hactors create-workflow` | Proyecto activo | Crea un workflow_run en `hactors/` y sustituye la ruta activa por la del nuevo workflow. |
 | `hactors create-task-run` | La instancia activa es un workflow_run | Crea su hijo task_run y añade el ID a la ruta activa. |
 | `hactors create-rfc-run` | La instancia activa es un task_run o un plan_run | Crea su hijo rfc_run y añade el ID a la ruta activa. |
@@ -258,20 +265,22 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-harness-run` | La instancia activa es un test_run | Crea su hijo harness_run y añade el ID a la ruta activa. |
 | `hactors create-evidence [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `EVD-nnnnn.yaml` en el directorio del origen. |
 | `hactors create-finding [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `FND-nnnnn.yaml` en el directorio del origen. |
+| `hactors create-summary [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto: una RFC en `rfcs/` o un workflow_run; si `--origin` se omite, el workflow_run de la instancia activa | No cambia el estado activo: escribe el archivo de resumen junto al artefacto resumido. |
 
 `use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
 
 Cada creación de un hijo opera sobre la **instancia seleccionada**, nunca sobre el ancestro compatible más cercano. Para crear un hermano, se selecciona primero el padre compartido; para crear varios plan_runs o test_runs de una RFC, se vuelve a ese rfc_run después de cada creación; para varios harness_runs, se vuelve al test_run solicitante. Un harness_run seleccionado no admite crear hijos. Crear un hijo preserva todos los prefijos ancestrales, aunque se repitan sus tipos. Seleccionar otra rama reemplaza la ruta activa, pero no la ascendencia almacenada físicamente en ninguna de las ramas.
 
-Los comandos crean únicamente instancias y sus manifiestos, no los artefactos RFC/PLAN/TEST/HARNESS ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del artefacto referenciado. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no ejecuta su trabajo, no produce resultados ni evidencia, no autoriza la ejecución ni modifica los estados de sus ancestros. La evidencia y los hallazgos se registran aparte, con los comandos de las secciones 13 y 14.
+Los comandos crean únicamente instancias y sus manifiestos, no los artefactos RFC/PLAN/TEST/HARNESS ni su aprobación. Las referencias pueden quedar vacías para asociarlas posteriormente; cuando se proporcionan, se registran sin validar el contenido del artefacto referenciado. La única excepción es `--task-ref`, cuya forma escrita se normaliza al identificador de la TASK conforme a la sección 7. La ruta es estructuralmente válida aun cuando falten referencias documentales, pero su trazabilidad documental queda pendiente. Crear una instancia no ejecuta su trabajo, no produce resultados ni evidencia, no autoriza la ejecución ni modifica los estados de sus ancestros. La TASK iniciadora, la evidencia, los hallazgos y los resúmenes se crean aparte, con los comandos de las secciones 7, 13, 14 y 15.
 
 ### Secuencia CLI
 
-Ejemplo en un proyecto con contadores de ejecución inicialmente a cero; las referencias documentales son ilustrativas:
+Ejemplo en un proyecto con sus contadores inicialmente a cero; las referencias documentales son ilustrativas:
 
 ```bash
 hactors use-project mi_proyecto
-hactors create-workflow --task-ref task_000001
+hactors create-task --task "Cerrar el alcance de autenticación"
+hactors create-workflow --task-ref TASK-00001
 hactors create-task-run
 hactors create-rfc-run --rfc-ref RFC-A00001
 hactors create-plan-run --plan-ref PLAN-00001
@@ -361,14 +370,14 @@ La clave de nivel superior es el ID del workflow_run. Todo el contenido del mani
 ```yaml
 identity:
   id: "workflow_run_000001"
-  task_ref: "task_000001"
+  task_ref: "TASK-00001"
   workflow_version: "1.0"
 ```
 
 | Campo | Descripción |
 |-------|-------------|
 | `id` | Identificador único del workflow_run. Coincide con el nombre del directorio y la clave envolvente. |
-| `task_ref` | Referencia a la TASK que inició esta ejecución. Puede estar vacío si el workflow_run se crea antes de asociarlo a una TASK. |
+| `task_ref` | Identificador de la TASK que inició esta ejecución, conforme a la sección 7. Puede estar vacío si el workflow_run se crea antes de asociarlo a una TASK. |
 | `workflow_version` | Versión del WORKFLOW abstracto que se está ejecutando. |
 
 ### Bloque 2: global_state
@@ -487,15 +496,25 @@ Una TASK es el artefacto que inicia el proceso de ejecución. Sin una TASK asoci
 
 ### Ubicación y formato
 
-Las TASKs se almacenan en el directorio `tasks/` del proyecto, en formato Markdown con frontmatter YAML:
+Una TASK se identifica como `TASK-nnnnn`, con cinco cifras y ceros iniciales que numera el contador `task` de la sección 3, y se almacena en el directorio `tasks/` del proyecto en formato Markdown con frontmatter YAML:
 
 ```
-tasks/task_000001.md
+tasks/TASK-00001.md
 ```
 
 ### Estructura y reglas
 
 La estructura completa de una TASK, sus campos y las reglas de cumplimentación se definen en [TASK_TEMPLATE.md](templates/TASK_TEMPLATE.md). Referirse a la plantilla como fuente de verdad.
+
+### Creación con la CLI
+
+`hactors create-task` escribe ese archivo con su cabecera: consume el contador `task` de la sección 3 y acepta `--task` y `--actor`. Exige un proyecto activo y su directorio `tasks/`; no cambia el estado activo ni depende de una instancia activa, porque una TASK no es una instancia de ejecución.
+
+El archivo creado es Markdown con la cabecera en frontmatter YAML, seguida de una remisión a la plantilla de estructura. Los valores iniciales proceden de [task_template.yaml](templates/task_template.yaml); el comando no copia la cumplimentación de [TASK_TEMPLATE.md](templates/TASK_TEMPLATE.md) ni redacta su contenido.
+
+Las opciones `--task` y `--actor` se registran literalmente, sin validar el ejecutor contra el glosario ni la descripción contra ningún formato. Si se omiten, conservan los valores de la plantilla; un valor vacío explícito sustituye el valor de ese campo. `rfcs`, `required_knowledge`, `deliverables`, `acceptance_criteria` y `execution` proceden siempre de la plantilla: el comando no declara el alcance, no deriva el conocimiento requerido de las RFC, no lista entregables ni criterios y no registra el estado observado ni su objetivo.
+
+Crear el archivo no satisface por sí solo lo que [LIFECYCLE.md](LIFECYCLE.md#task) exige de una TASK: la cabecera queda estructuralmente válida con campos por resolver, y quien la crea debe completar su alcance y sus criterios. El comando no la aprueba ni la inicia: `execution.status` sale de la plantilla y solo [actor: human] autoriza su aprobación y su cierre. Tampoco resuelve ni valida la referencia `task_ref` que un workflow_run declare hacia ella, no modifica otras TASK ya creadas y no altera `.state.yaml`. Un contador inválido, una plantilla ausente o rota, un directorio `tasks/` ausente o un archivo `TASK-nnnnn.md` ya existente se rechazan sin escribir nada y sin consumir el contador.
 
 ### Relación con workflow_run
 
@@ -505,8 +524,10 @@ La TASK es el punto de partida. Cuando se crea un workflow_run, se referencia la
 workflow_run_000001:
   identity:
     id: "workflow_run_000001"
-    task_ref: "task_000001"
+    task_ref: "TASK-00001"
 ```
+
+`hactors create-workflow --task-ref` acepta el identificador de la TASK o la ruta de su archivo en `tasks/` y registra siempre el identificador; cualquier otra forma se rechaza sin crear el workflow_run ni consumir su contador. Un valor vacío sigue siendo válido y deja la asociación pendiente. Normalizar la forma escrita no comprueba que la TASK exista ni certifica su contenido.
 
 Esto inicia la cadena de trazabilidad descrita en la sección 8. Cada nuevo rfc_run, plan_run, test_run o harness_run conserva la TASK iniciadora a través de todos sus ancestros, no mediante una copia de `task_ref` en cada nivel.
 
@@ -539,10 +560,10 @@ En la ejecución, el padre inmediato del rfc_run derivado es el **plan_run** que
 
 ### Ejemplo completo
 
-Para el árbol recursivo de la sección 2, una TASK `task_000001` puede referenciar la RFC inicial y las derivadas involucradas:
+Para el árbol recursivo de la sección 2, una TASK `TASK-00001` puede referenciar la RFC inicial y las derivadas involucradas:
 
 ```yaml
-# tasks/task_000001.md
+# tasks/TASK-00001.md
 task: "Implementar sistema de autenticación"
 rfcs:
   - "RFC-A00001"
@@ -559,7 +580,7 @@ Se crea un workflow_run que referencia esa TASK:
 workflow_run_000001:
   identity:
     id: "workflow_run_000001"
-    task_ref: "task_000001"
+    task_ref: "TASK-00001"
   global_state:
     status: "in_progress"
     current_step: "step_001"
@@ -737,3 +758,22 @@ Cada hallazgo se escribe en su propio archivo `FND-nnnnn.yaml`, con el ID del co
 Las opciones `--title`, `--kind`, `--severity`, `--opened` y `--updated` se registran literalmente, sin validar el tipo ni la severidad contra sus tablas normativas ni el formato de las fechas. Si se omiten, conservan los valores de [finding_template.yaml](templates/finding_template.yaml); un valor vacío explícito sustituye el valor de ese campo. `state`, `actions`, `relations`, `resolved` y el resto de `source` proceden siempre de la plantilla: el comando no declara afectados, no asocia acciones, no cierra el hallazgo y no rellena `source.workflow`, `source.task` ni `source.rfc` a partir de la ascendencia o del manifiesto del origen.
 
 Crear el archivo no satisface por sí solo los mínimos de [FINDING.md](FINDING.md): el registro queda estructuralmente válido con campos por resolver, y quien registra debe completar la afectación y el contexto documental. El comando no resuelve ni valida las referencias declaradas, no modifica el artefacto de origen ni otros hallazgos ya registrados, no altera `.state.yaml`, no consume contadores de ejecución ni registra relaciones en el manifest del proyecto. Un origen inválido, la ausencia de instancia activa cuando `--origin` se omite, una plantilla ausente o rota, un contador inválido o un archivo `FND-nnnnn.yaml` ya existente en el directorio de destino se rechazan sin escribir nada y sin consumir el contador.
+
+## 15. Creación del archivo de resumen
+
+Un resumen no es una instancia de ejecución: no se anida, no tiene hijos ni cambia el contexto activo. Pertenece al proyecto y se escribe junto al artefacto que resume, conforme a [SUMMARY.md](SUMMARY.md); su estructura y sus secciones se definen únicamente en [SUMMARY_TEMPLATE.md](templates/SUMMARY_TEMPLATE.md).
+
+`create-summary` exige un proyecto activo y un origen: una ruta relativa al proyecto, sin `.` ni `..`, separadores alternativos ni componentes vacíos. `--origin` declara esa ruta; si se omite, el origen es el workflow_run de la instancia activa, tomado como sus dos primeros componentes. Como solo existen dos niveles, el origen admitido es más estrecho que el de las secciones 13 y 14:
+
+| `--origin` | Validación | `level` | Archivo creado |
+|------------|------------|---------|----------------|
+| `hactors/workflow_run_XXXXXX` | Ruta de ejecución completa válida, con la validación de la sección 4 | `workflow_run` | `SUMMARY.md` en el directorio de esa instancia |
+| `rfcs/<archivo>.md` | Debe existir, ser un archivo y no ser un enlace simbólico | `rfc` | `rfcs/<nombre-sin-extension> - Summary.md`, junto a la RFC |
+
+Cualquier otra instancia de ejecución se rechaza: lo registrado en un `task_run`, `rfc_run`, `plan_run`, `test_run` o `harness_run` se agrega al resumen de su RFC o al global, conforme a [SUMMARY.md](SUMMARY.md#niveles). Un artefacto fuera de `rfcs/` también se rechaza, porque el nivel 1 existe únicamente por RFC. Un origen que empieza por `hactors/` se trata siempre como ejecución: si la ruta es inválida se rechaza, sin reinterpretarla como artefacto. Un `--origin` vacío explícito sigue siendo un origen inválido y no se confunde con la omisión. Tomar la instancia activa como origen no modifica la selección. El comando no registra rutas absolutas ni referencias externas como identidad del artefacto resumido.
+
+El archivo creado es Markdown con la cabecera en frontmatter YAML, seguida de una remisión a la plantilla de estructura. Los valores iniciales de la cabecera proceden de [summary_template.yaml](templates/summary_template.yaml); el comando no copia las secciones de [SUMMARY_TEMPLATE.md](templates/SUMMARY_TEMPLATE.md) ni redacta su contenido. `artifact` reproduce literalmente el origen y `level` se deriva de él; ninguno de los dos es una opción declarable. Un resumen no tiene identidad ni contador propios, así que el comando no consume ninguno y el archivo se nombra por el artefacto que resume.
+
+Las opciones `--title`, `--status`, `--final-state`, `--target-state` y `--date` se registran literalmente, sin validar la fase ni el estado final contra [LIFECYCLE.md](LIFECYCLE.md), el estado final contra `global_state.status` del manifiesto, ni el formato de la fecha. Si se omiten, conservan los valores de la plantilla; un valor vacío explícito sustituye el valor de ese campo.
+
+Crear el archivo no satisface por sí solo los mínimos de [SUMMARY.md](SUMMARY.md): la síntesis, las referencias y la matriz de trazabilidad las redacta quien resume. El comando no declara la consolidación, que corresponde a [actor: human], no reproduce el manifiesto del workflow_run, no agrega el historial de ejecuciones, no modifica el artefacto resumido ni otros resúmenes ya creados, no altera `.state.yaml` y no ejecuta Git ni asume que existe un repositorio Git. Un origen inválido, la ausencia de instancia activa cuando `--origin` se omite, una plantilla ausente o rota, o un archivo de resumen ya existente en el destino se rechazan sin escribir nada.

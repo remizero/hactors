@@ -5,6 +5,7 @@ import yaml
 from .counters import next_counter_id
 from .paths import require_project_directory
 from .state import set_active_run
+from .task import normalize_task_ref
 from .templates import load_template, render_run_yaml
 
 WORKFLOW_PREFIX = "workflow_run"
@@ -17,6 +18,7 @@ class WorkflowError(Exception):
 
 def create_workflow(hactors_root: Path, project_name: str, task_ref: str = "") -> Path:
     try:
+        ref = normalize_task_ref(task_ref)
         project = require_project_directory(hactors_root, project_name)
         parent = project / "hactors"
         if parent.is_symlink() or not parent.is_dir():
@@ -27,7 +29,7 @@ def create_workflow(hactors_root: Path, project_name: str, task_ref: str = "") -
         run_dir.mkdir()
         (run_dir / "manifest.yaml").write_text(
             render_run_yaml(
-                template, id_value=run_id, ref_value=task_ref, ref_field="task_ref", wrapper_key=run_id
+                template, id_value=run_id, ref_value=ref, ref_field="task_ref", wrapper_key=run_id
             )
         )
     except FileExistsError as exc:

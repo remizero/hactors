@@ -34,7 +34,7 @@ def test_creation_only_adds_manifest_and_updates_counter_and_selection(hactors_r
     sentinel.chmod(0o755)
     for path in (
         project / "rfcs" / "RFC-A00001.md", project / "rfcs" / "PLAN-00001.md",
-        project / "tasks" / "task_000001.md", project / "test-notes.txt",
+        project / "tasks" / "TASK-00001.md", project / "test-notes.txt",
     ):
         path.write_text(f"Preserve {path.name}\n")
     before = snapshot(hactors_root)

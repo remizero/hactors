@@ -3,7 +3,7 @@
 # Plantilla de Plan
 
 [actor: human | agent] redacta un plan cuando una RFC-A produce fases de implementación, una RFC-F requiere migración secuenciada, o un trabajo necesita pasos ordenados con puntos de decisión.
-El plan es un artefacto revisable; su aprobación es una decisión secuencial conforme a DECISIONS.md.
+El plan es un artefacto revisable; su aprobación es una decisión secuencial conforme a [DECISIONS.md](../DECISIONS.md).
 Su autoridad como artefacto está en [ARTIFACTS.md](../ARTIFACTS.md).
 
 ## Identidad

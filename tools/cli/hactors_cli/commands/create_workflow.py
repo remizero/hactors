@@ -12,7 +12,10 @@ from ..core.workflow import WorkflowError, create_workflow
 @click.option(
     "--task-ref",
     default="",
-    help="Identificador de la TASK asociada.",
+    help=(
+        "TASK asociada: su identificador 'TASK-00001' o su ruta 'tasks/TASK-00001.md'. "
+        "Se registra siempre el identificador; si se omite, queda vacío."
+    ),
 )
 @click.option(
     "--root",

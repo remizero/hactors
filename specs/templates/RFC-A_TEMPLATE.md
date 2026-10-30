@@ -4,7 +4,7 @@
 
 [actor: human | agent] completa esta plantilla siguiendo [RFC.md](../RFC.md).
 Los campos vacíos son información por resolver, no criterios satisfechos.
-Los estados y autorizaciones proceden de LIFECYCLE.md.
+Los estados y autorizaciones proceden de [LIFECYCLE.md](../LIFECYCLE.md).
 
 ## Metadatos y cuerpo común
 
@@ -57,6 +57,6 @@ implementation_plan:
 
 ## Resumen y continuidad
 
-Al completar el análisis, [actor: human | agent] redacta un resumen conforme a [RFC_SUMMARY.md](RFC_SUMMARY.md).
+Al completar el análisis, [actor: human | agent] redacta un resumen conforme a [SUMMARY_TEMPLATE.md](SUMMARY_TEMPLATE.md).
 El resumen sintetiza causas raíz, plan de implementación y fases propuestas.
 Las fases del plan pueden derivar en RFC-F (implementación) independientes; cada una conserva su identificador y relación `derives` con esta RFC-A.

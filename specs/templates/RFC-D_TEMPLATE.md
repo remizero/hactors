@@ -4,7 +4,7 @@
 
 [actor: human | agent] completa esta plantilla siguiendo [RFC.md](../RFC.md).
 Los campos vacíos son información por resolver, no criterios satisfechos.
-Los estados y autorizaciones proceden de LIFECYCLE.md.
+Los estados y autorizaciones proceden de [LIFECYCLE.md](../LIFECYCLE.md).
 
 ## Metadatos y cuerpo común
 
@@ -49,6 +49,6 @@ verification: ""
 
 ## Resumen y continuidad
 
-Al completar la documentación, [actor: human | agent] redacta un resumen conforme a [RFC_SUMMARY.md](RFC_SUMMARY.md).
-El resumen sintetiza qué se actualizó, qué garantías tiene evidencia y cuáles siguen pendientes.
+Una RFC-D no tiene resumen asociado: su documentación es por sí misma el resumen verificable, conforme a [RFC.md](../RFC.md#resumen-y-registro).
+Al completar la documentación, [actor: human | agent] deja constancia de qué se actualizó, qué garantías tiene evidencia y cuáles siguen pendientes.
 No un nuevo framework documental ni otra copia de todas las RFC.

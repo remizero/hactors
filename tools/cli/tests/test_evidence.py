@@ -47,7 +47,7 @@ def invoke(root, *args, expected=0):
 def artifacts(hactors_root):
     project = create_project("proj", hactors_root)
     (project / "rfcs" / "RFC-A00001.md").write_text("# RFC original\n")
-    (project / "tasks" / "task_000001.md").write_text("# TASK original\n")
+    (project / "tasks" / "TASK-00001.md").write_text("# TASK original\n")
     (project / "standards" / "GIT.md").write_text("# GIT original\n")
     return project
 
@@ -114,7 +114,7 @@ def test_execution_origin_works_at_any_depth_and_for_any_run_type(hactors_root, 
 
 @pytest.mark.parametrize("origin,directory", [
     ("rfcs/RFC-A00001.md", "rfcs"),
-    ("tasks/task_000001.md", "tasks"),
+    ("tasks/TASK-00001.md", "tasks"),
     ("standards/GIT.md", "standards"),
     ("rfcs", "rfcs"),
     ("standards", "standards"),
@@ -182,9 +182,9 @@ def test_template_defaults_are_preserved_unless_a_value_is_explicit(
     assert load_yaml(path) == expected
     assert source.read_bytes() == original_bytes
 
-    sibling = create_evidence(hactors_root, project.name, "tasks/task_000001.md")
+    sibling = create_evidence(hactors_root, project.name, "tasks/TASK-00001.md")
     template["id"] = "EVD-00002"
-    template["source"] = dict(template["source"], artifact="tasks/task_000001.md")
+    template["source"] = dict(template["source"], artifact="tasks/TASK-00001.md")
     assert load_yaml(sibling) == template
     assert load_yaml(path) == expected
 

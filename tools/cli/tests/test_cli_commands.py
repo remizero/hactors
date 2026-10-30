@@ -68,13 +68,13 @@ def test_use_project_requires_existing_project(hactors_root):
 def test_creates_workflow_and_task_with_reference(hactors_root, load_yaml):
     project = create_project("proj", hactors_root)
     invoke(hactors_root, "use-project", project.name)
-    workflow_result = invoke(hactors_root, "create-workflow", "--task-ref", "task_000001")
+    workflow_result = invoke(hactors_root, "create-workflow", "--task-ref", "TASK-00001")
     assert "Workflow creado" in workflow_result.output
     task_result = invoke(hactors_root, "create-task-run")
     assert "Task run creado" in task_result.output
     workflow = project / "hactors" / "workflow_run_000001"
     task = workflow / "task_run_000001"
-    assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "task_000001"
+    assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "TASK-00001"
     assert load_yaml(task / "manifest.yaml")["identity"] == {"id": task.name}
     assert load_state(hactors_root) == {
         "active_project": project.name, "active_run_path": task.relative_to(project).as_posix(),
@@ -494,14 +494,14 @@ def test_cli_process_chain(hactors_root, load_yaml):
     (project / "rfcs" / "plans").mkdir()
     documents = [project / "rfcs" / f"{ref}.md" for ref in references]
     documents += [project / "rfcs" / "plans" / f"PLAN-{index:05d}.md" for index in (1, 2)]
-    documents.append(project / "tasks" / "task_000001.md")
+    documents.append(project / "tasks" / "TASK-00001.md")
     for path in documents:
         path.write_text(f"Original {path.stem}\n")
     originals = {path: path.read_bytes() for path in documents}
     source_templates = snapshot(hactors_root / "specs" / "templates")
 
     process("use-project", "proj")
-    process("create-workflow", "--task-ref", "task_000001")
+    process("create-workflow", "--task-ref", "TASK-00001")
     process("create-task-run")
     process("create-rfc-run", "--rfc-ref", references[0])
     process("create-plan-run", "--plan-ref", "PLAN-00001")
@@ -520,7 +520,7 @@ def test_cli_process_chain(hactors_root, load_yaml):
         assert load_yaml(run / "manifest.yaml")["identity"] == {"id": run.name, "rfc_ref": ref}
     for index, run in enumerate((plan1, plan2), 1):
         assert load_yaml(run / "manifest.yaml")["identity"] == {"id": run.name, "plan_ref": f"PLAN-{index:05d}"}
-    assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "task_000001"
+    assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "TASK-00001"
     assert load_yaml(task / "manifest.yaml")["identity"] == {"id": task.name}
     originals.update({run / "manifest.yaml": (run / "manifest.yaml").read_bytes() for run in runs})
     deepest = rfc3.relative_to(project).as_posix()
@@ -528,7 +528,7 @@ def test_cli_process_chain(hactors_root, load_yaml):
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deepest}
     counters = {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 3, "plan_run": 2,
-        "test_run": 0, "harness_run": 0, "evidence": 0, "finding": 0,
+        "test_run": 0, "harness_run": 0, "evidence": 0, "finding": 0, "adr": 0,
     }
     assert load_yaml(project / "manifest.yaml")["counters"] == counters
 
@@ -662,14 +662,14 @@ def test_cli_process_chain(hactors_root, load_yaml):
     assert load_yaml(state_file) == {"active_project": "other", "active_run_path": other_path}
     assert load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"] == {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "plan_run": 0,
-        "test_run": 1, "harness_run": 0, "evidence": 0, "finding": 0,
+        "test_run": 1, "harness_run": 0, "evidence": 0, "finding": 0, "adr": 0,
     }
     process("create-harness-run")
     other_path += "/harness_run_000001"
     assert load_yaml(state_file) == {"active_project": "other", "active_run_path": other_path}
     assert load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"] == {
         "task": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "plan_run": 0,
-        "test_run": 1, "harness_run": 1, "evidence": 0, "finding": 0,
+        "test_run": 1, "harness_run": 1, "evidence": 0, "finding": 0, "adr": 0,
     }
     assert load_yaml(hactors_root / "projects" / "other" / other_path / "manifest.yaml") == {
         "identity": {"id": "harness_run_000001", "harness_ref": "", "content_ref": ""},

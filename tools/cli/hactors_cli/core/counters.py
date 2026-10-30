@@ -8,6 +8,8 @@ EVIDENCE_ID_FORMAT = "EVD-{number:05d}"
 EVIDENCE_COUNTER = "evidence"
 FINDING_ID_FORMAT = "FND-{number:05d}"
 FINDING_COUNTER = "finding"
+TASK_ID_FORMAT = "TASK-{number:05d}"
+TASK_COUNTER = "task"
 
 
 def _incremented_manifest(manifest_path: Path, counter_name: str) -> tuple[dict, int]:
@@ -49,11 +51,11 @@ def next_counter_id(
 
 
 def _next_record_id(
-    manifest_path: Path, counter_name: str, id_format: str, directory: Path
+    manifest_path: Path, counter_name: str, id_format: str, directory: Path, suffix: str = ".yaml"
 ) -> tuple[str, int]:
     data, new_value = _incremented_manifest(manifest_path, counter_name)
     formatted = id_format.format(number=new_value)
-    target = directory / f"{formatted}.yaml"
+    target = directory / f"{formatted}{suffix}"
     if target.exists() or target.is_symlink():
         raise FileExistsError(errno.EEXIST, "Ya existe un registro", str(target))
 
@@ -67,3 +69,7 @@ def next_evidence_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
 
 def next_finding_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
     return _next_record_id(manifest_path, FINDING_COUNTER, FINDING_ID_FORMAT, directory)
+
+
+def next_task_id(manifest_path: Path, directory: Path) -> tuple[str, int]:
+    return _next_record_id(manifest_path, TASK_COUNTER, TASK_ID_FORMAT, directory, suffix=".md")

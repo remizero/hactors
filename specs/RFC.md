@@ -3,7 +3,7 @@
 ## Alcance
 
 [actor: human | agent] utiliza estas convenciones al redactar, derivar o evolucionar una RFC.
-La definición del artefacto está en GLOSSARY.md, sus estados en LIFECYCLE.md
+La definición del artefacto está en GLOSSARY.md, sus estados en [LIFECYCLE.md](LIFECYCLE.md)
 y las operaciones de registro en RFC_SYSTEM.md.
 
 ## Identidad y tipos
@@ -77,7 +77,7 @@ Marcar como no aplicables y justificar los campos ajenos al tipo de trabajo.
 ## Guía de construcción por tipo
 
 [actor: human | agent] sigue esta guía en la fase 1 de WORKFLOW.md («Proponer y aprobar»).
-La guía conecta la intención de trabajo con la plantilla adecuada; no cambia la autoridad de aprobación ni los estados de LIFECYCLE.md.
+La guía conecta la intención de trabajo con la plantilla adecuada; no cambia la autoridad de aprobación ni los estados de [LIFECYCLE.md](LIFECYCLE.md).
 
 ### Paso común inicial
 
@@ -120,12 +120,11 @@ Al cerrar: redactar resumen; un defecto productivo encontrado se informa y se de
 Cuándo: actualizar o crear documentación que trace garantías hasta contratos y pruebas.
 Campos clave: `documentation_layers`, `content_minimum`, `traceability`, `verification`.
 Restricción principal: no modificar código, tests ni promover drafts a decisiones aprobadas.
-Al cerrar: redactar resumen; la documentación no subsana una garantía que los tests no demostraron.
+Al cerrar: la documentación es el resumen verificable y no subsana una garantía que los tests no demostraron.
 
 ### Resumen post-cierre
 
-Toda RFC-A, RFC-F, RFC-I y RFC-T genera un resumen al ser terminal, conforme a [RFC_SUMMARY.md](templates/RFC_SUMMARY.md).
-El resumen enlaza a la RFC, sintetiza propósito, alcance, estado, decisiones y relaciones, sin redefinir requisitos.
+Toda RFC-A, RFC-F, RFC-I y RFC-T consolida su resumen al ser terminal, conforme a [SUMMARY.md](SUMMARY.md).
 
 ## Ubicaciones de la instancia
 
@@ -154,9 +153,8 @@ La sustitución conserva `supersedes` en la sucesora y `superseded_by` en la ant
 
 ## Resumen y registro
 
-Toda RFC excepto RFC-D mantiene un resumen asociado: `<nombre-sin-extension> - Summary.md`.
+Toda RFC excepto RFC-D mantiene un resumen asociado: `<nombre-sin-extension> - Summary.md`, junto a la RFC.
 La documentación de RFC-D es por sí misma el resumen verificable; contrastarla con el código sustituye al resumen.
-Debe enlazar a la RFC y sintetizar propósito, alcance, estado, decisiones y relaciones, sin redefinir requisitos.
 [actor: human | agent] actualiza resumen y registros al cambiar su fuente, dentro de la misma operación.
-La plantilla [RFC_SUMMARY.md](templates/RFC_SUMMARY.md) define la estructura del resumen.
+Lo que el resumen debe contener, sus niveles y su consolidación se rigen por [SUMMARY.md](SUMMARY.md); su estructura, por [SUMMARY_TEMPLATE.md](templates/SUMMARY_TEMPLATE.md).
 La autoridad de documentos y representaciones se rige por [ARTIFACTS.md](ARTIFACTS.md).

@@ -9,12 +9,13 @@ un artefacto puede tener identidad propia y al mismo tiempo relacionarse con cer
 * WORKFLOW
 * TASK
 * RFC
+* DECISION — [registro de una decisión](DECISIONS.md)
 * PLAN
 * TEST
 * HARNESS
 * EVIDENCE
 * FINDING
-* SUMMARY
+* SUMMARY — [síntesis del resultado de un artefacto](SUMMARY.md)
 * WORKFLOW_RUN
 * TASK_RUN
 * RFC_RUN

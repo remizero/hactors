@@ -22,6 +22,7 @@ def hactors_root(tmp_path: Path) -> Path:
     for name in (
         "rfc_run_template.yaml", "plan_run_template.yaml", "test_run_template.yaml",
         "harness_run_template.yaml", "evidence_template.yaml", "finding_template.yaml",
+        "summary_template.yaml", "task_template.yaml",
     ):
         shutil.copy2(templates / name, dst / "specs" / "templates" / name)
     return dst

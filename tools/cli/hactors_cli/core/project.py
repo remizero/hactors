@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .templates import load_template, render_manifest_yaml, render_project_yaml
 
-PROJECT_SUBDIRS = ("hactors", "rfcs", "standards", "tasks")
+PROJECT_SUBDIRS = ("hactors", "decisions", "rfcs", "standards", "tasks")
 PROJECT_TEMPLATE = "project_template.yaml"
 MANIFEST_TEMPLATE = "manifest_template.yaml"
 NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")

@@ -46,7 +46,7 @@ def test_creation_only_adds_directory_manifest_counter_and_selection(hactors_roo
     (recipe.parent / "version.yaml").write_text("version: v1\nimmutable: true\n")
     (project / "harnesses" / "catalog.yaml").write_text("catalog: [deliberately invalid YAML")
     (project / "rfcs" / "RFC-A00001.md").write_text("Keep the RFC unchanged\n")
-    (project / "tasks" / "task_000001.md").write_text("Keep the task unchanged\n")
+    (project / "tasks" / "TASK-00001.md").write_text("Keep the task unchanged\n")
     before = snapshot(hactors_root)
     expected_project = load_yaml(project / "manifest.yaml")
     expected_project["counters"]["harness_run"] += 1

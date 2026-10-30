@@ -26,6 +26,10 @@ def render_yaml(data: dict) -> str:
     return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
 
+def render_frontmatter(data: dict, reference: str) -> str:
+    return f"---\n{render_yaml(data)}---\n\n{reference}\n"
+
+
 def render_project_yaml(template: dict, name: str, created_at: str, description: str = "") -> str:
     data = dict(template)
     data["name"] = name

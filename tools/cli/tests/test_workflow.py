@@ -40,7 +40,7 @@ def test_run_matches_template_and_preserves_source(run_case, load_yaml):
     path = template_path(args[0], prefix)
     original = path.read_bytes()
     expected = deepcopy(load_yaml(path))
-    options = {"task_ref": "task_000001"} if prefix == "workflow_run" else {}
+    options = {"task_ref": "TASK-00001"} if prefix == "workflow_run" else {}
     run = create(*args, **options)
     expected["identity"].update(id=run.name, **options)
     expected = {run.name: expected} if prefix == "workflow_run" else expected
@@ -178,7 +178,7 @@ def test_task_counters_span_workflows_not_projects(hactors_root, load_yaml):
             assert task.name == f"task_run_{index:06d}"
         assert load_yaml(project / "manifest.yaml")["counters"] == {
             "task": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 0, "plan_run": 0,
-            "test_run": 0, "harness_run": 0, "evidence": 0, "finding": 0,
+            "test_run": 0, "harness_run": 0, "evidence": 0, "finding": 0, "adr": 0,
         }
 
 
