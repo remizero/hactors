@@ -11,7 +11,7 @@ Crear una TASK directamente en `approved` solo es válido cuando su alcance ya e
 task: ""
 rfcs: []
 required_knowledge:
-  index: specs/INDEX_SPECS.md
+  index: specs/CONTEXT_LOADING.md
   from_affected_modules: []
   additional: []
 actor: ""

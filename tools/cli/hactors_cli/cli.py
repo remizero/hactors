@@ -13,6 +13,7 @@ from .commands.create_test_run import create_test_run_cmd
 from .commands.create_workflow import create_workflow_cmd
 from .commands.use_project import use_project_cmd
 from .commands.use_run import use_run_cmd
+from .commands.validate import validate_cmd
 
 
 @click.group()
@@ -34,3 +35,4 @@ cli.add_command(create_harness_run_cmd)
 cli.add_command(create_evidence_cmd)
 cli.add_command(create_finding_cmd)
 cli.add_command(create_summary_cmd)
+cli.add_command(validate_cmd)

@@ -2,8 +2,8 @@
 
 # Plantilla de acción derivada (AC-nnnnn)
 
-[actor: human | agent] utiliza esta plantilla al registrar o actualizar una acción derivada dentro del `CONTEXT.md` de una RFC.
-El formato y los valores permitidos se definen aquí; las reglas de transición y propiedad están en PROJECT_STATE.md.
+[actor: human | agent] utiliza esta plantilla al registrar o actualizar una acción derivada en el campo `actions:` de la RFC correspondiente.
+Los valores permitidos de `type` y `status` se definen aquí; las reglas de transición y propiedad están en PROJECT_STATE.md.
 Los identificadores y relaciones siguen RELATIONSHIPS.md.
 
 ## Identidad
@@ -14,15 +14,9 @@ Los identificadores y relaciones siguen RELATIONSHIPS.md.
 
 Un identificador retirado no se reutiliza.
 
-## Tabla de acciones
+## Registro
 
-Copiar dentro de la sección «Acciones derivadas» del `CONTEXT.md` de la RFC.
-
-| ID | Tipo | Estado | Depende de | Artefacto | Evidencia |
-|---|---|---|---|---|---|
-| AC-00000 | _ver tipos abajo_ | pending | — | | |
-
-Cada fila es un entregable individual bajo la RFC.
+El esquema de cada elemento de `actions:` se define en [RFC_TEMPLATE.md](RFC_TEMPLATE.md#acciones-derivadas); cada acción es un entregable individual bajo la RFC.
 
 ## Tipos
 
@@ -67,4 +61,4 @@ El formato mínimo de la evidencia está en [EVIDENCE.md](../EVIDENCE.md).
 AC-00001 → AC-00002 → AC-00003
 ```
 
-Incluir en el `CONTEXT.md` cuando existan dependencias entre acciones de la misma RFC.
+Incluir en la RFC cuando existan dependencias entre acciones de su alcance.

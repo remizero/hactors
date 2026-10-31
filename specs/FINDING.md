@@ -30,6 +30,8 @@ El formato, los campos, los tipos, las severidades, los estados y las transicion
 
 El contexto de origen se obtiene de `source`, no de la lista de afectados. La TASK de origen se recupera siguiendo `source.execution` hasta el workflow_run y su `identity.task_ref`; cuando exista una TASK de origen que no pueda recuperarse allí, se declara en `source.task`. Las relaciones de afectación no sustituyen esa TASK ni cambian la regla de bloqueo: un hallazgo `critical` o `high` en estado `open` bloquea el cierre de la TASK donde se originó.
 
+El bloqueo no es una relación declarada —no existe un vínculo `blocks` que registrar ni que retirar—, sino una consecuencia de la severidad, el estado y la procedencia. De ahí se sigue una invariante comprobable: ningún origen ya cerrado conserva un hallazgo `critical` o `high` en estado `open`. Su violación se reconcilia en el origen que se cerró indebidamente, no silenciando el hallazgo ni rebajando su severidad; `hactors validate` la denuncia conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#hallazgos-bloqueantes).
+
 Si la resolución cambia un contrato vigente, se crea la RFC correspondiente; el hallazgo queda como antecedente referenciado por `supersedes` o `informs`.
 
 Las evidencias que sustentan un hallazgo lo referencian mediante `supports`, conforme a [templates/EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md); ese respaldo no se confunde con la procedencia ni con la afectación.

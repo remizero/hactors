@@ -57,7 +57,7 @@ Especificaciones, plantillas y estándares que rigen la metodología HACTORS y l
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 
-Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`), crear la TASK iniciadora (`create-task`), crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`, `create-test-run`, `create-harness-run`), seleccionar su ruta activa completa o ascender al padre (`use-run`), registrar evidencias junto a su origen (`create-evidence`), registrar hallazgos junto a su origen (`create-finding`) y crear el archivo de resumen de una RFC o de un workflow_run (`create-summary`). La jerarquía recursiva RFC/PLAN con TEST bajo RFC y HARNESS bajo TEST, el contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md). Crear una TASK no declara su alcance ni sus criterios y no la aprueba; crear instancias HARNESS no publica ni ejecuta recetas ni verifica su contenido; registrar una evidencia no captura su contexto observado ni declara su aplicabilidad; registrar un hallazgo no declara sus afectados ni cambia su estado; crear un resumen no redacta sus secciones ni declara su consolidación.
+Herramientas de automatización para la gestión de proyectos HACTORS. La [CLI](tools/cli/) permite crear y seleccionar proyectos (`create-project`, `use-project`), crear la TASK iniciadora (`create-task`), crear instancias de ejecución (`create-workflow`, `create-task-run`, `create-rfc-run`, `create-plan-run`, `create-test-run`, `create-harness-run`), seleccionar su ruta activa completa o ascender al padre (`use-run`), registrar evidencias junto a su origen (`create-evidence`), registrar hallazgos junto a su origen (`create-finding`), crear el archivo de resumen de una RFC o de un workflow_run (`create-summary`) y comprobar el proyecto activo (`validate`). La jerarquía recursiva RFC/PLAN con TEST bajo RFC y HARNESS bajo TEST, el contexto activo y la secuencia de uso se describen en [HACTORS_SYSTEM.md](specs/HACTORS_SYSTEM.md). Crear una TASK no declara su alcance ni sus criterios y no la aprueba; crear instancias HARNESS no publica ni ejecuta recetas ni verifica su contenido; registrar una evidencia no captura su contexto observado ni declara su aplicabilidad; registrar un hallazgo no declara sus afectados ni cambia su estado; crear un resumen no redacta sus secciones ni declara su consolidación; validar no repara las inconsistencias que denuncia.
 
 
 
@@ -84,6 +84,6 @@ RFCs = structural unit of evolution
 Artifacts / Evidence / Decisions = traceability mechanisms
 ```
 
-Los [artefactos](specs/ARTIFACTS.md) contienen conocimiento; el índice contiene identidad y estado; las relaciones contienen estructura.
+Los [artefactos](specs/ARTIFACTS.md) contienen conocimiento; cada artefacto y cada instancia portan su propia identidad y estado; las relaciones contienen estructura.
 
 La provenance debe ser preservable y auditable, pero no necesariamente embebida en el artefacto que la describe.

@@ -84,7 +84,7 @@ La guía conecta la intención de trabajo con la plantilla adecuada; no cambia l
 1. Identificar el tipo de trabajo: análisis, feature, integración, tests o documentación.
 2. Resolver el alcance conforme a la tabla de «Ubicaciones de la instancia» más abajo.
 3. Leer la plantilla general [templates/RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md) y la variante correspondiente.
-4. Consultar rfc_active.md para comprobar la ausencia del identificador y resolver relaciones.
+4. Comprobar que ninguna RFC registrada use ya ese identificador y resolver sus relaciones contra las RFC existentes y el grafo del proyecto.
 
 ### RFC-A — Análisis
 
@@ -136,7 +136,7 @@ Toda RFC-A, RFC-F, RFC-I y RFC-T consolida su resumen al ser terminal, conforme 
 
 [actor: human] resuelve alcances ambiguos y aprueba reubicaciones.
 Una RFC fundacional puede trasladarse al módulo una vez creada su estructura; una decisión transversal conserva ubicación global.
-Cada traslado actualiza el índice y las referencias, sin cambiar la identidad.
+Cada traslado actualiza las referencias y el grafo del proyecto, sin cambiar la identidad.
 
 ## Relaciones
 

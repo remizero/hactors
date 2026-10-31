@@ -40,7 +40,7 @@ problem_statement: ""
 goals: []
 non_goals: []
 required_specifications:
-  index: specs/INDEX_SPECS.md
+  index: specs/CONTEXT_LOADING.md
   additional: []
 proposed_architecture: ""
 abi_api_contracts: ""
@@ -69,3 +69,30 @@ Los contratos incluyen errores, invariantes, propiedad y compatibilidad; indicar
 Marcar como no aplicables y justificar los campos ajenos al tipo de trabajo; no inventar código para una RFC de análisis o documentación.
 La ruta del índice es relativa al proyecto de esta copia y debe adaptarse al instalar SPECS en otro proyecto.
 Las referencias adicionales no sustituyen la carga definida por el índice.
+
+## Acciones derivadas
+
+Cada elemento de `actions:` es una acción derivada (`AC-nnnnn`); sus tipos, sus estados y su regla de evidencia se definen en [AC_TEMPLATE.md](AC_TEMPLATE.md):
+
+```yaml
+actions:
+  - id: AC-00001
+    type: ""
+    status: pending
+    actor: ""
+    depends_on: []
+    deliverable: ""
+    evidence: []
+```
+
+| Campo | Descripción |
+|---|---|
+| `id` | `AC-nnnnn`, único en el proyecto; no se reutiliza al retirar la acción. |
+| `type` | Uno de los tipos de [AC_TEMPLATE.md](AC_TEMPLATE.md#tipos); no se definen tipos locales. |
+| `status` | Uno de los estados de [AC_TEMPLATE.md](AC_TEMPLATE.md#estados); una RFC no alcanza `done` mientras alguna acción de su alcance no esté en `completed`. |
+| `actor` | Etiqueta de [DEFINITIONS.md](../DEFINITIONS.md#actores) que ejecuta la acción, sin el envoltorio `[actor: ]`: una o varias etiquetas combinadas, o `...` para prohibirla a todos. |
+| `depends_on` | `AC-nnnnn` que deben completarse antes; con alguna dependencia sin resolver, la acción está `blocked`. |
+| `deliverable` | Artefacto o ruta que la acción produce; vacío mientras no exista. |
+| `evidence` | `EVD-nnnnn` que respaldan el resultado; `completed` exige al menos una, conforme a [AC_TEMPLATE.md](AC_TEMPLATE.md#evidencia). |
+
+Las transiciones y la propiedad de cada estado están en PROJECT_STATE.md; esta plantilla fija la forma del registro, no su ciclo de vida.

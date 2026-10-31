@@ -53,7 +53,7 @@ Los términos empleados se definen en [DEFINITIONS.md](DEFINITIONS.md).
 
 - Mantener una definición normativa por concepto; referenciarla en lugar de redefinirla.
 - Separar reglas, fundamentos y ejemplos: un ejemplo no añade obligaciones implícitas.
-- Construir el contexto con las dependencias necesarias antes de actuar, según INDEX_SPECS.md.
+- Construir el contexto con las dependencias necesarias antes de actuar, según CONTEXT_LOADING.md.
 - Declarar supuestos y resolver contradicciones antes de basar cambios en ellos.
 - Mantener sincronizados los contratos documentados y los cambios que los afectan.
 - Conservar la historia sin confundirla con el estado vigente; la autoridad de cada artefacto se define en [ARTIFACTS.md](ARTIFACTS.md).

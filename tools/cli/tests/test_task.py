@@ -19,7 +19,7 @@ SPECS_TEMPLATES = Path(__file__).resolve().parents[3] / "specs" / "templates"
 TEMPLATE_DEFAULTS = {
     "task": "",
     "rfcs": [],
-    "required_knowledge": {"index": "specs/INDEX_SPECS.md", "from_affected_modules": [], "additional": []},
+    "required_knowledge": {"index": "specs/CONTEXT_LOADING.md", "from_affected_modules": [], "additional": []},
     "actor": "",
     "deliverables": [],
     "acceptance_criteria": {"scope": "full", "criteria": []},
