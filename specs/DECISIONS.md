@@ -61,6 +61,6 @@ La sustitución debe enlazar las decisiones en ambos sentidos.
 
 ## Identidad y ubicación
 
-Un ADR se identifica como `ADR-nnnnn`, con cinco cifras y ceros iniciales; el identificador es único en el proyecto y no se reutiliza al retirar la decisión. Cada decisión vive en su propio archivo `decisions/ADR-nnnnn — nombre-descriptivo.md` del proyecto, sin acumularse en un registro agregado, conforme a la estructura de [PROJECTS.md](PROJECTS.md). La numeración la lleva el contador `adr` del manifest del proyecto, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
+Un ADR se identifica como `ADR-nnnnn`, con cinco cifras y ceros iniciales; el identificador es único en el proyecto y no se reutiliza al retirar la decisión. Cada decisión vive en su propio archivo `decisions/ADR-nnnnn — nombre-descriptivo.md` del proyecto, sin acumularse en un registro agregado, conforme a la estructura de [PROJECTS.md](PROJECTS.md). La numeración la lleva el contador `adr` del manifest del proyecto, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores). El formato del archivo está en [templates/ADR_TEMPLATE.md](templates/ADR_TEMPLATE.md), que también describe lo que `hactors create-adr` escribe y lo que no.
 
 [actor: human | agent] actualiza las referencias afectadas al registrar o sustituir una decisión.

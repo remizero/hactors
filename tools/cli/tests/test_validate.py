@@ -318,3 +318,233 @@ def test_command_lists_every_problem_and_fails(hactors_root, project, tree):
 def test_created_task_is_consistent(hactors_root, project):
     create_task(hactors_root, project.name)
     assert validate(hactors_root, project) == []
+
+
+def set_relations(project: Path, relations) -> None:
+    manifest = project / "manifest.yaml"
+    data = yaml.safe_load(manifest.read_text())
+    data["relations"] = relations
+    manifest.write_text(yaml.dump(data, sort_keys=False))
+
+
+def edge(source: str, target: str, relation: str) -> dict:
+    return {"source": source, "target": target, "relation": relation}
+
+
+def record_document(project: Path, name: str, relations=None) -> Path:
+    path = project / "tasks" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        yaml.dump({"id": name.split(".")[0], "relations": relations or []}, sort_keys=False)
+    )
+    return path
+
+
+def decision_document(project: Path, name: str = "ADR-00001 — decision.md") -> Path:
+    path = project / "decisions" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("# Decisión\n")
+    return path
+
+
+def harness_catalog(project: Path, harness_id: str = "HRN-00001", **fields) -> Path:
+    path = project / "harnesses" / harness_id / "manifest.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {"id": harness_id, "relations": [], "versions": [], **fields}
+    path.write_text(yaml.dump(data, sort_keys=False))
+    return path
+
+
+def test_relations_absent_or_empty_are_consistent(hactors_root, project):
+    assert validate(hactors_root, project) == []
+    set_relations(project, [])
+    assert validate(hactors_root, project) == []
+
+
+def test_relations_must_be_a_list(hactors_root, project):
+    set_relations(project, "RFC-A00001")
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: `relations` debe ser una lista, no str."
+    ]
+
+
+def test_relation_element_must_be_a_mapping(hactors_root, project):
+    set_relations(project, ["RFC-A00001"])
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: relations[1]: debe ser un mapeo, no str."
+    ]
+
+
+def test_relation_element_rejects_alien_fields(hactors_root, project):
+    rfc_document(project, actions=ACTIONS)
+    set_relations(project, [{**edge("RFC-A00001", "RFC-A00001", "derives"), "ruta": "rfcs/"}])
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: relations[1]: campo ajeno al esquema: 'ruta'."
+    ]
+
+
+@pytest.mark.parametrize(
+    "target, setup",
+    [
+        ("TASK-00001", lambda project: task_document(project)),
+        ("PLAN-00001", lambda project: plan_document(project)),
+        ("EVD-00001", lambda project: record_document(project, "EVD-00001.yaml")),
+        ("FND-00001", lambda project: record_document(project, "FND-00001.yaml")),
+        ("HRN-00001", lambda project: harness_catalog(project)),
+        ("HRN-00001@v001", lambda project: harness_package(project)),
+        ("ADR-00001", lambda project: decision_document(project)),
+    ],
+)
+def test_target_resolves_against_its_artifact(hactors_root, project, target, setup):
+    set_relations(project, [edge("RFC-A00001", target, "depends-on")])
+    problems = validate(hactors_root, project)
+    assert len(problems) == 1
+    assert f"`target` '{target}' no resuelve" in problems[0]
+
+    setup(project)
+    assert validate(hactors_root, project) == []
+
+
+def test_rfc_target_resolves_against_its_document(hactors_root, project):
+    rfc_document(project, actions=ACTIONS)
+    set_relations(project, [edge("RFC-A00001", "RFC-F00002", "informs")])
+    problems = validate(hactors_root, project)
+    assert problems == [
+        "manifest.yaml: relations[1]: `target` 'RFC-F00002' no resuelve a ningún artefacto del proyecto."
+    ]
+
+    rfc_document(project, name="RFC-F00002", actions=ACTIONS)
+    assert validate(hactors_root, project) == []
+
+
+def test_target_fragment_is_not_resolved(hactors_root, project):
+    rfc_document(project, actions=ACTIONS)
+    set_relations(project, [edge("EVD-00001", "RFC-A00001#C1", "verifies")])
+    assert validate(hactors_root, project) == []
+
+
+def test_local_identifier_without_its_artifact_is_reported(hactors_root, project):
+    rfc_document(project, actions=ACTIONS)
+    set_relations(project, [edge("EVD-00001", "AC-00001", "verifies")])
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: relations[1]: `target` 'AC-00001' no resuelve a ningún artefacto del proyecto."
+    ]
+
+
+@pytest.mark.parametrize("target", ["TEST-00001", "mi_modulo/servicio", ""])
+def test_targets_outside_the_defined_families_are_skipped(hactors_root, project, target):
+    set_relations(project, [edge("RFC-A00001", target, "depends-on")])
+    assert validate(hactors_root, project) == []
+
+
+def test_harness_catalog_without_identity_is_reported(hactors_root, project):
+    path = harness_catalog(project)
+    data = yaml.safe_load(path.read_text())
+    data.pop("id")
+    path.write_text(yaml.dump(data, sort_keys=False))
+    assert validate(hactors_root, project) == [
+        "harnesses/HRN-00001/manifest.yaml: no declara 'id:'."
+    ]
+
+
+def test_rfc_origin_produces_an_inverted_derives_edge(hactors_root, project):
+    rfc_document(project, actions=ACTIONS)
+    rfc_document(project, name="RFC-F00002", actions=ACTIONS, origin="RFC-A00001")
+    assert validate(hactors_root, project) == [
+        "rfcs/RFC-F00002.md: el campo `origin` declara la arista "
+        "{source: RFC-A00001, target: RFC-F00002, relation: derives}, "
+        "que no consta en `relations` del manifest."
+    ]
+
+    set_relations(project, [edge("RFC-A00001", "RFC-F00002", "derives")])
+    assert validate(hactors_root, project) == []
+
+
+@pytest.mark.parametrize(
+    "field, value, expected",
+    [
+        ("depends_on", ["RFC-A00001"], edge("RFC-F00002", "RFC-A00001", "depends-on")),
+        ("supersedes", "RFC-A00001", edge("RFC-F00002", "RFC-A00001", "supersedes")),
+        ("superseded_by", "RFC-A00001", edge("RFC-A00001", "RFC-F00002", "supersedes")),
+    ],
+)
+def test_rfc_fields_produce_their_edge(hactors_root, project, field, value, expected):
+    rfc_document(project, actions=ACTIONS)
+    rfc_document(project, name="RFC-F00002", actions=ACTIONS, **{field: value})
+    problems = validate(hactors_root, project)
+    assert len(problems) == 1
+    assert f"el campo `{field}` declara la arista" in problems[0]
+
+    set_relations(project, [expected])
+    assert validate(hactors_root, project) == []
+
+
+def test_supersedes_declared_from_both_ends_is_one_edge(hactors_root, project):
+    rfc_document(project, actions=ACTIONS, superseded_by="RFC-F00002")
+    rfc_document(project, name="RFC-F00002", actions=ACTIONS, supersedes="RFC-A00001")
+    problems = validate(hactors_root, project)
+    assert problems == [
+        "rfcs/RFC-A00001.md: el campo `superseded_by` declara la arista "
+        "{source: RFC-F00002, target: RFC-A00001, relation: supersedes}, "
+        "que no consta en `relations` del manifest."
+    ]
+
+
+def test_document_relation_list_is_represented_with_its_source(hactors_root, project):
+    rfc_document(
+        project,
+        actions=ACTIONS,
+        relations=[{"target": "RFC-F00002#C1", "relation": "informs"}],
+    )
+    assert validate(hactors_root, project) == [
+        "rfcs/RFC-A00001.md: el campo `relations` declara la arista "
+        "{source: RFC-A00001, target: RFC-F00002#C1, relation: informs}, "
+        "que no consta en `relations` del manifest."
+    ]
+
+
+def test_record_relations_are_represented(hactors_root, project):
+    record_document(
+        project, "EVD-00001.yaml", relations=[{"target": "RFC-A00001#C1", "relation": "verifies"}]
+    )
+    record_document(
+        project, "FND-00001.yaml", relations=[{"target": "HRN-00001", "relation": "affects"}]
+    )
+    assert validate(hactors_root, project) == [
+        "tasks/EVD-00001.yaml: el campo `relations` declara la arista "
+        "{source: EVD-00001, target: RFC-A00001#C1, relation: verifies}, "
+        "que no consta en `relations` del manifest.",
+        "tasks/FND-00001.yaml: el campo `relations` declara la arista "
+        "{source: FND-00001, target: HRN-00001, relation: affects}, "
+        "que no consta en `relations` del manifest.",
+    ]
+
+
+def test_harness_relations_use_the_identity_and_the_exact_version(hactors_root, project):
+    harness_catalog(
+        project,
+        relations=[{"target": "HRN-00002@v001", "relation": "derived_from"}],
+        versions=[
+            {
+                "version": 1,
+                "relations": [{"target": "HRN-00002@v001", "relation": "compatible_with"}],
+            }
+        ],
+    )
+    assert validate(hactors_root, project) == [
+        "harnesses/HRN-00001/manifest.yaml: el campo `relations` declara la arista "
+        "{source: HRN-00001, target: HRN-00002@v001, relation: derived_from}, "
+        "que no consta en `relations` del manifest.",
+        "harnesses/HRN-00001/manifest.yaml: el campo `relations` declara la arista "
+        "{source: HRN-00001@v001, target: HRN-00002@v001, relation: compatible_with}, "
+        "que no consta en `relations` del manifest.",
+    ]
+
+
+def test_command_reports_graph_problems(hactors_root, project):
+    rfc_document(project, actions=ACTIONS, origin="RFC-F00002")
+    set_relations(project, [edge("RFC-A00001", "TASK-00009", "depends-on")])
+    result = invoke(hactors_root, "validate", expected=1)
+    assert "`target` 'TASK-00009' no resuelve" in result.output
+    assert "el campo `origin` declara la arista" in result.output
+    assert "2 inconsistencia(s) en el proyecto 'proj'." in result.output

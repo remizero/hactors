@@ -96,3 +96,7 @@ actions:
 | `evidence` | `EVD-nnnnn` que respaldan el resultado; `completed` exige al menos una, conforme a [AC_TEMPLATE.md](AC_TEMPLATE.md#evidencia). |
 
 Las transiciones y la propiedad de cada estado están en PROJECT_STATE.md; esta plantilla fija la forma del registro, no su ciclo de vida.
+
+`hactors create-action --rfc <ruta>` añade un elemento a este campo con el contador `action` del manifest del proyecto: lo inserta al final de la lista sin reescribir el resto del bloque, toma los valores iniciales de [action_template.yaml](action_template.yaml) y acepta `--type`, `--status`, `--actor`, `--deliverable`, `--depends-on` y `--evidence`. Exige que el archivo declare `rfc:` y un campo `actions:` en forma de bloque, y comprueba los valores declarados contra los tipos y los estados de [AC_TEMPLATE.md](AC_TEMPLATE.md) y las etiquetas de actor de [DEFINITIONS.md](../DEFINITIONS.md#actores).
+
+El comando no produce el entregable ni la evidencia de la acción, no comprueba que exista el `AC-nnnnn` de `depends_on` ni el `EVD-nnnnn` de `evidence`, y no la hace cambiar de estado: registra el `status` declarado y las transiciones siguen en PROJECT_STATE.md. Tampoco la representa en `relations` del manifest del proyecto, porque la correspondencia de [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#relaciones-del-proyecto) no traduce ninguno de sus campos.

@@ -164,11 +164,43 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 
 **`project`** — Nombre del proyecto. Debe coincidir con el nombre del directorio que lo contiene.
 
-**`relations`** — Lista de relaciones entre artefactos. Cada relación registra una conexión identificable: qué artefacto se vincula con cuál, qué tipo de vínculo existe y dónde se encuentra físicamente. Este grafo permite navegar la trazabilidad sin mantener índices duplicados.
+**`relations`** — El grafo del proyecto: la lista de las relaciones entre sus artefactos. Permite navegar la trazabilidad sin mantener índices duplicados. Su elemento, su vocabulario y su correspondencia con las declaraciones documentales se definen en «Relaciones del proyecto».
+
+**`counters`** — Contadores secuenciales para cada tipo de artefacto ejecutable. Se incrementan automáticamente al crear una nueva instancia.
+
+### Relaciones del proyecto
 
 Toda relación documental que un artefacto declare debe representarse en `relations`, dentro de la misma operación que crea o modifica el artefacto que la produce. Una lista vacía solo es válida mientras ningún artefacto del proyecto declare una relación representable: acredita que ninguna consta, no que el proyecto carezca de artefactos ni de historia.
 
-**`counters`** — Contadores secuenciales para cada tipo de artefacto ejecutable. Se incrementan automáticamente al crear una nueva instancia.
+```yaml
+relations:
+  - source: ""
+    target: ""
+    relation: ""
+```
+
+| Campo | Descripción |
+|---|---|
+| `source` | Artefacto del que parte el vínculo. En la lista de un documento el origen es implícito; aquí es explícito, porque esta lista agrega las relaciones de todo el proyecto. |
+| `target` | Artefacto al que llega, en el formato que admita el documento que declara la relación. Puede llevar un fragmento `#<identificador>` cuando el vínculo es con un criterio u objetivo dentro del artefacto, y ese identificador debe existir en él. |
+| `relation` | Tipo de vínculo, en la dirección que fija su propia especificación: [RFC.md](RFC.md#relaciones) para los de RFC, y la sección de relaciones de [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md), [FND_TEMPLATE.md](templates/FND_TEMPLATE.md) y [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md) para los suyos. |
+
+No hay campo de ubicación: la ruta de un artefacto se deriva de su identidad y de la especificación que la define, y repetirla aquí abriría una segunda fuente capaz de desmentir a la primera.
+
+Una relación declarada produce **una sola arista**, en la dirección que su tipo tiene definida, aunque dos documentos la declaren desde extremos distintos; el grafo no duplica inversas.
+
+| Declaración documental | Arista en `relations` |
+|---|---|
+| `origin: X` en una RFC | `{source: X, target: la RFC que lo declara, relation: derives}` |
+| `depends_on: [X, …]` en una RFC | `{source: la RFC que lo declara, target: X, relation: depends-on}`, por cada elemento |
+| `supersedes: X` en una RFC | `{source: la RFC que lo declara, target: X, relation: supersedes}` |
+| `superseded_by: X` en una RFC | `{source: X, target: la RFC que lo declara, relation: supersedes}`: la misma arista que declara su sucesora, no una segunda |
+| Una entrada de `relations:` en cualquier documento | `{source: el documento que la contiene, target, relation}`, literal; en un catálogo HRN, el origen de `versions[].relations` es la versión exacta `HRN-nnnnn@vNNN`, no la identidad |
+| Reutilización de una versión de HARNESS por un TEST | `{source: el TEST, target: HRN-nnnnn@vNNN, relation: uses}`; esta relación solo existe en el grafo, conforme a [HARNESS.md](HARNESS.md#origen-pertenencia-y-reutilización) |
+
+Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): una instancia de ejecución no lo es, y su vínculo con lo que ejecuta ya lo registra su `identity`. Un `target` ajeno al proyecto debe identificar también el proyecto propietario, como en [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md#identidad), y no se resuelve dentro de este.
+
+`hactors relate --source <…> --target <…> --relation <…>` añade una arista a esta lista: exige los tres campos, comprueba que el `target` resuelva conforme a la sección 16 y rechaza una arista idéntica ya registrada. No resuelve el `source`, no resuelve el fragmento de un `target` ni valida `relation` contra los vocabularios a los que esta sección remite, que siguen siendo responsabilidad de quien declara la relación.
 
 ### Contadores
 
@@ -188,7 +220,7 @@ Toda relación documental que un artefacto declare debe representarse en `relati
 
 Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos RFC, PLAN, TEST, HRN ni versiones de receta y no se reinician al abrir una rama.
 
-Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). Ningún comando consume `action` ni `adr`: los incrementa quien declara el artefacto en su documento.
+Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación.
 
 Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
@@ -270,6 +302,9 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-evidence [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `EVD-nnnnn.yaml` en el directorio del origen. |
 | `hactors create-finding [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto; si `--origin` se omite, instancia activa | No cambia el estado activo: escribe `FND-nnnnn.yaml` en el directorio del origen. |
 | `hactors create-summary [--origin <ruta>]` | Proyecto activo y origen existente en ese proyecto: una RFC en `rfcs/` o un workflow_run; si `--origin` se omite, el workflow_run de la instancia activa | No cambia el estado activo: escribe el archivo de resumen junto al artefacto resumido. |
+| `hactors create-action --rfc <ruta>` | Proyecto activo y archivo existente en ese proyecto que declare `rfc:` y un campo `actions:` en forma de bloque | No cambia el estado activo: añade el elemento al final de `actions:` con el contador `action`. |
+| `hactors create-adr --title <título>` | Proyecto activo y su directorio `decisions/` | No cambia el estado activo: escribe `decisions/ADR-nnnnn — nombre-descriptivo.md` con el contador `adr`. |
+| `hactors relate --source <…> --target <…> --relation <…>` | Proyecto activo y un `target` que resuelva en él | No cambia el estado activo: añade la arista a `relations` del manifest del proyecto. |
 | `hactors validate` | Proyecto activo | No cambia el estado activo: examina el proyecto entero, lista sus inconsistencias y termina con error si hay alguna, conforme a la sección 16. |
 
 `use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
@@ -629,7 +664,7 @@ Dado cualquier artefacto vinculado, es posible reconstruir la cadena completa:
 
 La reconstrucción parte de la ruta de la instancia y sus manifiestos, no requiere que esa rama esté activa. Al ascender se elimina un componente cada vez; al descender se añade uno por hijo. Así se preservan la identidad de cada ancestro y su profundidad original, incluso cuando los tipos se repiten.
 
-El manifest del proyecto (`manifest.yaml`) puede registrar relaciones documentales en `relations` para facilitar su consulta. No sustituye el árbol físico ni requiere copiar la cadena completa de ancestros o su profundidad.
+El manifest del proyecto representa en `relations` las relaciones documentales conforme a la sección 3, lo que facilita consultarlas. No sustituye el árbol físico ni requiere copiar la cadena completa de ancestros o su profundidad.
 
 ### Principio fundamental
 
@@ -807,13 +842,27 @@ Una referencia vacía es una asociación pendiente conforme a la sección 4, no 
 
 ### Hallazgos bloqueantes
 
-Ningún `FND-nnnnn.yaml` con severidad `critical` o `high` en estado `open` tiene su TASK de origen cerrada, la invariante de [FINDING.md](FINDING.md). La TASK de origen se recupera siguiendo `source.execution` hasta el workflow_run y su `identity.task_ref`, y en su defecto se lee de `source.task`; un origen que no identifica ninguna TASK no se denuncia. Cerrada significa `execution.status: done`: `rejected`, `cancelled`, `superseded` y `deprecated` son disposiciones que no cierran satisfactoriamente, conforme a [LIFECYCLE.md](LIFECYCLE.md), y conservar un hallazgo abierto bajo ellas no es una inconsistencia.
+Ningún `FND-nnnnn.yaml` con severidad `critical` o `high` en estado `open` tiene su TASK de origen cerrada, la invariante de [FINDING.md](FINDING.md). La TASK de origen se recupera siguiendo `source.execution` hasta el workflow_run y su `identity.task_ref`, y en su defecto se lee de `source.task` o de `source.artifact` cuando cualquiera de los dos identifica una TASK; un origen que no identifica ninguna no se denuncia. [FINDING.md](FINDING.md#relación-con-rfc-y-task) enumera solo las dos primeras vías, pero `create-finding` escribe `source.artifact` para un origen documental, así que sin la tercera un hallazgo registrado sobre `tasks/TASK-nnnnn.md` quedaría sin TASK de origen detectable. Cerrada significa `execution.status: done`: `rejected`, `cancelled`, `superseded` y `deprecated` son disposiciones que no cierran satisfactoriamente, conforme a [LIFECYCLE.md](LIFECYCLE.md), y conservar un hallazgo abierto bajo ellas no es una inconsistencia.
 
 ### Esquema de las acciones derivadas
 
 El campo `actions:` de cada documento de `rfcs/` cumple el esquema de [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), con los tipos y los estados de [AC_TEMPLATE.md](templates/AC_TEMPLATE.md). Una RFC que no declara el campo incumple el esquema; una acción con campos por resolver no, porque los valores vacíos son información pendiente.
 
+### Grafo del proyecto
+
+Las dos comprobaciones sobre `relations` aplican el elemento y la tabla de traducción de la sección 3.
+
+**Resolución de destinos.** Cada elemento es un mapeo con `source`, `target` y `relation`, sin campos ajenos al esquema. Un `target` que identifica una familia con objeto propio en el proyecto —`TASK-`, `PLAN-`, `ADR-`, `EVD-`, `FND-`, `HRN-` y `RFC-X`, con formato en [DEFINITIONS.md](DEFINITIONS.md#nomenclatura)— debe resolver al objeto que lo porta: su documento, su archivo, su catálogo o, con `@vNNN`, su paquete de versión. Un identificador local declarado sin el artefacto que lo define no resuelve, conforme a [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md): es el caso de `AC-nnnnn`, que vive en el campo `actions:` de su RFC y cuya referencia con el artefacto que lo define no está escrita en ninguna especificación. Una referencia vacía es una relación por representar, no una inconsistencia.
+
+Un `target` ajeno a esas familias no se denuncia, porque su forma escrita no está definida: ni `TEST-`, que carece de identidad, ni la referencia a otro proyecto. El fragmento `#<identificador>` tampoco se comprueba: ninguna especificación define cómo se escribe un criterio u objetivo dentro de su artefacto. `source` no se resuelve.
+
+**Completitud.** Toda arista que la tabla de la sección 3 traduce desde un campo documental debe constar en `relations`: `origin`, `depends_on`, `supersedes` y `superseded_by` de cada RFC, y las entradas de `relations:` de cada RFC, de cada registro EVD y FND y de cada catálogo HRN —estas últimas con su origen explícito, la identidad HRN o la versión exacta según la lista que las contenga—. Una arista declarada desde los dos extremos, `supersedes` en la sucesora y `superseded_by` en la sustituida, se denuncia una sola vez. La comparación es literal: el grafo no normaliza dos formas escritas de una misma identidad, ni deduce una arista de otra.
+
 ### Lo que no comprueba
 
-El comando no comprueba las invariantes de cierre entre niveles de [LIFECYCLE.md](LIFECYCLE.md) —que cada acción de una RFC en `done` esté `completed`, ni que cada RFC del alcance de una TASK en `done` esté `done`—, ni la completitud de `relations` del manifest de la sección 3, cuyo esquema de elemento no está definido en ninguna especificación, ni el estado de publicación de la versión de HARNESS que referencia un harness_run, ni la jerarquía de las instancias, que ya validan `use-run` y las creaciones de la sección 4. Tampoco ejecuta Git ni asume que existe un repositorio Git.
+El comando no comprueba las invariantes de cierre entre niveles de [LIFECYCLE.md](LIFECYCLE.md): ni que cada acción de una RFC en `done` esté `completed`, ni que cada RFC del alcance de una TASK en `done` esté `done`. Ni el estado de publicación de la versión de HARNESS que referencia un harness_run, ni la jerarquía de las instancias, que ya validan `use-run` y las creaciones de la sección 4.
+
+Del grafo quedan fuera los campos documentales que la tabla de la sección 3 no traduce, porque ninguna especificación fija qué arista producen: `rfcs:` y `execution.evidence:` de una TASK, `origin`, `derived_rfcs` y `references` de un PLAN, `origin` y `affiliation` de un catálogo HRN, y `artifact:` de un resumen. Tampoco se valida `relation` contra los vocabularios a los que la sección 3 remite, ni se denuncia una arista del manifest que ningún documento declare.
+
+No ejecuta Git ni asume que existe un repositorio Git.
 

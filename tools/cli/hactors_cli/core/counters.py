@@ -4,6 +4,10 @@ from pathlib import Path
 import yaml
 
 COUNTER_FORMAT = "{prefix}_{number:06d}"
+ACTION_ID_FORMAT = "AC-{number:05d}"
+ACTION_COUNTER = "action"
+ADR_ID_FORMAT = "ADR-{number:05d}"
+ADR_COUNTER = "adr"
 EVIDENCE_ID_FORMAT = "EVD-{number:05d}"
 EVIDENCE_COUNTER = "evidence"
 FINDING_ID_FORMAT = "FND-{number:05d}"
@@ -29,7 +33,7 @@ def _incremented_manifest(manifest_path: Path, counter_name: str) -> tuple[dict,
     return data, new_value
 
 
-def _persist(manifest_path: Path, data: dict) -> None:
+def persist_manifest(manifest_path: Path, data: dict) -> None:
     with manifest_path.open("w") as f:
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
@@ -46,7 +50,7 @@ def next_counter_id(
     if target.exists() or target.is_symlink():
         raise FileExistsError(errno.EEXIST, "Ya existe una instancia", str(target))
 
-    _persist(manifest_path, data)
+    persist_manifest(manifest_path, data)
     return formatted, new_value
 
 
@@ -59,8 +63,25 @@ def _next_record_id(
     if target.exists() or target.is_symlink():
         raise FileExistsError(errno.EEXIST, "Ya existe un registro", str(target))
 
-    _persist(manifest_path, data)
+    persist_manifest(manifest_path, data)
     return formatted, new_value
+
+
+def next_action_id(manifest_path: Path, taken: set[str]) -> tuple[str, int]:
+    data, new_value = _incremented_manifest(manifest_path, ACTION_COUNTER)
+    formatted = ACTION_ID_FORMAT.format(number=new_value)
+    if formatted in taken:
+        raise ValueError(
+            f"El contador '{ACTION_COUNTER}' produciría un identificador ya declarado en la RFC: "
+            f"'{formatted}'."
+        )
+
+    persist_manifest(manifest_path, data)
+    return formatted, new_value
+
+
+def next_adr_id(manifest_path: Path, directory: Path, suffix: str) -> tuple[str, int]:
+    return _next_record_id(manifest_path, ADR_COUNTER, ADR_ID_FORMAT, directory, suffix=suffix)
 
 
 def next_evidence_id(manifest_path: Path, directory: Path) -> tuple[str, int]:

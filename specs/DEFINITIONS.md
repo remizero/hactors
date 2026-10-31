@@ -69,7 +69,7 @@ En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una ta
 | `harness_run` | Instancia de uso de una versión de HARNESS bajo el test_run solicitante; hoja de la ejecución. |
 | Manifiesto | Archivo `manifest.yaml` que registra identidad, relaciones y contadores; existe uno en la raíz del proyecto y uno por cada instancia de ejecución. |
 | Estado activo | Contexto de trabajo actual en `projects/.state.yaml`: el proyecto seleccionado y la ruta completa de la instancia activa con sus ancestros. |
-| Relación | Vínculo identificable entre dos artefactos, con su tipo y su ubicación física, registrado en el grafo del proyecto. |
+| Relación | Vínculo identificable entre dos artefactos, con su tipo, registrado en el grafo del proyecto; la ubicación de cada extremo se deriva de su identidad. |
 | Criterio de aceptación | Condición verificable necesaria para aceptar el resultado de un trabajo. |
 | Validación | Contraste explícito de los resultados con los criterios de aceptación aplicables. |
 | Dependencia normativa | Fuente cuyo contenido es necesario para interpretar o ejecutar correctamente una obligación. |

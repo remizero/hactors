@@ -2,18 +2,25 @@ from pathlib import Path
 
 import pytest
 import yaml
+from click.testing import CliRunner
 
+from hactors_cli.cli import cli
 from hactors_cli.core.action import (
     ACTION_FIELDS,
     ACTION_STATUSES,
     ACTION_TYPES,
     ACTOR_LABELS,
     ACTOR_PROHIBITION,
+    ActionError,
     ActionSchemaError,
+    append_action,
+    create_action,
     extract_actions,
     validate_actions,
     validate_rfc_actions,
 )
+from hactors_cli.core.documents import yaml_blocks
+from hactors_cli.core.project import create_project
 
 SPECS_TEMPLATES = Path(__file__).resolve().parents[3] / "specs" / "templates"
 SPECS = SPECS_TEMPLATES.parent
@@ -150,3 +157,209 @@ def test_metadata_block_is_ignored():
 def test_validate_rfc_actions_reads_the_document():
     assert validate_rfc_actions(document([VALID])) == []
     assert "`type` fuera de dominio" in validate_rfc_actions(document([{**VALID, "type": "x"}]))[0]
+
+
+RFC_PATH = "rfcs/RFC-A00001.md"
+
+
+def invoke(root, *args, expected=0):
+    result = CliRunner().invoke(cli, [*args, "--root", str(root)])
+    assert result.exit_code == expected, result.output
+    assert "Traceback" not in result.output
+    return result
+
+
+def counters(project: Path) -> dict:
+    return yaml.safe_load((project / "manifest.yaml").read_text())["counters"]
+
+
+def set_counter(project: Path, name: str, value: int) -> None:
+    manifest = project / "manifest.yaml"
+    data = yaml.safe_load(manifest.read_text())
+    data["counters"][name] = value
+    manifest.write_text(yaml.dump(data, sort_keys=False))
+
+
+def rfc_file(project: Path, actions=None) -> Path:
+    path = project / RFC_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(document([] if actions is None else actions))
+    return path
+
+
+@pytest.fixture
+def project(hactors_root):
+    created = create_project("proj", hactors_root)
+    invoke(hactors_root, "use-project", created.name)
+    return created
+
+
+def test_the_action_template_reproduces_the_rfc_template_element():
+    section = (SPECS_TEMPLATES / "RFC_TEMPLATE.md").read_text().split("## Acciones derivadas\n", 1)[1]
+    documented = yaml_blocks(section.split("\n## ", 1)[0])[0]["actions"][0]
+    template = yaml.safe_load((SPECS_TEMPLATES / "action_template.yaml").read_text())
+    assert set(template) == set(ACTION_FIELDS)
+    assert documented == {**template, "id": "AC-00001"}
+    assert validate_actions([documented]) == []
+
+
+def test_append_action_expands_an_empty_flow_list():
+    updated = append_action('```yaml\nactions: []\nmigration_plan: ""\n```\n', {"id": "AC-00001"})
+    assert extract_actions(updated) == [{"id": "AC-00001"}]
+    assert 'migration_plan: ""' in updated
+
+
+def test_append_action_keeps_the_indentation_of_the_list():
+    text = '```yaml\nactions:\n    - id: AC-00007\n      type: plan\nother: ""\n```\n'
+    updated = append_action(text, {"id": "AC-00001"})
+    assert extract_actions(updated) == [{"id": "AC-00007", "type": "plan"}, {"id": "AC-00001"}]
+    assert "    - id: AC-00001\n" in updated
+    assert updated.index("    - id: AC-00001") < updated.index('other: ""')
+
+
+def test_create_action_appends_the_element(hactors_root, project):
+    path = rfc_file(project)
+    action_id, written = create_action(
+        hactors_root, project.name, RFC_PATH, type_="plan", actor="agent", deliverable="plans/x.md"
+    )
+    assert (action_id, written) == ("AC-00001", path)
+    assert extract_actions(path.read_text()) == [
+        {
+            "id": "AC-00001", "type": "plan", "status": "pending", "actor": "agent",
+            "depends_on": [], "deliverable": "plans/x.md", "evidence": [],
+        }
+    ]
+    assert counters(project)["action"] == 1
+
+
+def test_create_action_keeps_the_template_defaults(hactors_root, project):
+    path = rfc_file(project)
+    create_action(hactors_root, project.name, RFC_PATH)
+    template = yaml.safe_load((SPECS_TEMPLATES / "action_template.yaml").read_text())
+    assert extract_actions(path.read_text()) == [{**template, "id": "AC-00001"}]
+
+
+def test_create_action_appends_after_the_declared_actions(hactors_root, project):
+    path = rfc_file(project, actions=[VALID])
+    set_counter(project, "action", 1)
+    before = path.read_text()
+    action_id, _ = create_action(hactors_root, project.name, RFC_PATH, type_="test")
+    assert action_id == "AC-00002"
+    assert [action["id"] for action in extract_actions(path.read_text())] == ["AC-00001", "AC-00002"]
+    head, tail = before.split("actions:\n", 1)
+    after = path.read_text()
+    assert after.startswith(head + "actions:\n" + tail.split("```\n")[0])
+    assert after.endswith("```\n")
+
+
+def test_create_action_registers_the_repeated_options(hactors_root, project):
+    path = rfc_file(project)
+    create_action(
+        hactors_root, project.name, RFC_PATH,
+        depends_on=("AC-00007", "AC-00008"), evidence=("EVD-00003",),
+    )
+    declared = extract_actions(path.read_text())[0]
+    assert declared["depends_on"] == ["AC-00007", "AC-00008"]
+    assert declared["evidence"] == ["EVD-00003"]
+
+
+@pytest.mark.parametrize(
+    "options, fragment",
+    [
+        ({"type_": "refactor"}, "`type` fuera de dominio"),
+        ({"status": "done"}, "`status` fuera de dominio"),
+        ({"actor": "robot"}, "fuera de DEFINITIONS.md"),
+        ({"actor": f"human | {ACTOR_PROHIBITION}"}, "no admite combinar"),
+        ({"depends_on": ("AC-002",)}, "`depends_on` contiene una referencia inválida"),
+        ({"evidence": ("EVD-0007",)}, "`evidence` contiene una referencia inválida"),
+        ({"deliverable": 7}, "`deliverable`"),
+    ],
+)
+def test_create_action_rejects_values_outside_the_schema(hactors_root, project, options, fragment):
+    path = rfc_file(project)
+    with pytest.raises(ActionError) as excinfo:
+        create_action(hactors_root, project.name, RFC_PATH, **options)
+    assert fragment in str(excinfo.value)
+    assert extract_actions(path.read_text()) == []
+
+
+def test_a_rejected_value_consumes_the_counter(hactors_root, project):
+    rfc_file(project)
+    with pytest.raises(ActionError):
+        create_action(hactors_root, project.name, RFC_PATH, type_="refactor")
+    assert counters(project)["action"] == 1
+
+
+def test_create_action_rejects_an_identifier_already_declared(hactors_root, project):
+    rfc_file(project, actions=[VALID])
+    with pytest.raises(ActionError) as excinfo:
+        create_action(hactors_root, project.name, RFC_PATH)
+    assert "produciría un identificador ya declarado en la RFC: 'AC-00001'." in str(excinfo.value)
+    assert counters(project)["action"] == 0
+
+
+@pytest.mark.parametrize(
+    "text, fragment",
+    [
+        ('```yaml\nrfc: "RFC-A00001"\n```\n', "Ningún bloque `yaml` del documento declara"),
+        (document([]) + "\n" + document([]), "el documento es ambiguo"),
+        ('```yaml\nrfc: "RFC-A00001"\n```\n\n```yaml\nactions: [{id: AC-00007}]\n```\n',
+         "no está en forma de bloque"),
+        ('```yaml\nrfc: "RFC-A00001"\n```\n\n```yaml\n{actions: []}\n```\n',
+         "no está en el nivel superior del bloque"),
+        ('```yaml\nstatus: draft\n```\n', "no declara el campo 'rfc:'"),
+    ],
+)
+def test_create_action_rejects_a_document_it_cannot_extend(hactors_root, project, text, fragment):
+    path = rfc_file(project)
+    path.write_text(text)
+    with pytest.raises(ActionError) as excinfo:
+        create_action(hactors_root, project.name, RFC_PATH)
+    assert fragment in str(excinfo.value)
+    assert path.read_text() == text
+
+
+def test_a_document_that_cannot_be_extended_consumes_the_counter(hactors_root, project):
+    path = rfc_file(project)
+    path.write_text('```yaml\nrfc: "RFC-A00001"\n```\n\n```yaml\nactions: [{id: AC-00007}]\n```\n')
+    with pytest.raises(ActionError):
+        create_action(hactors_root, project.name, RFC_PATH)
+    assert counters(project)["action"] == 1
+
+
+@pytest.mark.parametrize("origin", ["rfcs", "/etc/passwd", "rfcs/../manifest.yaml", "rfcs/ausente.md"])
+def test_create_action_rejects_an_origin_that_is_not_an_rfc_file(hactors_root, project, origin):
+    rfc_file(project)
+    with pytest.raises(ActionError):
+        create_action(hactors_root, project.name, origin)
+    assert counters(project)["action"] == 0
+
+
+def test_command_registers_the_action(hactors_root, project):
+    rfc_file(project)
+    result = invoke(
+        hactors_root, "create-action", "--rfc", RFC_PATH, "--type", "implementation", "--actor", "agent"
+    )
+    assert f"Acción AC-00001 registrada en: {project / RFC_PATH}" in result.output
+    assert counters(project)["action"] == 1
+
+
+def test_command_requires_the_rfc(hactors_root, project):
+    invoke(hactors_root, "create-action", "--type", "plan", expected=2)
+
+
+def test_command_reports_a_value_outside_the_schema(hactors_root, project):
+    rfc_file(project)
+    result = invoke(hactors_root, "create-action", "--rfc", RFC_PATH, "--type", "refactor", expected=1)
+    assert "`type` fuera de dominio" in result.output
+
+
+def test_command_requires_an_active_project(hactors_root):
+    result = invoke(hactors_root, "create-action", "--rfc", RFC_PATH, expected=1)
+    assert "No hay proyecto activo." in result.output
+
+
+def test_the_created_action_leaves_the_project_consistent(hactors_root, project):
+    rfc_file(project)
+    invoke(hactors_root, "create-action", "--rfc", RFC_PATH, "--type", "plan", "--actor", "human")
+    assert "sin inconsistencias" in invoke(hactors_root, "validate").output

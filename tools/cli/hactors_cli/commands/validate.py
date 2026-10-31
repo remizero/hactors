@@ -16,7 +16,7 @@ from ..core.validate import ValidateError, validate_project
     help="Directorio raíz de HACTORS. Por defecto se detecta desde el directorio actual.",
 )
 def validate_cmd(root: Optional[Path]) -> None:
-    """Comprobar referencias, hallazgos bloqueantes y `actions:` del proyecto activo, sin reparar nada."""
+    """Comprobar referencias, grafo, hallazgos bloqueantes y `actions:` del proyecto activo, sin reparar nada."""
     hactors_root = root if root is not None else find_hactors_root(Path.cwd())
     try:
         project_name = require_active_project(hactors_root)

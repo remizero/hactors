@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 from .action import ActionSchemaError, validate_rfc_actions
-from .documents import DocumentError, document_identity, front_matter
+from .documents import DocumentError, document_identity, front_matter, yaml_blocks
 from .paths import RUN_PATTERN, require_project_directory
 from .summary import SUMMARY_SUFFIX
 from .task import normalize_task_ref
@@ -14,6 +14,9 @@ BLOCKING_STATE = "open"
 TASK_CLOSED_STATUS = "done"
 HARNESS_REF_PATTERN = re.compile(r"(HRN-[0-9]{5,})@(v[0-9]{3,})")
 FINDING_FILE_PATTERN = re.compile(r"FND-[0-9]{5,}\.yaml")
+EVIDENCE_FILE_PATTERN = re.compile(r"EVD-[0-9]{5,}\.yaml")
+RECORD_FILE_PATTERNS = (EVIDENCE_FILE_PATTERN, FINDING_FILE_PATTERN)
+ADR_FILE_PATTERN = re.compile(r"ADR-[0-9]{5,}")
 REFERENCE_FIELDS = {
     "workflow_run": "task_ref",
     "rfc_run": "rfc_ref",
@@ -21,6 +24,15 @@ REFERENCE_FIELDS = {
     "harness_run": "harness_ref",
 }
 PLAN_LOCATIONS = ("plans", "docs/plans")
+RELATION_FIELDS = frozenset({"source", "target", "relation"})
+ARTIFACT_PREFIXES = ("TASK-", "AC-", "PLAN-", "ADR-", "EVD-", "FND-", "HRN-", "RFC-")
+IDENTITY_UNDEFINED_PREFIXES = ("TEST-",)
+RFC_EDGE_FIELDS = {
+    "origin": ("derives", True),
+    "depends_on": ("depends-on", False),
+    "supersedes": ("supersedes", False),
+    "superseded_by": ("supersedes", True),
+}
 
 
 class ValidateError(Exception):
@@ -237,6 +249,221 @@ def _check_actions(project: Path, rfc_ids: dict) -> list[str]:
     return findings
 
 
+def _record_files(project: Path) -> list[tuple[str, Path]]:
+    records = []
+    for path in sorted(project.rglob("*.yaml")):
+        if any(pattern.fullmatch(path.name) for pattern in RECORD_FILE_PATTERNS):
+            records.append((path.stem, path))
+    return records
+
+
+def _harness_catalogs(project: Path) -> tuple[list, list[str]]:
+    catalogs: list[tuple[str, Path, dict]] = []
+    problems: list[str] = []
+    harnesses = project / "harnesses"
+    if harnesses.is_symlink() or not harnesses.is_dir():
+        return catalogs, problems
+    for path in sorted(harnesses.glob("HRN-*/manifest.yaml")):
+        where = _relative(project, path)
+        try:
+            data = _load_mapping(project, path)
+        except ValidateError as exc:
+            problems.append(str(exc))
+            continue
+        identity = data.get("id")
+        catalogs.append(
+            (identity if isinstance(identity, str) and identity else path.parent.name, path, data)
+        )
+        if not isinstance(identity, str) or not identity:
+            problems.append(f"{where}: no declara 'id:'.")
+    return catalogs, problems
+
+
+def _identity_set(
+    project: Path, rfc_ids: dict, plan_ids: dict, statuses: dict, catalogs: list
+) -> set[str]:
+    identities = set(rfc_ids) | set(plan_ids) | set(statuses)
+    identities.update(identity for identity, _ in _record_files(project))
+    identities.update(identity for identity, _, _ in catalogs)
+    decisions = project / "decisions"
+    if not decisions.is_symlink() and decisions.is_dir():
+        for path in decisions.glob("ADR-*.md"):
+            match = ADR_FILE_PATTERN.match(path.name)
+            if match:
+                identities.add(match[0])
+    return identities
+
+
+def artifact_identities(project: Path) -> set[str]:
+    rfc_ids, _ = _documents(project, ("rfcs/*.md",), "rfc", skip_suffixes=(SUMMARY_SUFFIX,))
+    plan_ids, _ = _documents(
+        project, tuple(f"{location}/*.md" for location in PLAN_LOCATIONS), "id"
+    )
+    statuses, _ = _task_statuses(project)
+    catalogs, _ = _harness_catalogs(project)
+    return _identity_set(project, rfc_ids, plan_ids, statuses, catalogs)
+
+
+def target_problem(project: Path, target: str, identities: set[str]) -> str:
+    artifact = target.partition("#")[0]
+    if artifact.startswith(IDENTITY_UNDEFINED_PREFIXES):
+        return ""
+    if HARNESS_REF_PATTERN.fullmatch(artifact):
+        expected = _harness_package(project, artifact)
+    elif artifact.startswith("HRN-"):
+        expected = project / "harnesses" / artifact / "manifest.yaml"
+    elif artifact.startswith(ARTIFACT_PREFIXES):
+        if artifact in identities:
+            return ""
+        return "no resuelve a ningún artefacto del proyecto."
+    else:
+        return ""
+    if expected.is_file():
+        return ""
+    return f"no resuelve a {_relative(project, expected)}."
+
+
+def _project_relations(project: Path) -> tuple[list, list[str]]:
+    try:
+        data = _load_mapping(project, project / "manifest.yaml")
+    except ValidateError as exc:
+        return [], [str(exc)]
+    relations = data.get("relations")
+    if relations in (None, []):
+        return [], []
+    if not isinstance(relations, list):
+        return [], [f"manifest.yaml: `relations` debe ser una lista, no {type(relations).__name__}."]
+    return relations, []
+
+
+def _check_relation_targets(project: Path, identities: set[str]) -> list[str]:
+    relations, findings = _project_relations(project)
+    for position, element in enumerate(relations, start=1):
+        where = f"manifest.yaml: relations[{position}]"
+        if not isinstance(element, dict):
+            findings.append(f"{where}: debe ser un mapeo, no {type(element).__name__}.")
+            continue
+        findings.extend(
+            f"{where}: campo ajeno al esquema: '{field}'."
+            for field in element
+            if field not in RELATION_FIELDS
+        )
+        target = element.get("target")
+        if not isinstance(target, str) or not target:
+            continue
+        problem = target_problem(project, target, identities)
+        if problem:
+            findings.append(f"{where}: `target` '{target}' {problem}")
+    return findings
+
+
+def _manifest_edges(project: Path) -> set[tuple[str, str, str]]:
+    relations, _ = _project_relations(project)
+    edges = set()
+    for element in relations:
+        if not isinstance(element, dict):
+            continue
+        values = [element.get(field) for field in ("source", "target", "relation")]
+        if all(isinstance(value, str) and value for value in values):
+            edges.add(tuple(values))
+    return edges
+
+
+def _relation_entries(source: str, entries) -> list[tuple[tuple, str]]:
+    declared = []
+    if not isinstance(entries, list):
+        return declared
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        target, relation = entry.get("target"), entry.get("relation")
+        if isinstance(target, str) and target and isinstance(relation, str) and relation:
+            declared.append(((source, target, relation), "relations"))
+    return declared
+
+
+def _rfc_edges(identity: str, text: str) -> list[tuple[tuple, str]]:
+    block = {}
+    try:
+        for candidate in yaml_blocks(text):
+            if isinstance(candidate, dict) and candidate.get("rfc"):
+                block = candidate
+                break
+    except DocumentError:
+        return []
+    declared = []
+    for field, (relation, inverted) in RFC_EDGE_FIELDS.items():
+        value = block.get(field)
+        if isinstance(value, str) and value:
+            value = [value]
+        if not isinstance(value, list):
+            continue
+        for item in value:
+            if not isinstance(item, str) or not item:
+                continue
+            edge = (item, identity, relation) if inverted else (identity, item, relation)
+            declared.append((edge, field))
+    declared.extend(_relation_entries(identity, block.get("relations")))
+    return declared
+
+
+def _declared_edges(project: Path, rfc_ids: dict, catalogs: list) -> tuple[list, list[str]]:
+    edges: list[tuple[tuple, str, str]] = []
+    problems: list[str] = []
+    for identity, path in rfc_ids.items():
+        where = _relative(project, path)
+        try:
+            text = _read(project, path)
+        except ValidateError as exc:
+            problems.append(str(exc))
+            continue
+        edges.extend((edge, where, field) for edge, field in _rfc_edges(identity, text))
+    for identity, path in _record_files(project):
+        where = _relative(project, path)
+        try:
+            data = _load_mapping(project, path)
+        except ValidateError as exc:
+            problems.append(str(exc))
+            continue
+        edges.extend(
+            (edge, where, field) for edge, field in _relation_entries(identity, data.get("relations"))
+        )
+    for identity, path, data in catalogs:
+        where = _relative(project, path)
+        edges.extend(
+            (edge, where, field) for edge, field in _relation_entries(identity, data.get("relations"))
+        )
+        versions = data.get("versions")
+        if not isinstance(versions, list):
+            continue
+        for version in versions:
+            if not isinstance(version, dict) or not isinstance(version.get("version"), int):
+                continue
+            exact = f"{identity}@v{version['version']:03d}"
+            edges.extend(
+                (edge, where, field)
+                for edge, field in _relation_entries(exact, version.get("relations"))
+            )
+    return edges, problems
+
+
+def _check_relation_completeness(project: Path, rfc_ids: dict, catalogs: list) -> list[str]:
+    edges, findings = _declared_edges(project, rfc_ids, catalogs)
+    recorded = _manifest_edges(project)
+    seen: set[tuple] = set()
+    for edge, where, field in edges:
+        if edge in recorded or edge in seen:
+            continue
+        seen.add(edge)
+        source, target, relation = edge
+        findings.append(
+            f"{where}: el campo `{field}` declara la arista "
+            f"{{source: {source}, target: {target}, relation: {relation}}}, "
+            "que no consta en `relations` del manifest."
+        )
+    return findings
+
+
 def validate_project(root: Path, project_name: str) -> list[str]:
     project = require_project_directory(root, project_name)
     rfc_ids, findings = _documents(project, ("rfcs/*.md",), "rfc", skip_suffixes=(SUMMARY_SUFFIX,))
@@ -244,9 +471,14 @@ def validate_project(root: Path, project_name: str) -> list[str]:
         project, tuple(f"{location}/*.md" for location in PLAN_LOCATIONS), "id"
     )
     statuses, task_problems = _task_statuses(project)
+    catalogs, catalog_problems = _harness_catalogs(project)
+    identities = _identity_set(project, rfc_ids, plan_ids, statuses, catalogs)
     findings.extend(plan_problems)
     findings.extend(task_problems)
+    findings.extend(catalog_problems)
     findings.extend(_check_references(project, rfc_ids, plan_ids))
+    findings.extend(_check_relation_targets(project, identities))
+    findings.extend(_check_relation_completeness(project, rfc_ids, catalogs))
     findings.extend(_check_blocking_findings(project, statuses))
     findings.extend(_check_actions(project, rfc_ids))
     return findings

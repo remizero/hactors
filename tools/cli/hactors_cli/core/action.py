@@ -1,7 +1,18 @@
 import re
+from pathlib import Path
+from typing import Optional
 
-from .documents import DocumentError, yaml_blocks
+import yaml
 
+from .counters import next_action_id
+from .documents import YAML_BLOCK, DocumentError, document_identity
+from .paths import require_project_directory, resolve_origin
+from .templates import load_template
+
+ACTION_TEMPLATE = "action_template.yaml"
+ACTIONS_FIELD = re.compile(r"^actions:[ \t]*(?P<value>[^ \t].*)?$")
+LIST_ITEM = re.compile(r"^(?P<indent>[ ]*)-[ \t]")
+DEFAULT_ITEM_INDENT = "  "
 ACTION_ID_PATTERN = re.compile(r"AC-[0-9]{5,}")
 EVIDENCE_ID_PATTERN = re.compile(r"EVD-[0-9]{5,}")
 ACTION_TYPES = frozenset(
@@ -19,6 +30,10 @@ UNRESOLVED = (None, "")
 
 
 class ActionSchemaError(Exception):
+    pass
+
+
+class ActionError(Exception):
     pass
 
 
@@ -47,17 +62,25 @@ def _reference_list_error(value, pattern: re.Pattern, field: str) -> str:
     return ""
 
 
-def extract_actions(text: str):
-    try:
-        blocks = yaml_blocks(text)
-    except DocumentError as exc:
-        raise ActionSchemaError(str(exc)) from exc
-    declared = [block["actions"] for block in blocks if isinstance(block, dict) and "actions" in block]
-    if not declared:
+def _actions_block(text: str) -> tuple[int, int]:
+    spans = []
+    for match in YAML_BLOCK.finditer(text):
+        try:
+            data = yaml.safe_load(match.group(1))
+        except yaml.YAMLError as exc:
+            raise ActionSchemaError(f"Bloque `yaml` ilegible: {exc}") from exc
+        if isinstance(data, dict) and "actions" in data:
+            spans.append((match.start(1), match.end(1)))
+    if not spans:
         raise ActionSchemaError("Ningún bloque `yaml` del documento declara el campo `actions:`.")
-    if len(declared) > 1:
+    if len(spans) > 1:
         raise ActionSchemaError("Varios bloques `yaml` declaran `actions:`; el documento es ambiguo.")
-    return declared[0]
+    return spans[0]
+
+
+def extract_actions(text: str):
+    start, end = _actions_block(text)
+    return yaml.safe_load(text[start:end])["actions"]
 
 
 def validate_actions(actions) -> list[str]:
@@ -115,3 +138,111 @@ def validate_actions(actions) -> list[str]:
 
 def validate_rfc_actions(text: str) -> list[str]:
     return validate_actions(extract_actions(text))
+
+
+def append_action(text: str, element: dict) -> str:
+    start, end = _actions_block(text)
+    lines = text[start:end].split("\n")
+    index = _field_line(lines)
+    value = (ACTIONS_FIELD.match(lines[index])["value"] or "").strip()
+    if value not in ("", "[]"):
+        raise ActionSchemaError(
+            "El campo `actions:` no está en forma de bloque; no se puede insertar una acción."
+        )
+    position = _list_end(lines, index)
+    indent = _item_indent(lines, index, position)
+    if value == "[]":
+        lines[index] = "actions:"
+    lines[position:position] = _rendered(element, indent).split("\n")
+    updated = text[:start] + "\n".join(lines) + text[end:]
+    _actions_block(updated)
+    return updated
+
+
+def _field_line(lines: list[str]) -> int:
+    for index, line in enumerate(lines):
+        if ACTIONS_FIELD.match(line):
+            return index
+    raise ActionSchemaError(
+        "El campo `actions:` no está en el nivel superior del bloque; "
+        "no se puede insertar una acción."
+    )
+
+
+def _list_end(lines: list[str], index: int) -> int:
+    last = index + 1
+    for position in range(index + 1, len(lines)):
+        line = lines[position]
+        if line.strip() and not line.startswith((" ", "\t", "-")):
+            break
+        if line.strip():
+            last = position + 1
+    return last
+
+
+def _item_indent(lines: list[str], index: int, position: int) -> str:
+    for line in lines[index + 1 : position]:
+        match = LIST_ITEM.match(line)
+        if match:
+            return match["indent"]
+    return DEFAULT_ITEM_INDENT
+
+
+def _rendered(element: dict, indent: str) -> str:
+    dumped = yaml.dump([element], default_flow_style=False, allow_unicode=True, sort_keys=False)
+    return "\n".join(
+        f"{indent}{line}" if line else "" for line in dumped.rstrip("\n").split("\n")
+    )
+
+
+def create_action(
+    root: Path,
+    project_name: str,
+    rfc: str,
+    type_: Optional[str] = None,
+    status: Optional[str] = None,
+    actor: Optional[str] = None,
+    deliverable: Optional[str] = None,
+    depends_on: Optional[tuple[str, ...]] = None,
+    evidence: Optional[tuple[str, ...]] = None,
+) -> tuple[str, Path]:
+    try:
+        project = require_project_directory(root, project_name)
+        path = _rfc_document(root, project_name, project, rfc)
+        text = path.read_text()
+        if not document_identity(text, "rfc"):
+            raise ValueError(f"'{rfc}' no declara el campo 'rfc:'.")
+        element = dict(load_template(root, ACTION_TEMPLATE))
+        for field, value in (
+            ("type", type_), ("status", status), ("actor", actor), ("deliverable", deliverable)
+        ):
+            if value is not None:
+                element[field] = value
+        for field, values in (("depends_on", depends_on), ("evidence", evidence)):
+            if values:
+                element[field] = list(values)
+        declared = extract_actions(text)
+        if not isinstance(declared, list):
+            declared = []
+        taken = {
+            action["id"]
+            for action in declared
+            if isinstance(action, dict) and isinstance(action.get("id"), str)
+        }
+        action_id, _ = next_action_id(project / "manifest.yaml", taken)
+        element["id"] = action_id
+        findings = validate_actions([element])
+        if findings:
+            raise ValueError(" ".join(findings))
+        path.write_text(append_action(text, element))
+    except (ActionSchemaError, DocumentError, ValueError, OSError, yaml.YAMLError) as exc:
+        raise ActionError(str(exc)) from exc
+    return action_id, path
+
+
+def _rfc_document(root: Path, project_name: str, project: Path, rfc: str) -> Path:
+    resolve_origin(root, project_name, project, rfc)
+    path = project / rfc
+    if not path.is_file():
+        raise ValueError(f"'{rfc}' no es un archivo del proyecto.")
+    return path
