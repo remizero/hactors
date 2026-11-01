@@ -3,8 +3,8 @@
 ## Alcance
 
 Define estados, transiciones y condiciones de RFC, TASK, SUMMARY y flujo de integración.
-WORKFLOW.md ordena las acciones; RFC_SYSTEM.md sincroniza sus representaciones.
-Las transiciones que tocan más de un archivo de estado siguen el protocolo de TRANSACTIONS.md.
+[WORKFLOW.md](WORKFLOW.md) ordena las acciones; [RFC_SYSTEM.md](RFC_SYSTEM.md) sincroniza sus representaciones.
+Las transiciones que tocan más de un archivo de estado siguen el protocolo de [TRANSACTIONS.md](TRANSACTIONS.md).
 Los identificadores de estado se conservan en inglés; sus significados se definen aquí.
 
 Estos estados pertenecen a los artefactos documentales y a sus flujos, no a las instancias de ejecución: cada instancia registra su propio estado observable conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md).
@@ -100,9 +100,9 @@ proposed → active → closing → closed
 `active` admite TASK nuevas; `closing` no acepta nuevas TASK pero queda pendiente de cierres humanos.
 `closed` exige cada TASK de su alcance en `done` y evidencia de aceptación `[actor: human]`.
 `cancelled` detiene el flujo por disposición directa sobre él; `aborted` lo detiene porque un descendiente no alcanza su éxito y `[actor: human]` no reduce el alcance del flujo. Ambas son disposición `[actor: human]`, pueden tomarse desde `active` o `closing`, son terminales y preservan el trabajo y la evidencia producidos.
-Los estados de una acción (`AC-nnnnn`) se definen en PROJECT_STATE.md; una RFC alcanza `done` solo con cada acción de su alcance en `completed`.
+Los estados de una acción (`AC-nnnnn`) y sus transiciones se definen en [templates/AC_TEMPLATE.md](templates/AC_TEMPLATE.md); el actor de cada transición está en [PROJECT_STATE.md](PROJECT_STATE.md#transiciones-de-una-acción). Una RFC alcanza `done` solo con cada acción de su alcance en `completed`.
 
-Estos estados describen el WORKFLOW abstracto. Su instancia `workflow_run` registra el estado observable de la ejecución en `global_state.status`, con intentos y bloqueos propios, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#bloque-2-global_state); la distinción entre ambos se define en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run). Un estado de instancia no sustituye la transición documental que autoriza `[actor: human]`.
+Estos estados describen el WORKFLOW y se registran en el `status` de su catálogo, conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md). Su instancia `workflow_run` registra el estado observable de la ejecución en `global_state.status`, con intentos y bloqueos propios, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#bloque-2-global_state); la distinción entre ambos se define en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run). Un estado de instancia no sustituye la transición documental que autoriza `[actor: human]`.
 
 ## Flujo de integración
 
@@ -112,7 +112,7 @@ implemented → tested → under_review → validated → merged
 
 [actor: human | agent] produce los entregables, ejecuta y registra las comprobaciones antes de solicitar revisión.
 Las comprobaciones se registran como evidencia conforme a [EVIDENCE.md](EVIDENCE.md).
-[actor: human] aprueba la revisión y realiza la integración conforme al control de versiones de la instancia.
+[actor: human] aprueba la revisión y realiza la integración conforme al control de versiones del proyecto.
 [actor: ci] aporta resultados de las comprobaciones, pero no sustituye la aprobación.
 En trabajo sin integración Git, registrar la aceptación del entregable sin inventar un estado `merged`.
 Este flujo es la continuación de las transiciones de RFC, no una ruta alternativa que permita saltar `implemented` o `tested`.
@@ -132,8 +132,8 @@ Las referencias a revisiones de Git son metadatos complementarios de integració
 
 Una RFC sustituta no hereda la aprobación de la anterior y no entra sola en el alcance del padre: `[actor: human]` la incorpora como cambio de alcance.
 Los artefactos rechazados, cancelados o sustituidos no se eliminan por defecto.
-Ninguna de estas disposiciones cierra satisfactoriamente a un padre; las condiciones de cierre entre niveles están en PROJECT_STATE.md.
-Las excepciones a las reglas de ciclo de vida siguen el mecanismo formal de EXCEPTIONS.md.
+Ninguna de estas disposiciones cierra satisfactoriamente a un padre; las condiciones de cierre entre niveles están en [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles).
+Las excepciones a las reglas de ciclo de vida siguen el mecanismo formal de [EXCEPTIONS.md](EXCEPTIONS.md).
 
 ## Iteraciones y agregación
 
@@ -143,4 +143,4 @@ Las excepciones a las reglas de ciclo de vida siguen el mecanismo formal de EXCE
 - La RFC alcanza cada hito cuando lo cumple todo su alcance, aunque sus TASK avancen por separado.
 - Los cambios de diseño requieren disposición humana, no una reclasificación unilateral del ejecutor.
 - Una RFC cerrada se evoluciona conforme a [RFC.md](RFC.md), sin reescribir sus requisitos históricos.
-- Las invariantes de cierre entre niveles están en PROJECT_STATE.md.
+- Las invariantes de cierre entre niveles están en [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles).

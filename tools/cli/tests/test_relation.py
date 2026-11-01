@@ -39,11 +39,22 @@ def write_relations(project: Path, relations) -> None:
     (project / "manifest.yaml").write_text(yaml.dump(data, sort_keys=False))
 
 
+def bump_counter(project: Path, counter: str, identity: str) -> None:
+    """Un auxiliar de fixture consume el contador que la CLI consumiría al crear el artefacto."""
+    path = project / "manifest.yaml"
+    data = yaml.safe_load(path.read_text())
+    counters = data.setdefault("counters", {})
+    counters[counter] = max(counters.get(counter, 0), int(identity.rsplit("-", 1)[-1]))
+    path.write_text(yaml.dump(data, sort_keys=False))
+
+
 def rfc_document(project: Path, name: str = "RFC-A00001", **extra) -> Path:
     data = {"rfc": name, **extra}
     path = project / "rfcs" / f"{name}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"# Documento\n\n```yaml\n{yaml.dump(data, sort_keys=False)}```\n")
+    for action in extra.get("actions") or []:
+        bump_counter(project, "action", action["id"])
     return path
 
 

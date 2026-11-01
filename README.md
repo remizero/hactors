@@ -8,7 +8,7 @@ Construye trazabilidad de proyectos. No historiales de prompts.
 
 HACTORS es un enfoque metodológico basado en especificaciones para desarrollar proyectos complejos mediante una colaboración estructurada entre humanos e IA.
 
-HACTORS es un sistema de gobernanza y trazabilidad de la instancia que lo compone. Define qué reglas hay que seguir, cómo se propone un requerimiento (RFC), cómo se organiza (WORKFLOW y TASK), cómo se ejecutan las acciones derivadas y cómo los cambios triviales bypassan el flujo completo (TRV).
+HACTORS es un sistema de gobernanza y trazabilidad de los proyectos que lo adoptan. Define qué reglas hay que seguir, cómo se propone un requerimiento (RFC), cómo se organiza (WORKFLOW y TASK), cómo se ejecutan las acciones derivadas y cómo los cambios triviales bypassan el flujo completo (TRV).
 
 HACTORS no reduce necesariamente la cantidad de información que necesita un actor human/agent para realizar una tarea. Reduce la cantidad de información que el actor humano tiene que proporcionar explícitamente en cada tarea.
 
@@ -47,13 +47,13 @@ Guías aún no incorporadas al repositorio; su migración está registrada en [T
 | EXAMPLES.md | Ejemplo real extremo a extremo con RFC-A00001. |
 | TOOLS.md | Herramientas disponibles y plan de CI. |
 
-### `projects/` — Instancias de proyectos basados en HACTORS.
+### `projects/` — Proyectos basados en HACTORS.
 
 Cada subdirectorio es un proyecto HACTORS con su propia identidad, artefactos, RFCs, estándares específicos, manifiesto de relaciones y flujo de ejecución; la excepción es `views/`, que reúne las vistas derivadas de la raíz y no es un proyecto. Ver [PROJECTS.md](specs/PROJECTS.md) y [VIEWS.md](specs/VIEWS.md).
 
 ### `specs/` — Contenido normativo.
 
-Especificaciones, plantillas y estándares que rigen la metodología HACTORS y la estructura de los proyectos: catorce especificaciones normativas en `specs/` y las plantillas documentales y YAML de los artefactos y de las instancias de ejecución en `specs/templates/`. El resto de la normativa original se incorporará progresivamente.
+Especificaciones y plantillas que rigen la metodología HACTORS y la estructura de los proyectos: veintisiete especificaciones normativas en `specs/` —la política de lectura que las ordena, en [CONTEXT_LOADING.md](specs/CONTEXT_LOADING.md)— y las plantillas documentales y YAML de los artefactos y de las instancias de ejecución en `specs/templates/`. Los perfiles técnicos no viven aquí: los compone cada proyecto en su `standards/`, conforme a [STANDARDS.md](specs/STANDARDS.md).
 
 ### `tools/` — Herramientas disponibles y plan de CI.
 

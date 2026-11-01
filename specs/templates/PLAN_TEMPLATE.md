@@ -97,11 +97,11 @@ Si el plan cambia después de aprobado, se registra la enmienda o se crea un pla
 
 - Una RFC-A puede producir uno o más planes; cada plan conserva su `origin` y relación `derives`.
 - Un plan puede proponer RFC-F derivadas; cada RFC-F conserva su identificador y ciclo de vida independiente.
-- Las acciones derivadas (AC-nnnnn) de un plan siguen la jerarquía de PROJECT_STATE.md.
+- Un plan no declara campo `actions:`: las acciones que su ejecución motiva se registran en el campo `actions:` de la RFC que lo produce y siguen la jerarquía de [PROJECT_STATE.md](../PROJECT_STATE.md#jerarquía).
 
 ## Ubicación
 
-Los documentos PLAN se ubican en `plans/` dentro del contexto de la RFC que los produce, o en `docs/plans/` si son transversales.
+Los documentos PLAN se ubican en la raíz del proyecto: `projects/<proyecto>/plans/` para los que produce una RFC de ese proyecto y `projects/<proyecto>/docs/plans/` para los transversales. No se buscan en ningún otro nivel ni dentro del árbol de instancias: el vínculo con la RFC que lo produce lo declara su campo `origin`, no su ruta.
 Su instancia de ejecución `plan_run` vive dentro del `rfc_run` correspondiente, puede contener rfc_runs de RFCs derivadas y referencia el documento sin copiar sus pasos, gates ni aprobación. La jerarquía recursiva, su ruta activa y creación se definen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md).
 
 ## Restricciones

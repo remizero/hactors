@@ -1,13 +1,17 @@
+import re
 from pathlib import Path
 
-from .action import ActionSchemaError, validate_rfc_actions
+from .action import ActionSchemaError, extract_actions, validate_rfc_actions
 from .documents import DocumentError, yaml_blocks
-from .paths import require_project_directory
+from .paths import RUN_CHILD_TYPES, RUN_PATTERN, require_project_directory, require_run_directory
 from .scan import (
     FINDING_FILE_PATTERN,
     HARNESS_REF_PATTERN,
     PLAN_LOCATIONS,
     REFERENCE_FIELDS,
+    TESTS_DIRNAME,
+    WORKFLOW_REF_PATTERN,
+    WORKFLOWS_DIRNAME,
     ScanError,
     adr_documents,
     documents,
@@ -20,17 +24,36 @@ from .scan import (
     run_identity,
     run_manifests,
     task_documents,
+    workflow_package,
 )
+from .state import STATE_FILE, StateError, load_state
 from .summary import SUMMARY_SUFFIX
 from .task import normalize_task_ref
 
 BLOCKING_SEVERITIES = frozenset({"critical", "high"})
 BLOCKING_STATE = "open"
 TASK_CLOSED_STATUS = "done"
-UNRESOLVED_REFERENCE_FIELDS = frozenset({"test_ref"})
 RELATION_FIELDS = frozenset({"source", "target", "relation"})
-ARTIFACT_PREFIXES = ("TASK-", "AC-", "PLAN-", "ADR-", "EVD-", "FND-", "HRN-", "RFC-")
-IDENTITY_UNDEFINED_PREFIXES = ("TEST-",)
+COUNTER_ID_PATTERNS = {
+    "task": re.compile(r"TASK-([0-9]{5,})"),
+    "action": re.compile(r"AC-([0-9]{5,})"),
+    "evidence": re.compile(r"EVD-([0-9]{5,})"),
+    "finding": re.compile(r"FND-([0-9]{5,})"),
+    "adr": re.compile(r"ADR-([0-9]{5,})"),
+}
+RECORD_COUNTERS = (("EVD-", "evidence"), ("FND-", "finding"))
+ARTIFACT_PREFIXES = (
+    "TASK-",
+    "AC-",
+    "PLAN-",
+    "ADR-",
+    "EVD-",
+    "FND-",
+    "HRN-",
+    "RFC-",
+    "TEST-",
+    "WORKFLOW-",
+)
 RFC_EDGE_FIELDS = {
     "origin": ("derives", True),
     "depends_on": ("depends-on", False),
@@ -47,6 +70,14 @@ def _task_statuses(project: Path) -> tuple[dict, list[str]]:
         status = execution.get("status") if isinstance(execution, dict) else None
         statuses[stem] = status if isinstance(status, str) else ""
     return statuses, problems
+
+
+def _plan_documents(project: Path) -> tuple[dict, list[str]]:
+    return documents(project, tuple(f"{location}/*.md" for location in PLAN_LOCATIONS), "id")
+
+
+def _test_documents(project: Path) -> tuple[dict, list[str]]:
+    return documents(project, (f"{TESTS_DIRNAME}/*.md",), "id")
 
 
 def _task_from_execution(project: Path, execution) -> str:
@@ -89,18 +120,28 @@ def _origin_task(project: Path, data: dict) -> str:
     return ""
 
 
-def _check_references(project: Path, rfc_ids: dict, plan_ids: dict) -> list[str]:
-    findings: list[str] = []
+def _run_instances(project: Path) -> tuple[list, list[str]]:
+    instances: list[tuple[str, Path, dict]] = []
+    problems: list[str] = []
     for run_type, directory, manifest in run_manifests(project):
-        field = REFERENCE_FIELDS.get(run_type)
-        if field is None or field in UNRESOLVED_REFERENCE_FIELDS:
-            continue
-        where = relative(project, directory)
         try:
             identity = run_identity(project, run_type, directory, manifest)
         except ScanError as exc:
-            findings.append(str(exc))
+            problems.append(str(exc))
+            identity = None
+        instances.append((run_type, directory, identity))
+    return instances, problems
+
+
+def _check_references(
+    project: Path, instances: list, rfc_ids: dict, plan_ids: dict, test_ids: dict
+) -> list[str]:
+    findings: list[str] = []
+    for run_type, directory, identity in instances:
+        field = REFERENCE_FIELDS.get(run_type)
+        if field is None or identity is None:
             continue
+        where = relative(project, directory)
         reference = identity.get(field)
         if not isinstance(reference, str) or not reference:
             continue
@@ -113,6 +154,9 @@ def _check_references(project: Path, rfc_ids: dict, plan_ids: dict) -> list[str]
         elif run_type == "plan_run":
             expected = "un PLAN en plans/ o docs/plans/"
             resolved = reference in plan_ids
+        elif run_type == "test_run":
+            expected = f"un TEST en {TESTS_DIRNAME}/"
+            resolved = reference in test_ids
         else:
             try:
                 package = harness_package(project, reference)
@@ -123,6 +167,83 @@ def _check_references(project: Path, rfc_ids: dict, plan_ids: dict) -> list[str]
             resolved = package.is_file()
         if not resolved:
             findings.append(f"{where}: `{field}` '{reference}' no resuelve a {expected}.")
+    return findings
+
+
+def _check_hierarchy(project: Path, instances: list) -> list[str]:
+    findings: list[str] = []
+    for run_type, directory, identity in instances:
+        where = relative(project, directory)
+        parent = RUN_PATTERN.fullmatch(directory.parent.name)
+        parent_type = parent[1] if parent else directory.parent.name
+        if run_type not in RUN_CHILD_TYPES.get(parent_type, ()):
+            findings.append(
+                f"{where}: jerarquía inválida: {run_type} no puede vivir dentro de {parent_type}."
+            )
+        if identity is None:
+            continue
+        if identity.get("id") != directory.name:
+            findings.append(
+                f"{where}: `identity.id` no coincide con su componente de ruta '{directory.name}'."
+            )
+    return findings
+
+
+def _note(observed: dict, counter: str, identity: str, digits: str) -> None:
+    number = int(digits)
+    if number > observed.get(counter, (0, ""))[0]:
+        observed[counter] = (number, identity)
+
+
+def _observed_counters(
+    project: Path, rfc_ids: dict, statuses: dict, instances: list, records: list, adrs: list
+) -> dict:
+    observed: dict[str, tuple[int, str]] = {}
+    documents_by_counter = [("task", stem) for stem in statuses]
+    documents_by_counter.extend(
+        (counter, identity)
+        for identity, _ in records
+        for prefix, counter in RECORD_COUNTERS
+        if identity.startswith(prefix)
+    )
+    documents_by_counter.extend(("adr", identity) for identity, _ in adrs)
+    for counter, identity in documents_by_counter:
+        match = COUNTER_ID_PATTERNS[counter].fullmatch(identity)
+        if match:
+            _note(observed, counter, identity, match[1])
+    for path in rfc_ids.values():
+        try:
+            actions = extract_actions(read(project, path))
+        except (ActionSchemaError, ScanError):
+            continue
+        for element in actions if isinstance(actions, list) else []:
+            identity = element.get("id") if isinstance(element, dict) else None
+            if not isinstance(identity, str):
+                continue
+            match = COUNTER_ID_PATTERNS["action"].fullmatch(identity)
+            if match:
+                _note(observed, "action", identity, match[1])
+    for run_type, directory, _ in instances:
+        if RUN_PATTERN.fullmatch(directory.name):
+            digits = directory.name[len(run_type) + 1 :]
+            _note(observed, run_type, directory.name, digits)
+    return observed
+
+
+def _check_counters(manifest: dict, observed: dict) -> list[str]:
+    counters = manifest.get("counters")
+    if not isinstance(counters, dict):
+        return [f"manifest.yaml: `counters` debe ser un mapeo, no {type(counters).__name__}."]
+    findings: list[str] = []
+    for counter, (number, identity) in sorted(observed.items()):
+        declared = counters.get(counter)
+        if type(declared) is not int or declared < 0:
+            findings.append(f"manifest.yaml: el contador `{counter}` no es un entero no negativo.")
+        elif declared < number:
+            findings.append(
+                f"manifest.yaml: el contador `{counter}` vale {declared} y existe la identidad "
+                f"'{identity}'; debe ser mayor o igual que cualquier identidad de su tipo."
+            )
     return findings
 
 
@@ -163,33 +284,48 @@ def _check_actions(project: Path, rfc_ids: dict) -> list[str]:
 
 
 def _identity_set(
-    project: Path, rfc_ids: dict, plan_ids: dict, statuses: dict, catalogs: list
+    rfc_ids: dict,
+    plan_ids: dict,
+    test_ids: dict,
+    statuses: dict,
+    catalogs: list,
+    records: list,
+    adrs: list,
 ) -> set[str]:
-    identities = set(rfc_ids) | set(plan_ids) | set(statuses)
-    identities.update(identity for identity, _ in record_files(project))
+    identities = set(rfc_ids) | set(plan_ids) | set(test_ids) | set(statuses)
+    identities.update(identity for identity, _ in records)
     identities.update(identity for identity, _, _ in catalogs)
-    identities.update(identity for identity, _ in adr_documents(project))
+    identities.update(identity for identity, _ in adrs)
     return identities
 
 
 def artifact_identities(project: Path) -> set[str]:
     rfc_ids, _ = documents(project, ("rfcs/*.md",), "rfc", skip_suffixes=(SUMMARY_SUFFIX,))
-    plan_ids, _ = documents(
-        project, tuple(f"{location}/*.md" for location in PLAN_LOCATIONS), "id"
-    )
+    plan_ids, _ = _plan_documents(project)
+    test_ids, _ = _test_documents(project)
     statuses, _ = _task_statuses(project)
     catalogs, _ = harness_catalogs(project)
-    return _identity_set(project, rfc_ids, plan_ids, statuses, catalogs)
+    return _identity_set(
+        rfc_ids,
+        plan_ids,
+        test_ids,
+        statuses,
+        catalogs,
+        record_files(project),
+        adr_documents(project),
+    )
 
 
 def target_problem(project: Path, target: str, identities: set[str]) -> str:
     artifact = target.partition("#")[0]
-    if artifact.startswith(IDENTITY_UNDEFINED_PREFIXES):
-        return ""
     if HARNESS_REF_PATTERN.fullmatch(artifact):
         expected = harness_package(project, artifact)
     elif artifact.startswith("HRN-"):
         expected = project / "harnesses" / artifact / "manifest.yaml"
+    elif WORKFLOW_REF_PATTERN.fullmatch(artifact):
+        expected = workflow_package(project, artifact)
+    elif artifact.startswith("WORKFLOW-"):
+        expected = project / WORKFLOWS_DIRNAME / artifact / "manifest.yaml"
     elif artifact.startswith(ARTIFACT_PREFIXES):
         if artifact in identities:
             return ""
@@ -201,12 +337,15 @@ def target_problem(project: Path, target: str, identities: set[str]) -> str:
     return f"no resuelve a {relative(project, expected)}."
 
 
-def _project_relations(project: Path) -> tuple[list, list[str]]:
+def _project_manifest(project: Path) -> tuple[dict, list[str]]:
     try:
-        data = load_mapping(project, project / "manifest.yaml")
+        return load_mapping(project, project / "manifest.yaml"), []
     except ScanError as exc:
-        return [], [str(exc)]
-    relations = data.get("relations")
+        return {}, [str(exc)]
+
+
+def _relations(manifest: dict) -> tuple[list, list[str]]:
+    relations = manifest.get("relations")
     if relations in (None, []):
         return [], []
     if not isinstance(relations, list):
@@ -214,8 +353,8 @@ def _project_relations(project: Path) -> tuple[list, list[str]]:
     return relations, []
 
 
-def _check_relation_targets(project: Path, identities: set[str]) -> list[str]:
-    relations, findings = _project_relations(project)
+def _check_relation_targets(project: Path, relations: list, identities: set[str]) -> list[str]:
+    findings: list[str] = []
     for position, element in enumerate(relations, start=1):
         where = f"manifest.yaml: relations[{position}]"
         if not isinstance(element, dict):
@@ -235,8 +374,7 @@ def _check_relation_targets(project: Path, identities: set[str]) -> list[str]:
     return findings
 
 
-def _manifest_edges(project: Path) -> set[tuple[str, str, str]]:
-    relations, _ = _project_relations(project)
+def _recorded_edges(relations: list) -> set[tuple[str, str, str]]:
     edges = set()
     for element in relations:
         if not isinstance(element, dict):
@@ -285,7 +423,9 @@ def _rfc_edges(identity: str, text: str) -> list[tuple[tuple, str]]:
     return declared
 
 
-def _declared_edges(project: Path, rfc_ids: dict, catalogs: list) -> tuple[list, list[str]]:
+def _declared_edges(
+    project: Path, rfc_ids: dict, test_ids: dict, catalogs: list
+) -> tuple[list, list[str]]:
     edges: list[tuple[tuple, str, str]] = []
     problems: list[str] = []
     for identity, path in rfc_ids.items():
@@ -296,6 +436,20 @@ def _declared_edges(project: Path, rfc_ids: dict, catalogs: list) -> tuple[list,
             problems.append(str(exc))
             continue
         edges.extend((edge, where, field) for edge, field in _rfc_edges(identity, text))
+    for identity, path in test_ids.items():
+        where = relative(project, path)
+        try:
+            blocks = yaml_blocks(read(project, path))
+        except (DocumentError, ScanError) as exc:
+            problems.append(str(exc))
+            continue
+        block = next(
+            (item for item in blocks if isinstance(item, dict) and item.get("id") == identity), {}
+        )
+        edges.extend(
+            (edge, where, field)
+            for edge, field in _relation_entries(identity, block.get("relations"))
+        )
     for identity, path in record_files(project):
         where = relative(project, path)
         try:
@@ -325,9 +479,10 @@ def _declared_edges(project: Path, rfc_ids: dict, catalogs: list) -> tuple[list,
     return edges, problems
 
 
-def _check_relation_completeness(project: Path, rfc_ids: dict, catalogs: list) -> list[str]:
-    edges, findings = _declared_edges(project, rfc_ids, catalogs)
-    recorded = _manifest_edges(project)
+def _check_relation_completeness(
+    project: Path, recorded: set, rfc_ids: dict, test_ids: dict, catalogs: list
+) -> list[str]:
+    edges, findings = _declared_edges(project, rfc_ids, test_ids, catalogs)
     seen: set[tuple] = set()
     for edge, where, field in edges:
         if edge in recorded or edge in seen:
@@ -342,21 +497,52 @@ def _check_relation_completeness(project: Path, rfc_ids: dict, catalogs: list) -
     return findings
 
 
+def _check_active_state(root: Path, project_name: str) -> list[str]:
+    try:
+        state = load_state(root)
+    except StateError as exc:
+        return [f"{STATE_FILE}: {exc}"]
+    run_path = state["active_run_path"]
+    if state["active_project"] != project_name or not run_path:
+        return []
+    try:
+        require_run_directory(root, project_name, run_path)
+    except (ValueError, OSError) as exc:
+        return [f"{STATE_FILE}: la instancia activa '{run_path}' no es válida: {exc}"]
+    return []
+
+
 def validate_project(root: Path, project_name: str) -> list[str]:
     project = require_project_directory(root, project_name)
     rfc_ids, findings = documents(project, ("rfcs/*.md",), "rfc", skip_suffixes=(SUMMARY_SUFFIX,))
-    plan_ids, plan_problems = documents(
-        project, tuple(f"{location}/*.md" for location in PLAN_LOCATIONS), "id"
-    )
+    plan_ids, plan_problems = _plan_documents(project)
+    test_ids, test_problems = _test_documents(project)
     statuses, task_problems = _task_statuses(project)
     catalogs, catalog_problems = harness_catalogs(project)
-    identities = _identity_set(project, rfc_ids, plan_ids, statuses, catalogs)
+    records = record_files(project)
+    adrs = adr_documents(project)
+    instances, instance_problems = _run_instances(project)
+    identities = _identity_set(rfc_ids, plan_ids, test_ids, statuses, catalogs, records, adrs)
+    manifest, manifest_problems = _project_manifest(project)
+    relations, relation_problems = _relations(manifest)
     findings.extend(plan_problems)
+    findings.extend(test_problems)
     findings.extend(task_problems)
     findings.extend(catalog_problems)
-    findings.extend(_check_references(project, rfc_ids, plan_ids))
-    findings.extend(_check_relation_targets(project, identities))
-    findings.extend(_check_relation_completeness(project, rfc_ids, catalogs))
+    findings.extend(instance_problems)
+    findings.extend(manifest_problems)
+    findings.extend(relation_problems)
+    findings.extend(_check_references(project, instances, rfc_ids, plan_ids, test_ids))
+    findings.extend(_check_hierarchy(project, instances))
+    if not manifest_problems:
+        observed = _observed_counters(project, rfc_ids, statuses, instances, records, adrs)
+        findings.extend(_check_counters(manifest, observed))
+    findings.extend(_check_relation_targets(project, relations, identities))
+    recorded = _recorded_edges(relations)
+    findings.extend(
+        _check_relation_completeness(project, recorded, rfc_ids, test_ids, catalogs)
+    )
     findings.extend(_check_blocking_findings(project, statuses))
     findings.extend(_check_actions(project, rfc_ids))
+    findings.extend(_check_active_state(root, project_name))
     return findings

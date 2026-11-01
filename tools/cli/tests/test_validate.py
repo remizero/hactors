@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -41,21 +42,50 @@ def write_document(path: Path, data: dict) -> Path:
     return path
 
 
+def bump_counter(project: Path, counter: str, identity: str) -> None:
+    """Un auxiliar de fixture consume el contador que la CLI consumiría al crear el artefacto."""
+    path = project / "manifest.yaml"
+    data = yaml.safe_load(path.read_text())
+    counters = data.setdefault("counters", {})
+    counters[counter] = max(counters.get(counter, 0), int(identity.rsplit("-", 1)[-1]))
+    path.write_text(yaml.dump(data, sort_keys=False))
+
+
+def set_counter(project: Path, counter: str, value) -> None:
+    path = project / "manifest.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["counters"][counter] = value
+    path.write_text(yaml.dump(data, sort_keys=False))
+
+
+def active_run(hactors_root: Path) -> str:
+    state = yaml.safe_load((hactors_root / "projects" / ".state.yaml").read_text())
+    return state["active_run_path"]
+
+
 def rfc_document(project: Path, name: str = "RFC-A00001", actions=None, **extra) -> Path:
     data = {"rfc": name, **extra}
     if actions is not None:
         data["actions"] = actions
-    return write_document(project / "rfcs" / f"{name}.md", data)
+    path = write_document(project / "rfcs" / f"{name}.md", data)
+    for action in actions or []:
+        bump_counter(project, "action", action["id"])
+    return path
 
 
 def plan_document(project: Path, plan_id: str = "PLAN-00001", location: str = "plans") -> Path:
     return write_document(project / location / f"{plan_id}.md", {"id": plan_id})
 
 
+def verification_document(project: Path, test_id: str = "TEST-00001", **extra) -> Path:
+    return write_document(project / "tests" / f"{test_id}.md", {"id": test_id, **extra})
+
+
 def task_document(project: Path, task_id: str = "TASK-00001", status: str = "draft") -> Path:
     path = project / "tasks" / f"{task_id}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"---\ntask: \"\"\nexecution:\n  status: {status}\n---\n\n# {task_id}\n")
+    bump_counter(project, "task", task_id)
     return path
 
 
@@ -77,6 +107,7 @@ def finding_document(
             sort_keys=False,
         )
     )
+    bump_counter(project, "finding", finding_id)
     return path
 
 
@@ -183,8 +214,13 @@ def test_malformed_harness_ref_is_reported(hactors_root, project, tree, referenc
     assert f"Referencia de HARNESS inválida: '{reference}'" in problems[0]
 
 
-def test_test_ref_is_not_resolved(hactors_root, project, tree):
+def test_unresolved_test_ref_is_reported(hactors_root, project, tree):
     set_identity(tree["test_run"] / "manifest.yaml", test_ref="TEST-00001")
+    problems = validate(hactors_root, project)
+    assert len(problems) == 1
+    assert "`test_ref` 'TEST-00001' no resuelve a un TEST en tests/." in problems[0]
+
+    verification_document(project)
     assert validate(hactors_root, project) == []
 
 
@@ -192,6 +228,20 @@ def test_documents_without_identity_are_reported(hactors_root, project):
     write_document(project / "rfcs" / "sin-identidad.md", {"actions": ACTIONS})
     problems = validate(hactors_root, project)
     assert problems == ["rfcs/sin-identidad.md: no declara 'rfc:'."]
+
+
+def test_test_without_identity_is_reported(hactors_root, project):
+    write_document(project / "tests" / "sin-identidad.md", {"property": ""})
+    assert validate(hactors_root, project) == ["tests/sin-identidad.md: no declara 'id:'."]
+
+
+def test_repeated_test_identity_is_reported(hactors_root, project):
+    verification_document(project)
+    write_document(project / "tests" / "copia.md", {"id": "TEST-00001"})
+    problems = validate(hactors_root, project)
+    assert len(problems) == 1
+    assert "identidad 'TEST-00001' repetida" in problems[0]
+    assert "ya la declara tests/TEST-00001.md." in problems[0]
 
 
 def test_repeated_identity_is_reported(hactors_root, project):
@@ -284,10 +334,72 @@ def test_illegible_document_is_reported(hactors_root, project):
 def test_illegible_manifest_is_reported(hactors_root, project, tree):
     (tree["rfc_run"] / "manifest.yaml").write_text("identity: [sin cerrar\n")
     problems = validate(hactors_root, project)
-    assert len(problems) == 1
+    assert len(problems) == 2
     assert problems[0].startswith(
         "YAML ilegible en 'hactors/workflow_run_000001/task_run_000001/rfc_run_000001/manifest.yaml':"
     )
+    assert problems[1].startswith("projects/.state.yaml: la instancia activa")
+
+
+def test_a_counter_below_an_observed_identity_is_reported(hactors_root, project):
+    task_document(project, task_id="TASK-00004")
+    set_counter(project, "task", 2)
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: el contador `task` vale 2 y existe la identidad 'TASK-00004'; "
+        "debe ser mayor o igual que cualquier identidad de su tipo."
+    ]
+
+    bump_counter(project, "task", "TASK-00004")
+    assert validate(hactors_root, project) == []
+
+
+def test_a_run_counter_below_its_instances_is_reported(hactors_root, project, tree):
+    set_counter(project, "test_run", 0)
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: el contador `test_run` vale 0 y existe la identidad 'test_run_000001'; "
+        "debe ser mayor o igual que cualquier identidad de su tipo."
+    ]
+
+
+def test_a_counter_that_is_not_an_integer_is_reported(hactors_root, project):
+    task_document(project)
+    set_counter(project, "task", "1")
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: el contador `task` no es un entero no negativo."
+    ]
+
+
+def test_an_instance_outside_its_admitted_parent_is_reported(hactors_root, project, tree):
+    misplaced = tree["workflow_run"] / "rfc_run_000001"
+    misplaced.mkdir()
+    (misplaced / "manifest.yaml").write_text("identity:\n  id: rfc_run_000001\n  rfc_ref: ''\n")
+    assert validate(hactors_root, project) == [
+        "hactors/workflow_run_000001/rfc_run_000001: jerarquía inválida: "
+        "rfc_run no puede vivir dentro de workflow_run."
+    ]
+
+
+def test_an_identity_that_does_not_match_its_directory_is_reported(hactors_root, project, tree):
+    set_identity(tree["rfc_run"] / "manifest.yaml", id="rfc_run_000009")
+    problems = validate(hactors_root, project)
+    assert problems[0] == (
+        "hactors/workflow_run_000001/task_run_000001/rfc_run_000001: "
+        "`identity.id` no coincide con su componente de ruta 'rfc_run_000001'."
+    )
+    assert problems[1].startswith("projects/.state.yaml: la instancia activa")
+
+
+def test_an_active_run_that_no_longer_exists_is_reported(hactors_root, project, tree):
+    shutil.rmtree(tree["harness_run"])
+    assert validate(hactors_root, project) == [
+        f"projects/.state.yaml: la instancia activa '{active_run(hactors_root)}' no es válida: "
+        "harness_run no encontrado o sin manifest: 'harness_run_000001'."
+    ]
+
+
+def test_a_project_without_active_run_reports_nothing_about_the_state(hactors_root, project):
+    assert active_run(hactors_root) == ""
+    assert validate(hactors_root, project) == []
 
 
 def test_unknown_project_is_rejected(hactors_root):
@@ -337,6 +449,8 @@ def record_document(project: Path, name: str, relations=None) -> Path:
     path.write_text(
         yaml.dump({"id": name.split(".")[0], "relations": relations or []}, sort_keys=False)
     )
+    counter = "evidence" if name.startswith("EVD-") else "finding"
+    bump_counter(project, counter, name.split(".")[0])
     return path
 
 
@@ -344,6 +458,7 @@ def decision_document(project: Path, name: str = "ADR-00001 — decision.md") ->
     path = project / "decisions" / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("# Decisión\n")
+    bump_counter(project, "adr", name.split(" ")[0])
     return path
 
 
@@ -352,6 +467,22 @@ def harness_catalog(project: Path, harness_id: str = "HRN-00001", **fields) -> P
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {"id": harness_id, "relations": [], "versions": [], **fields}
     path.write_text(yaml.dump(data, sort_keys=False))
+    return path
+
+
+def workflow_catalog(project: Path, workflow_id: str = "WORKFLOW-00001") -> Path:
+    path = project / "workflows" / workflow_id / "manifest.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.dump({"id": workflow_id, "versions": []}, sort_keys=False))
+    return path
+
+
+def workflow_definition(
+    project: Path, workflow_id: str = "WORKFLOW-00001", version: str = "v001"
+) -> Path:
+    path = project / "workflows" / workflow_id / "versions" / version / "workflow.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"id: {workflow_id}\nversion: 1\n")
     return path
 
 
@@ -388,10 +519,13 @@ def test_relation_element_rejects_alien_fields(hactors_root, project):
     [
         ("TASK-00001", lambda project: task_document(project)),
         ("PLAN-00001", lambda project: plan_document(project)),
+        ("TEST-00001", lambda project: verification_document(project)),
         ("EVD-00001", lambda project: record_document(project, "EVD-00001.yaml")),
         ("FND-00001", lambda project: record_document(project, "FND-00001.yaml")),
         ("HRN-00001", lambda project: harness_catalog(project)),
         ("HRN-00001@v001", lambda project: harness_package(project)),
+        ("WORKFLOW-00001", lambda project: workflow_catalog(project)),
+        ("WORKFLOW-00001@v001", lambda project: workflow_definition(project)),
         ("ADR-00001", lambda project: decision_document(project)),
     ],
 )
@@ -431,7 +565,7 @@ def test_local_identifier_without_its_artifact_is_reported(hactors_root, project
     ]
 
 
-@pytest.mark.parametrize("target", ["TEST-00001", "mi_modulo/servicio", ""])
+@pytest.mark.parametrize("target", ["mi_modulo/servicio", ""])
 def test_targets_outside_the_defined_families_are_skipped(hactors_root, project, target):
     set_relations(project, [edge("RFC-A00001", target, "depends-on")])
     assert validate(hactors_root, project) == []
@@ -501,6 +635,23 @@ def test_document_relation_list_is_represented_with_its_source(hactors_root, pro
         "{source: RFC-A00001, target: RFC-F00002#C1, relation: informs}, "
         "que no consta en `relations` del manifest."
     ]
+
+
+def test_test_relation_list_is_represented_with_its_source(hactors_root, project):
+    verification_document(project)
+    verification_document(
+        project,
+        test_id="TEST-00002",
+        relations=[{"target": "TEST-00001", "relation": "derived_from"}],
+    )
+    assert validate(hactors_root, project) == [
+        "tests/TEST-00002.md: el campo `relations` declara la arista "
+        "{source: TEST-00002, target: TEST-00001, relation: derived_from}, "
+        "que no consta en `relations` del manifest."
+    ]
+
+    set_relations(project, [edge("TEST-00002", "TEST-00001", "derived_from")])
+    assert validate(hactors_root, project) == []
 
 
 def test_record_relations_are_represented(hactors_root, project):

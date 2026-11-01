@@ -4,7 +4,7 @@
 
 [actor: human | agent] utiliza estas convenciones al redactar, derivar o evolucionar una RFC.
 La definición del artefacto está en [DEFINITIONS.md](DEFINITIONS.md), sus estados en [LIFECYCLE.md](LIFECYCLE.md)
-y las operaciones de registro en RFC_SYSTEM.md.
+y las operaciones de registro en [RFC_SYSTEM.md](RFC_SYSTEM.md).
 
 ## Identidad y tipos
 
@@ -76,13 +76,13 @@ Marcar como no aplicables y justificar los campos ajenos al tipo de trabajo.
 
 ## Guía de construcción por tipo
 
-[actor: human | agent] sigue esta guía en la fase 1 de WORKFLOW.md («Proponer y aprobar»).
+[actor: human | agent] sigue esta guía en la fase 1 de [WORKFLOW.md](WORKFLOW.md#1-proponer-y-aprobar) («Proponer y aprobar»).
 La guía conecta la intención de trabajo con la plantilla adecuada; no cambia la autoridad de aprobación ni los estados de [LIFECYCLE.md](LIFECYCLE.md).
 
 ### Paso común inicial
 
 1. Identificar el tipo de trabajo: análisis, feature, integración, tests o documentación.
-2. Resolver el alcance conforme a la tabla de «Ubicaciones de la instancia» más abajo.
+2. Resolver el alcance conforme a la tabla de «Ubicación de una RFC» más abajo.
 3. Leer la plantilla general [templates/RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md) y la variante correspondiente.
 4. Comprobar que ninguna RFC registrada use ya ese identificador y resolver sus relaciones contra las RFC existentes y el grafo del proyecto.
 
@@ -126,7 +126,7 @@ Al cerrar: la documentación es el resumen verificable y no subsana una garantí
 
 Toda RFC-A, RFC-F, RFC-I y RFC-T consolida su resumen al ser terminal, conforme a [SUMMARY.md](SUMMARY.md).
 
-## Ubicaciones de la instancia
+## Ubicación de una RFC
 
 | Alcance | Ubicación relativa al proyecto |
 |---|---|

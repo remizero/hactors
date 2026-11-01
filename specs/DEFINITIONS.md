@@ -26,15 +26,15 @@ Sin etiqueta, una definición o restricción técnica no concede permisos de eje
 
 La **autoría** identifica quién redactó; la **aprobación** habilita una decisión; la **ejecución** realiza el trabajo.
 Son responsabilidades distintas, incluso cuando recaen sobre una misma persona.
-Las asignaciones concretas se establecen en WORKFLOW.md y en [LIFECYCLE.md](LIFECYCLE.md).
+Las asignaciones concretas se establecen en [WORKFLOW.md](WORKFLOW.md) y en [LIFECYCLE.md](LIFECYCLE.md).
 
 ## Nomenclatura
 
-Un **artefacto** se identifica en mayúsculas con cinco cifras y ceros iniciales: `TASK-nnnnn`, `RFC-Xnnnnn`, `AC-nnnnn`, `PLAN-nnnnn`, `ADR-nnnnn`, `EVD-nnnnn`, `FND-nnnnn` y `HRN-nnnnn`, cuya versión publicada se escribe `HRN-nnnnn@vNNN`.
+Un **artefacto** se identifica en mayúsculas con cinco cifras y ceros iniciales: `WORKFLOW-nnnnn`, `TASK-nnnnn`, `RFC-Xnnnnn`, `AC-nnnnn`, `PLAN-nnnnn`, `TEST-nnnnn`, `ADR-nnnnn`, `EVD-nnnnn`, `FND-nnnnn` y `HRN-nnnnn`; la versión publicada de un WORKFLOW y de un HRN se escribe con su identificador y `@vNNN`, como en `HRN-nnnnn@vNNN`.
 Una **instancia de ejecución** se identifica en minúsculas con seis cifras: `workflow_run_000001`, `task_run_000001`, `rfc_run_000001`, `plan_run_000001`, `test_run_000001` y `harness_run_000001`.
 El SUMMARY carece de identidad propia: se identifica por el artefacto que resume.
 
-Un identificador es único en el proyecto y no se reutiliza al retirar el artefacto. El número no codifica parentesco, profundidad ni orden temporal, y la numeración la llevan los contadores del manifest conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
+Un identificador es único en el proyecto y no se reutiliza al retirar el artefacto. El número no codifica parentesco, profundidad ni orden temporal, y la numeración la llevan los contadores del manifest conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores) cuando el artefacto los tiene; los que no, se determinan desde los objetos existentes del proyecto.
 
 En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una tabla de contadores se escribe un ejemplo real.
 
@@ -49,13 +49,13 @@ En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una ta
 | Norma de proyecto | Convención particular de documentación, Git o estilo que vive en `standards/`; solo redefine reglas con necesidad real y sin contradecir la autoridad normativa de SPECS. |
 | Contrato | Interfaz y semántica pública con precondiciones, resultados, errores e invariantes. |
 | Artefacto | Resultado identificable del trabajo: documento, código, configuración, registro o evidencia. Los tipos admitidos están en [ARTIFACTS.md](ARTIFACTS.md). |
-| WORKFLOW | Proceso abstracto que ordena fases y pasos y agrupa las TASK de un alcance; su cierre es disposición `[actor: human]`. |
+| WORKFLOW (`WORKFLOW-nnnnn`) | Proceso que ordena fases y pasos y agrupa las TASK de un alcance, registrado con sus versiones publicadas en `workflows/`; su cierre es disposición `[actor: human]`. Reglas en [WORKFLOW.md](WORKFLOW.md#identidad-y-versiones). |
 | RFC | Propuesta formal de análisis, cambio o trabajo, con alcance, decisiones y aceptación verificable. Convenciones en [RFC.md](RFC.md). |
 | TASK (`TASK-nnnnn`) | Artefacto iniciador: toda ejecución nace de una TASK, que delimita una unidad de trabajo y sus criterios de aceptación. Reglas en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#7-task-artefacto-iniciador). |
 | Acción derivada (`AC-nnnnn`) | Entregable individual bajo una RFC: análisis, plan, decisión, implementación, prueba, evidencia o documentación. |
 | Plan (`PLAN-nnnnn`) | Secuencia ordenada de pasos con puntos de decisión; artefacto revisable derivado de una RFC. Formato en [templates/PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md). |
 | DECISION (`ADR-nnnnn`) | Registro de una decisión, sus alternativas y sus consecuencias, en su propio archivo dentro de `decisions/`. Reglas en [DECISIONS.md](DECISIONS.md). |
-| TEST | Verificación identificable e inmutable en su contenido y propósito; adaptarla a otro objetivo produce un TEST nuevo que referencia al anterior. Reglas en [TESTS.md](TESTS.md). |
+| TEST (`TEST-nnnnn`) | Verificación identificable e inmutable en su contenido y propósito, en su propio documento dentro de `tests/`; adaptarla a otro objetivo produce un TEST nuevo que referencia al anterior. Reglas en [TESTS.md](TESTS.md). |
 | HARNESS (`HRN-nnnnn`) | Receta persistente con versiones publicadas inmutables, independiente del harness construido, que es efímero. Reglas en [HARNESS.md](HARNESS.md). |
 | Evidencia (`EVD-nnnnn`) | Registro comprobable de una observación o ejecución, con su procedencia y su aplicabilidad. Reglas en [EVIDENCE.md](EVIDENCE.md). |
 | Hallazgo (`FND-nnnnn`) | Hecho observado que requiere tratamiento, con tipo, severidad y estado; no interpreta, no aprueba cambios ni sustituye una RFC. Reglas en [FINDING.md](FINDING.md). |
@@ -77,16 +77,16 @@ En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una ta
 | Dependencia normativa | Fuente cuyo contenido es necesario para interpretar o ejecutar correctamente una obligación. |
 | Referencia informativa | Fuente de contexto o historia que no añade por sí misma requisitos. |
 | Ensamblaje de contexto | Selección y lectura de las dependencias necesarias para una tarea. |
-| Cambio trivial (`TRV-nnnnn`) | Corrección de bajo impacto por vía rápida; no produce RFC, TASK ni WORKFLOW. Norma en TRIVIAL.md. |
+| Cambio trivial (`TRV-nnnnn`) | Corrección de bajo impacto por vía rápida; no produce RFC, TASK ni WORKFLOW. Norma en [TRIVIAL.md](TRIVIAL.md). |
 
 Los estados de RFC, TASK, SUMMARY y WORKFLOW se definen en [LIFECYCLE.md](LIFECYCLE.md).
-Los estados de una acción derivada y la jerarquía con sus invariantes, en PROJECT_STATE.md.
-Los tipos de relación admitidos, en RELATIONSHIPS.md.
+Los estados de una acción derivada, en [templates/AC_TEMPLATE.md](templates/AC_TEMPLATE.md); la jerarquía con sus invariantes y el actor de cada transición, en [PROJECT_STATE.md](PROJECT_STATE.md).
+Los tipos de relación admitidos, en [RELATIONSHIPS.md](RELATIONSHIPS.md).
 Los tipos, severidades y estados de un hallazgo, en [templates/FND_TEMPLATE.md](templates/FND_TEMPLATE.md).
 La autoridad y conservación de los artefactos, en [ARTIFACTS.md](ARTIFACTS.md).
 La jerarquía de ejecución y sus reglas de anidamiento, en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#reglas-de-anidamiento).
 
-La distinción entre el WORKFLOW abstracto y su instancia `workflow_run` se define en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run).
+La distinción entre un WORKFLOW y su instancia `workflow_run` se define en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run).
 
 ## Vocabulario normativo
 
@@ -98,7 +98,7 @@ La distinción entre el WORKFLOW abstracto y su instancia `workflow_run` se defi
 
 ## Vocabulario del proyecto COSA
 
-Términos del proyecto COSA, el escenario inicial de construcción de HACTORS. Pertenecen a esa instancia y no forman parte del vocabulario común: un proyecto HACTORS no necesita ser un proyecto de software, conforme a [PROJECTS.md](PROJECTS.md).
+Términos del proyecto COSA, el escenario inicial de construcción de HACTORS. Pertenecen a ese proyecto y no forman parte del vocabulario común: un proyecto HACTORS no necesita ser un proyecto de software, conforme a [PROJECTS.md](PROJECTS.md).
 
 | Término | Definición en COSA |
 |---|---|

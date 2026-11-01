@@ -54,17 +54,33 @@ def write_document(path: Path, data: dict) -> Path:
     return path
 
 
+def bump_counter(project: Path, counter: str, identity: str) -> None:
+    """Un auxiliar de fixture consume el contador que la CLI consumiría al crear el artefacto."""
+    path = project / "manifest.yaml"
+    data = yaml.safe_load(path.read_text())
+    counters = data.setdefault("counters", {})
+    counters[counter] = max(counters.get(counter, 0), int(identity.rsplit("-", 1)[-1]))
+    path.write_text(yaml.dump(data, sort_keys=False))
+
+
 def rfc_document(project: Path, name: str = "RFC-A00001", actions=None, **extra) -> Path:
     data = {"rfc": name, **extra}
     if actions is not None:
         data["actions"] = actions
-    return write_document(project / "rfcs" / f"{name}.md", data)
+    path = write_document(project / "rfcs" / f"{name}.md", data)
+    for action in actions or []:
+        bump_counter(project, "action", action["id"])
+    return path
 
 
 def plan_document(
     project: Path, plan_id: str = "PLAN-00001", location: str = "plans", **extra
 ) -> Path:
     return write_document(project / location / f"{plan_id}.md", {"id": plan_id, **extra})
+
+
+def verification_document(project: Path, test_id: str = "TEST-00001", **extra) -> Path:
+    return write_document(project / "tests" / f"{test_id}.md", {"id": test_id, **extra})
 
 
 def harness_catalog(project: Path, harness_id: str = "HRN-00001") -> Path:
@@ -342,6 +358,7 @@ def test_harness_versions_nest_in_the_catalog(hactors_root, populated):
 
 
 def test_a_test_is_not_projected_but_its_run_is(hactors_root, populated, runs):
+    verification_document(populated)
     set_identity(runs["test_run"] / "manifest.yaml", test_ref="TEST-00001")
     model = build_model(hactors_root, populated.name)
     assert "TEST-00001" not in [item["id"] for item in model["artifacts"]]

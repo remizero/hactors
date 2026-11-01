@@ -67,7 +67,7 @@ El estado y el actor se leen del campo que la plantilla de cada familia define, 
 
 Una acción derivada no es un artefacto con archivo propio: vive dentro del campo `actions:` de su RFC, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), así que se proyecta anidada en la entrada de esa RFC, bajo `actions`, con su `id`, su `type`, su `status` y su `actor`, y sin entrada propia en `artifacts`. Las versiones de un HRN se proyectan anidadas en su catálogo, bajo `versions`, con `version`, `status` y `published`, por la misma razón: su estado vive en el catálogo, conforme a [HARNESS.md](HARNESS.md).
 
-Un TEST no se proyecta: carece de formato de identidad y de ubicación definidos, el mismo vacío por el que `identity.test_ref` no se resuelve en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#integridad-referencial). Sus ejecuciones sí constan, como `test_run` en `runs`.
+Un TEST no se proyecta: el contrato `hactors-model/1.0` no incluye su familia, aunque su identidad y su ubicación estén definidas en [TESTS.md](TESTS.md#identidad-y-ubicación) y `identity.test_ref` sí se resuelva en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#integridad-referencial). Sus ejecuciones sí constan, como `test_run` en `runs`.
 
 ### Instancias de ejecución
 
@@ -83,7 +83,7 @@ blocked_reason: ""
 
 `kind` es el tipo de instancia; `path`, su directorio relativo al proyecto; `status` y `blocked_reason`, los de su bloque de estado —`global_state` en un workflow_run y `state` en el resto—; `reference`, la referencia de su `identity` al artefacto que ejecuta, vacía cuando es una asociación pendiente; y `parent`, la instancia que la contiene, vacía en un `workflow_run`, que cuelga del proyecto. La jerarquía es la de [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#2-estructura-de-directorios-de-ejecución) y se reconstruye con ella, no con el contexto activo.
 
-`reference` se proyecta tal como consta y no se resuelve: una instancia de `test_run` proyecta su `test_ref` aunque TEST carezca de identidad y de ubicación, y el modelo no denuncia lo que `validate` ya denuncia en `problems`.
+`reference` se proyecta tal como consta y no se resuelve: una instancia de `test_run` proyecta su `test_ref` sin comprobar que exista el TEST, y el modelo no denuncia lo que `validate` ya denuncia en `problems`.
 
 ## Disposición
 
