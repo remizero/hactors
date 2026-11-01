@@ -6,6 +6,8 @@ import yaml
 from .project import ProjectError, validate_name
 
 HACTORS_MARKERS = ("specs/templates", "projects")
+PROJECTS_DIRNAME = "projects"
+VIEWS_DIRNAME = "views"
 RUN_PATTERN = re.compile(r"(workflow_run|task_run|rfc_run|plan_run|test_run|harness_run)_[0-9]{6,}")
 RUN_CHILD_TYPES = {
     "hactors": ("workflow_run",),
@@ -27,7 +29,18 @@ def find_hactors_root(start: Path) -> Path:
 
 
 def project_dir(root: Path, name: str) -> Path:
-    return root / "projects" / name
+    return root / PROJECTS_DIRNAME / name
+
+
+def project_candidates(root: Path) -> list[str]:
+    projects = root / PROJECTS_DIRNAME
+    if projects.is_symlink() or not projects.is_dir():
+        return []
+    return sorted(
+        path.name
+        for path in projects.iterdir()
+        if path.is_dir() and path.name != VIEWS_DIRNAME and not path.name.startswith(".")
+    )
 
 
 def _load_manifest(path: Path) -> dict:
@@ -49,7 +62,7 @@ def require_project_directory(root: Path, project_name: str) -> Path:
         raise ValueError(str(exc)) from exc
 
     project = project_dir(root, project_name)
-    if not project.resolve().is_relative_to((root / "projects").resolve()):
+    if not project.resolve().is_relative_to((root / PROJECTS_DIRNAME).resolve()):
         raise ValueError("El proyecto está fuera del directorio projects.")
     manifest = project / "manifest.yaml"
     if not project.is_dir() or not manifest.is_file():

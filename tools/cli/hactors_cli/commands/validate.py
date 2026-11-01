@@ -4,8 +4,9 @@ from typing import Optional
 import click
 
 from ..core.paths import find_hactors_root
+from ..core.scan import ScanError
 from ..core.state import StateError, require_active_project
-from ..core.validate import ValidateError, validate_project
+from ..core.validate import validate_project
 
 
 @click.command("validate")
@@ -21,7 +22,7 @@ def validate_cmd(root: Optional[Path]) -> None:
     try:
         project_name = require_active_project(hactors_root)
         problems = validate_project(hactors_root, project_name)
-    except (StateError, ValidateError, ValueError) as exc:
+    except (StateError, ScanError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
 
     if not problems:

@@ -306,6 +306,8 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-adr --title <título>` | Proyecto activo y su directorio `decisions/` | No cambia el estado activo: escribe `decisions/ADR-nnnnn — nombre-descriptivo.md` con el contador `adr`. |
 | `hactors relate --source <…> --target <…> --relation <…>` | Proyecto activo y un `target` que resuelva en él | No cambia el estado activo: añade la arista a `relations` del manifest del proyecto. |
 | `hactors validate` | Proyecto activo | No cambia el estado activo: examina el proyecto entero, lista sus inconsistencias y termina con error si hay alguna, conforme a la sección 16. |
+| `hactors export` | Proyecto activo | No cambia el estado activo: escribe su modelo de lectura en `views/project.json`, conforme a [VIEWS.md](VIEWS.md). |
+| `hactors render` | Raíz de HACTORS con su directorio `projects/`; no exige proyecto activo | No cambia el estado activo: escribe el tablero de cada proyecto de la raíz y el visor de `projects/views/`, conforme a [VIEWS.md](VIEWS.md). |
 
 `use-run` acepta una ruta completa o `--parent`, mutuamente excluyentes; no acepta un ID aislado, un tipo ni una profundidad como selector. `--parent` sin instancia activa falla sin modificar el estado. Seleccionar o ascender solo cambia el contexto: no mueve directorios, no borra ramas y no cambia estados de ejecución.
 

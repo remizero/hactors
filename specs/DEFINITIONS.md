@@ -70,6 +70,8 @@ En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una ta
 | Manifiesto | Archivo `manifest.yaml` que registra identidad, relaciones y contadores; existe uno en la raíz del proyecto y uno por cada instancia de ejecución. |
 | Estado activo | Contexto de trabajo actual en `projects/.state.yaml`: el proyecto seleccionado y la ruta completa de la instancia activa con sus ancestros. |
 | Relación | Vínculo identificable entre dos artefactos, con su tipo, registrado en el grafo del proyecto; la ubicación de cada extremo se deriva de su identidad. |
+| Vista | Proyección generada de lo ya persistido en un proyecto, para leerlo, calcularlo y asignarlo sin recorrer sus artefactos; no es fuente de verdad y la CLI nunca la lee. Reglas en [VIEWS.md](VIEWS.md). |
+| Modelo de lectura | Documento JSON que proyecta un proyecto —contadores, artefactos, aristas, instancias e inconsistencias— y separa el cálculo de la presentación. Reglas en [VIEWS.md](VIEWS.md#el-modelo-de-lectura). |
 | Criterio de aceptación | Condición verificable necesaria para aceptar el resultado de un trabajo. |
 | Validación | Contraste explícito de los resultados con los criterios de aceptación aplicables. |
 | Dependencia normativa | Fuente cuyo contenido es necesario para interpretar o ejecutar correctamente una obligación. |

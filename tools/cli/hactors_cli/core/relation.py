@@ -4,7 +4,8 @@ import yaml
 
 from .counters import persist_manifest
 from .paths import require_project_directory
-from .validate import ValidateError, artifact_identities, target_problem
+from .scan import ScanError
+from .validate import artifact_identities, target_problem
 
 RELATION_FIELDS = ("source", "target", "relation")
 
@@ -29,7 +30,7 @@ def relate(root: Path, project_name: str, source: str, target: str, relation: st
         recorded.append(edge)
         data["relations"] = recorded
         persist_manifest(manifest, data)
-    except (ValueError, OSError, yaml.YAMLError, ValidateError) as exc:
+    except (ValueError, OSError, yaml.YAMLError, ScanError) as exc:
         raise RelationError(str(exc)) from exc
     return manifest
 
