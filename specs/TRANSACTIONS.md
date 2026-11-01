@@ -6,7 +6,7 @@ Define la unidad atómica de cambio sobre los artefactos y manifiestos de un pro
 
 Los identificadores y estados están en [LIFECYCLE.md](LIFECYCLE.md); la autoridad de fuentes, en [ARTIFACTS.md](ARTIFACTS.md); el grafo y los contadores, en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relaciones-del-proyecto).
 
-HACTORS no tiene identificador de transacción ni registro de transacciones: no existe `TX-nnnnn`, el manifest no tiene contador de transacciones y ningún comando escribe el rastro de la operación. El rastro de un cambio son los archivos modificados y el estado observado de las instancias. Lo que este documento fija es el orden y los efectos que una operación debe declarar para ser consistente; la transición de estados no tiene hoy comando propio y su deuda consta en [TODO.md](../TODO.md).
+HACTORS no tiene identificador de transacción ni registro de transacciones: no existe `TX-nnnnn`, el manifest no tiene contador de transacciones y ningún comando escribe el rastro de la operación. El rastro de un cambio son los archivos modificados y el estado observado de las instancias. Lo que este documento fija es el orden y los efectos que una operación debe declarar para ser consistente; la transición de estados documentales tiene su norma y su comando en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales).
 
 ## Archivos de estado
 
@@ -43,7 +43,7 @@ Si un paso falla, la operación no se considera terminada y su motivo se comunic
 |---|---|---|
 | Crear una TASK. | 2, 3 | El archivo no existía; el contador `task` crece en uno. |
 | Crear una RFC. | 1, 2, 4 | La identidad no existe en el proyecto; el documento declara `rfc:` y `actions:`; sus aristas están representadas. |
-| Transicionar una RFC, una TASK o una acción. | 2, y 4 si cambia una relación | El estado destino es una transición admitida por [LIFECYCLE.md](LIFECYCLE.md); si cierra un nivel, se cumplen las invariantes de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). |
+| Transicionar el estado documental de un artefacto o de una acción derivada. | 2 | El par actual → destino es una arista admitida por la norma de su familia y, si el destino cierra un nivel, se cumplen las invariantes de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles); qué archivo se toca y qué se comprueba antes, en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales). La arista que una disposición nombre se registra en otra operación. |
 | Registrar una acción derivada. | 2, 3 | La acción no existía en esa RFC; el elemento cumple su esquema. |
 | Crear una instancia de ejecución. | 2, 3, 5 | El padre es el admitido por la tabla de anidamiento; `identity.id` coincide con su componente de ruta. |
 | Registrar una evidencia o un hallazgo. | 2, 3 | El origen existe; el archivo no existía en ese directorio; la procedencia reproduce el origen. |

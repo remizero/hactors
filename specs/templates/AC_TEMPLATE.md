@@ -50,6 +50,8 @@ in-progress → cancelled
 completed → superseded
 ```
 
+El esquema de [RFC_TEMPLATE.md](RFC_TEMPLATE.md#acciones-derivadas) no tiene campo para el sucesor de una acción `superseded` ni para retirarla del alcance de su RFC, y no lo gana: la acción que la reemplaza se identifica en la prosa del documento, que ninguna comprobación lee, y al nivel de la acción derivada la única salida es cancelar la RFC, conforme a [PROJECT_STATE.md](../PROJECT_STATE.md#regla-de-consistencia-entre-niveles).
+
 ## Evidencia
 
 Toda acción pasa a `completed` solo con al menos una evidencia referenciable: ruta de artefacto, hash de commit, salida de prueba o documento, vinculada a su RFC y a la revisión examinada.

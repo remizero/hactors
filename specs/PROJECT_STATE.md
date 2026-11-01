@@ -33,12 +33,14 @@ El cierre satisfactorio de un nivel exige el cierre satisfactorio de todo lo que
 
 `rejected`, `cancelled`, `superseded` y `deprecated` no satisfacen 1–3 por sí solos. Un padre con un descendiente en uno de esos estados tiene dos salidas, y cada una es disposición `[actor: human]`:
 
-- **Cancelar el padre**: la TASK pasa a `cancelled` y el WORKFLOW a `aborted`, preservando el trabajo y la evidencia producidos.
+- **Cancelar el padre**: la RFC pasa a `cancelled`, la TASK a `cancelled` y el WORKFLOW a `aborted`, preservando el trabajo y la evidencia producidos.
 - **Reducir su alcance**: `[actor: human]` retira al hijo del alcance del padre con la justificación registrada en el documento del padre. El hijo conserva identidad y estado; el resto del alcance puede cerrar.
 
 Un hijo `superseded` satisface 1–3 solo cuando `[actor: human]` incorpora su sucesor al alcance del padre —es un cambio de alcance, no una consecuencia automática— y aquel alcanza el éxito de su propio nivel, con la sustitución declarada en ambos sentidos conforme a [RELATIONSHIPS.md](RELATIONSHIPS.md#restricciones).
 
-La regla se evalúa en el momento del cierre, no en retroactivo: un `deprecated` posterior no reabre al padre ya cerrado. Violarla bloquea la transición; no se fuerza el cierre del nivel padre y ningún descendiente propaga su estado hacia arriba por sí solo.
+La segunda salida y la incorporación del sucesor exigen un alcance del padre que admita el retiro o la sustitución de forma observable: lo es el campo `rfcs:` de una TASK, y no lo es el campo `actions:` de una RFC, cuyas acciones en estado terminal conservan su entrada conforme a [Historial](#historial) y cuyo elemento no declara ni el sucesor de una acción ni un marcador de fuera de alcance, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas). Al nivel de la acción derivada la única salida es la primera: una RFC con una acción en `cancelled` o en `superseded` solo cierra cancelándose ella misma, que es lo que la comprobación de [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales) refleja al exigir `completed` en cada elemento.
+
+La regla se evalúa en el momento del cierre, no en retroactivo: un `deprecated` posterior no reabre al padre ya cerrado. Violarla bloquea la transición, y la comprobación que lo hace efectivo sobre los datos persistidos está en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales); no se fuerza el cierre del nivel padre y ningún descendiente propaga su estado hacia arriba por sí solo.
 
 La terminalidad tampoco consolida por sí sola el resumen, que es otra operación con su propio actor, conforme a [LIFECYCLE.md](LIFECYCLE.md#summary). Cerrar un artefacto no consolida su resumen, y consolidarlo no cierra el artefacto que resume.
 

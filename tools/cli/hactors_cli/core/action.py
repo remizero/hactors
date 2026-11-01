@@ -62,7 +62,7 @@ def _reference_list_error(value, pattern: re.Pattern, field: str) -> str:
     return ""
 
 
-def _actions_block(text: str) -> tuple[int, int]:
+def actions_block(text: str) -> tuple[int, int]:
     spans = []
     for match in YAML_BLOCK.finditer(text):
         try:
@@ -79,7 +79,7 @@ def _actions_block(text: str) -> tuple[int, int]:
 
 
 def extract_actions(text: str):
-    start, end = _actions_block(text)
+    start, end = actions_block(text)
     return yaml.safe_load(text[start:end])["actions"]
 
 
@@ -141,7 +141,7 @@ def validate_rfc_actions(text: str) -> list[str]:
 
 
 def append_action(text: str, element: dict) -> str:
-    start, end = _actions_block(text)
+    start, end = actions_block(text)
     lines = text[start:end].split("\n")
     index = _field_line(lines)
     value = (ACTIONS_FIELD.match(lines[index])["value"] or "").strip()
@@ -155,7 +155,7 @@ def append_action(text: str, element: dict) -> str:
         lines[index] = "actions:"
     lines[position:position] = _rendered(element, indent).split("\n")
     updated = text[:start] + "\n".join(lines) + text[end:]
-    _actions_block(updated)
+    actions_block(updated)
     return updated
 
 

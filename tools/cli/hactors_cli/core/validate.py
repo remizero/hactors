@@ -102,7 +102,7 @@ def _task_from_execution(project: Path, execution) -> str:
         return ""
 
 
-def _origin_task(project: Path, data: dict) -> str:
+def origin_task(project: Path, data: dict) -> str:
     source = data.get("source")
     if not isinstance(source, dict):
         return ""
@@ -260,7 +260,7 @@ def _check_blocking_findings(project: Path, statuses: dict) -> list[str]:
             continue
         if data.get("severity") not in BLOCKING_SEVERITIES or data.get("state") != BLOCKING_STATE:
             continue
-        task_id = _origin_task(project, data)
+        task_id = origin_task(project, data)
         if not task_id or statuses.get(task_id) != TASK_CLOSED_STATUS:
             continue
         findings.append(

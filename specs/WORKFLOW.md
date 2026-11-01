@@ -6,7 +6,7 @@ Proceso único para proponer, ejecutar, verificar y cerrar trabajo bajo HACTORS.
 
 Los actores se interpretan conforme a [DEFINITIONS.md](DEFINITIONS.md); las etiquetas no ordenan actuar fuera de una TASK autorizada. Los estados y sus condiciones pertenecen a [LIFECYCLE.md](LIFECYCLE.md) y no se redefinen aquí; la jerarquía y las invariantes de cierre, a [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Este WORKFLOW es el proceso abstracto; su instancia concreta es un `workflow_run` que registra lo observado, incluidos los intentos fallidos y los bloqueos, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run). Ninguna fase la ejecuta la CLI: los comandos crean y seleccionan instancias y registran artefactos, pero no aprueban, no avanzan ni cierran.
+Este WORKFLOW es el proceso abstracto; su instancia concreta es un `workflow_run` que registra lo observado, incluidos los intentos fallidos y los bloqueos, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run). Ninguna fase la ejecuta la CLI: los comandos crean y seleccionan instancias y registran artefactos, pero no aprueban, no avanzan ni cierran. Tampoco los decide el comando que escribirá esos estados, normado en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales): comprueba aristas e invariantes sobre los datos persistidos y deja las condiciones de juicio en el actor.
 
 ## Identidad y versiones
 
@@ -14,7 +14,7 @@ Este documento fija las fases normativas del proceso, no los pasos de ninguna ve
 
 La versión declara los pasos `step_XXX` que realizan estas fases y las que excluye; un `workflow_run` referencia la versión exacta `WORKFLOW-nnnnn@vNNN` en su `identity.workflow_version` y usa esos identificadores en su `global_state`.
 
-El estado del WORKFLOW, incluida su disposición `closed`, se registra en el `status` del catálogo con los estados de [LIFECYCLE.md](LIFECYCLE.md#workflow-y-acciones-derivadas). Tampoco existe un comando que cree la definición: la redactan [actor: human | agent], igual que una RFC, un PLAN, un TEST o una receta HARNESS.
+El estado del WORKFLOW, incluida su disposición `closed`, se registra en el `status` del catálogo con los estados de [LIFECYCLE.md](LIFECYCLE.md#workflow-y-acciones-derivadas) y lo transiciona [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales), cuya comprobación no alcanza la regla 1 de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). Tampoco existe un comando que cree la definición: la redactan [actor: human | agent], igual que una RFC, un PLAN, un TEST o una receta HARNESS.
 
 ## 0. Resolver contexto
 

@@ -5,6 +5,7 @@
 Define estados, transiciones y condiciones de RFC, TASK, SUMMARY y flujo de integración.
 [WORKFLOW.md](WORKFLOW.md) ordena las acciones; [RFC_SYSTEM.md](RFC_SYSTEM.md) sincroniza sus representaciones.
 Las transiciones que tocan más de un archivo de estado siguen el protocolo de [TRANSACTIONS.md](TRANSACTIONS.md).
+El comando que las escribe, qué archivo toca cada familia y lo que comprueba antes están en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales).
 Los identificadores de estado se conservan en inglés; sus significados se definen aquí.
 
 Estos estados pertenecen a los artefactos documentales y a sus flujos, no a las instancias de ejecución: cada instancia registra su propio estado observable conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md).
@@ -122,13 +123,13 @@ Las referencias a revisiones de Git son metadatos complementarios de integració
 
 ## Rechazo, sustitución y cancelación
 
-[actor: human] puede realizar las siguientes disposiciones con justificación:
+[actor: human] puede realizar las siguientes disposiciones con justificación. Cada una es una arista admitida desde los estados que se enumeran y desde ningún otro:
 
-- `proposed`, `draft` o `approved` → `rejected`, para RFC o TASK no iniciadas.
-- Cualquier estado no terminal de ejecución → `cancelled`, preservando el trabajo y la evidencia producidos.
-- WORKFLOW `active` o `closing` → `aborted`, cuando un descendiente no alcanza su éxito y `[actor: human]` no reduce el alcance del flujo.
-- RFC `approved`, `under_review` o `done` → `superseded`, identificando la nueva RFC y la relación inversa.
-- RFC `done` → `deprecated`, conservando su historia y el motivo de retirada.
+- RFC o TASK en `proposed`, `draft` o `approved` → `rejected`, para trabajo no iniciado.
+- RFC en `in-progress`, `implemented`, `tested`, `under_review`, `validated` o `merged`, y TASK en `in-progress`, `implemented` o `tested` → `cancelled`, preservando el trabajo y la evidencia producidos. `done` es el cierre satisfactorio y no admite esta disposición.
+- WORKFLOW en `active` o `closing` → `aborted`, cuando un descendiente no alcanza su éxito y `[actor: human]` no reduce el alcance del flujo; y → `cancelled`, por disposición directa sobre el flujo.
+- RFC en `approved`, `under_review` o `done` → `superseded`, identificando la nueva RFC y la relación inversa.
+- RFC en `done` → `deprecated`, conservando su historia y el motivo de retirada.
 
 Una RFC sustituta no hereda la aprobación de la anterior y no entra sola en el alcance del padre: `[actor: human]` la incorpora como cambio de alcance.
 Los artefactos rechazados, cancelados o sustituidos no se eliminan por defecto.
@@ -138,7 +139,7 @@ Las excepciones a las reglas de ciclo de vida siguen el mecanismo formal de [EXC
 ## Iteraciones y agregación
 
 - [actor: human | agent] puede ajustar la implementación dentro del mismo diseño en `under_review`; debe repetir las comprobaciones afectadas antes de validar.
-- Fuera de ese caso, [actor: human | agent] vuelve a `in-progress` si cambia un entregable comprobado y aún no cerrado, registrando la evidencia desactualizada.
+- Fuera de ese caso, [actor: human | agent] vuelve a `in-progress` desde `implemented`, `tested` o `under_review` de una RFC si cambia un entregable comprobado y aún no cerrado, registrando la evidencia desactualizada. Desde `validated` en adelante el cambio es disposición de [actor: human], no un retorno admitido. La TASK no tiene arista de retorno: su diagrama es lineal.
 - Una TASK parcial solo representa sus propios criterios; no propagar su estado automáticamente a la RFC.
 - La RFC alcanza cada hito cuando lo cumple todo su alcance, aunque sus TASK avancen por separado.
 - Los cambios de diseño requieren disposición humana, no una reclasificación unilateral del ejecutor.
