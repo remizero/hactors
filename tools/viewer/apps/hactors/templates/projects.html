@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HACTORS</title>
+  <style>
+    :root {
+      --bg:      #0b0e14;
+      --surface: #141922;
+      --raised:  #1b212c;
+      --line:    rgba(255, 255, 255, .08);
+      --text:    #e6e9ef;
+      --muted:   #8b93a7;
+      --accent:  #6ea8fe;
+      --good:    #7ee0a8;
+      --bad:     #f07178;
+      --mono:    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 3rem 1.5rem 4rem;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 76rem; margin: 0 auto; }
+
+    /* ---- Cabecera ---- */
+
+    header { margin-bottom: 2.5rem; }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.8rem, 9vw, 5rem);
+      font-weight: 700;
+      letter-spacing: .22em;
+      line-height: 1;
+      text-indent: .22em;
+      background: linear-gradient(100deg, #ffffff 10%, var(--accent) 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .tagline {
+      margin: .9rem 0 0;
+      font-size: .82rem;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+
+    .tagline code {
+      font-family: var(--mono);
+      font-size: .95em;
+      color: var(--text);
+      opacity: .8;
+    }
+
+    .tagline .sep { opacity: .4; padding: 0 .45rem; }
+
+    .live {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: .25rem .6rem;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      background: var(--surface);
+      font-size: .72rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .live::before {
+      content: "";
+      display: inline-block;
+      width: .4rem; height: .4rem;
+      margin-right: .45rem;
+      border-radius: 50%;
+      background: var(--good);
+      vertical-align: baseline;
+    }
+
+    /* ---- Tarjetas de categoría ---- */
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+      gap: .75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      padding: .9rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .6rem;
+    }
+
+    .card .label {
+      font-family: var(--mono);
+      font-size: .68rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card .count {
+      margin-top: .3rem;
+      font-size: 1.9rem;
+      font-weight: 650;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card.is-project .count { color: var(--accent); }
+    .card.is-run     .count { color: var(--text); }
+    .card.is-bad     { border-color: rgba(240, 113, 120, .35); background: rgba(240, 113, 120, .07); }
+    .card.is-bad .count,
+    .card.is-bad .label { color: var(--bad); }
+    .card.is-zero .count { color: var(--muted); }
+
+    /* ---- Tabla de proyectos ---- */
+
+    h2 {
+      margin: 0 0 .9rem;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Debajo del ancho mínimo la tabla se desplaza en horizontal: recortarla o
+       partir nombres a mitad de token sería peor que un scroll. */
+    .tablewrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      min-width: 68rem;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .6rem;
+      overflow: hidden;
+      font-size: .9rem;
+    }
+
+    /* Con table-layout fijo los chips con nowrap no estrangulan la descripción. */
+    th:nth-child(1) { width: 17%; }
+    th:nth-child(2) { width: 30%; }
+    th:nth-child(3) { width: 25%; }
+    th:nth-child(4) { width: 14%; }
+    th:nth-child(5) { width: 14%; }
+
+    th, td {
+      padding: .7rem .9rem;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      overflow-wrap: break-word;
+    }
+
+    th {
+      background: var(--raised);
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255, 255, 255, .025); }
+
+    td.num {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .name {
+      font-family: var(--mono);
+      font-size: .92rem;
+      font-weight: 500;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-left: .5rem;
+      padding: .1rem .45rem;
+      border-radius: 99px;
+      background: rgba(110, 168, 254, .16);
+      border: 1px solid rgba(110, 168, 254, .35);
+      color: var(--accent);
+      font-family: system-ui, sans-serif;
+      font-size: .62rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      vertical-align: .12rem;
+    }
+
+    .desc { color: var(--muted); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+
+    .chip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: .3rem;
+      padding: .12rem .5rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .35rem;
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .chip b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .bad-text { color: var(--bad); font-weight: 600; }
+    .zero     { color: var(--muted); opacity: .55; }
+
+    .broken {
+      color: var(--bad);
+      font-size: .84rem;
+    }
+
+    .empty {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .6rem;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: .74rem;
+      color: var(--muted);
+      opacity: .7;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>HACTORS</h1>
+    <p class="tagline">
+      Raíz <code>{{ data.root }}</code>
+      {% if data.active %}
+      <span class="sep">·</span> proyecto activo <code>{{ data.active }}</code>
+      {% else %}
+      <span class="sep">·</span> sin proyecto activo
+      {% endif %}
+    </p>
+    <span class="live">Resuelto en vivo · solo lectura</span>
+  </header>
+
+  <section class="cards">
+    {% for card in data.cards %}
+    <div class="card
+                {%- if card.kind == 'project' %} is-project
+                {%- elif card.kind == 'run' %} is-run
+                {%- elif card.kind == 'problem' and card.count %} is-bad
+                {%- elif not card.count %} is-zero{% endif %}">
+      <div class="label">{{ card.label }}</div>
+      <div class="count">{{ card.count }}</div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <h2>Proyectos</h2>
+
+  {% if data.projects %}
+  <div class="tablewrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Proyecto</th>
+        <th>Descripción</th>
+        <th>Artefactos por familia</th>
+        <th class="num">Ejecuciones</th>
+        <th class="num">Inconsistencias</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for project in data.projects %}
+      <tr>
+        <td>
+          <span class="name">{{ project.name }}</span>
+          {% if project.active %}<span class="badge">activo</span>{% endif %}
+        </td>
+
+        {% if project.error %}
+        <td colspan="4" class="broken">No proyectable: {{ project.error }}</td>
+        {% else %}
+        <td class="desc">{{ project.description or '—' }}</td>
+        <td>
+          {% if project.chips %}
+          <span class="chips">
+            {% for chip in project.chips %}
+            <span class="chip">{{ chip.label }} <b>{{ chip.count }}</b></span>
+            {% endfor %}
+          </span>
+          {% else %}
+          <span class="zero">sin artefactos</span>
+          {% endif %}
+        </td>
+        <td class="num {% if not project.runs %}zero{% endif %}">{{ project.runs }}</td>
+        <td class="num {% if project.problems %}bad-text{% else %}zero{% endif %}">{{ project.problems }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">No hay ningún proyecto en la raíz.</p>
+  {% endif %}
+
+  <footer>
+    Esta página no escribe nada: no genera artefactos, no consume contadores, no registra
+    relaciones ni cambia el estado activo. Ninguna de sus cifras es fuente de verdad.
+  </footer>
+
+</div>
+</body>
+</html>
