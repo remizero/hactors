@@ -46,7 +46,7 @@ TRV_PATH = "trivial/TRV-00001 — errata.md"
 FINDING_PATH = "rfcs/FND-00001.yaml"
 
 
-def action(identity: str = "AC-00001", **extra) -> dict:
+def action(identity: str = "ACT-00001", **extra) -> dict:
     element = {"id": identity, "type": "plan", "status": "pending", "actor": "human",
                "depends_on": [], "deliverable": "", "evidence": []}
     return {**element, **extra}
@@ -255,10 +255,10 @@ def test_the_separator_is_preserved(hactors_root, project):
 
 
 def test_an_action_is_rewritten_inside_the_actions_interval(hactors_root, project):
-    path = rfc(project, actions=[action(), action("AC-00002")])
+    path = rfc(project, actions=[action(), action("ACT-00002")])
     before = path.read_text()
-    subject, _, previous = go(hactors_root, project, RFC_PATH, "in-progress", "AC-00002")
-    assert (subject, previous) == ("AC-00002", "pending")
+    subject, _, previous = go(hactors_root, project, RFC_PATH, "in-progress", "ACT-00002")
+    assert (subject, previous) == ("ACT-00002", "pending")
     assert changed_line(before, path.read_text()) == ("  status: pending", "  status: in-progress")
     assert before.count("status: pending") == 2
     assert path.read_text().count("status: pending") == 1
@@ -268,10 +268,10 @@ def test_an_action_is_rewritten_inside_the_actions_interval(hactors_root, projec
 def test_either_list_indentation_of_the_actions_field_is_readable(hactors_root, project, indent):
     text = (
         "# RFC\n\n```yaml\nrfc: RFC-A00001\nstatus: draft\n```\n\n"
-        f"```yaml\nactions:\n{indent}- id: AC-00001\n{indent}  status: pending\n```\n"
+        f"```yaml\nactions:\n{indent}- id: ACT-00001\n{indent}  status: pending\n```\n"
     )
     path = write(project, RFC_PATH, text)
-    assert go(hactors_root, project, RFC_PATH, "in-progress", "AC-00001")[2] == "pending"
+    assert go(hactors_root, project, RFC_PATH, "in-progress", "ACT-00001")[2] == "pending"
     assert changed_line(text, path.read_text()) == (
         f"{indent}  status: pending", f"{indent}  status: in-progress"
     )
@@ -415,21 +415,21 @@ def test_an_element_identifier_is_rejected_by_a_family_without_elements(
 ):
     prepare(project)
     with pytest.raises(TransitionError, match="no tiene elementos"):
-        go(hactors_root, project, relpath, "done", "AC-00001")
+        go(hactors_root, project, relpath, "done", "ACT-00001")
 
 
 def test_an_unknown_action_is_rejected(hactors_root, project):
     path = rfc(project, actions=[action()])
     before = path.read_text()
-    with pytest.raises(TransitionError, match="no declara la acción 'AC-00009'"):
-        go(hactors_root, project, RFC_PATH, "in-progress", "AC-00009")
+    with pytest.raises(TransitionError, match="no declara la acción 'ACT-00009'"):
+        go(hactors_root, project, RFC_PATH, "in-progress", "ACT-00009")
     assert path.read_text() == before
 
 
 def test_an_rfc_without_an_actions_field_rejects_an_identifier(hactors_root, project):
     write(project, RFC_PATH, "# RFC\n\n```yaml\nrfc: RFC-A00001\nstatus: draft\n```\n")
     with pytest.raises(TransitionError, match="Ningún bloque"):
-        go(hactors_root, project, RFC_PATH, "approved", "AC-00001")
+        go(hactors_root, project, RFC_PATH, "approved", "ACT-00001")
 
 
 # Comprobación 2: el campo de estado.
@@ -554,8 +554,8 @@ def test_a_summary_reopens(hactors_root, project):
 
 def test_an_action_blocks_and_unblocks(hactors_root, project):
     rfc(project, actions=[action()])
-    assert go(hactors_root, project, RFC_PATH, "blocked", "AC-00001")[2] == "pending"
-    assert go(hactors_root, project, RFC_PATH, "pending", "AC-00001")[2] == "blocked"
+    assert go(hactors_root, project, RFC_PATH, "blocked", "ACT-00001")[2] == "pending"
+    assert go(hactors_root, project, RFC_PATH, "pending", "ACT-00001")[2] == "blocked"
 
 
 # Comprobación 5: TASK en done.
@@ -669,7 +669,7 @@ def test_an_rfc_closes_without_actions(hactors_root, project):
 
 def test_an_rfc_does_not_close_with_a_pending_action(hactors_root, project):
     path = rfc(project, "merged", actions=[action()])
-    with pytest.raises(TransitionError, match="la acción 'AC-00001' no está en `completed`"):
+    with pytest.raises(TransitionError, match="la acción 'ACT-00001' no está en `completed`"):
         go(hactors_root, project, RFC_PATH, "done")
     assert "status: merged" in path.read_text()
 
@@ -683,13 +683,13 @@ def test_a_disposed_action_also_blocks_the_rfc(hactors_root, project, status):
 
 def test_an_action_completes_with_evidence(hactors_root, project):
     rfc(project, actions=[action(status="in-progress", evidence=["EVD-00001"])])
-    assert go(hactors_root, project, RFC_PATH, "completed", "AC-00001")[2] == "in-progress"
+    assert go(hactors_root, project, RFC_PATH, "completed", "ACT-00001")[2] == "in-progress"
 
 
 def test_an_action_does_not_complete_without_evidence(hactors_root, project):
     path = rfc(project, actions=[action(status="in-progress")])
     with pytest.raises(TransitionError, match="no declara evidencia"):
-        go(hactors_root, project, RFC_PATH, "completed", "AC-00001")
+        go(hactors_root, project, RFC_PATH, "completed", "ACT-00001")
     assert "status: in-progress" in path.read_text()
 
 
@@ -792,9 +792,9 @@ def test_the_command_lists_every_pending_condition(hactors_root, project):
 def test_the_command_accepts_an_element_identifier(hactors_root, project):
     rfc(project, actions=[action()])
     result = invoke(
-        hactors_root, "transition", "--artifact", RFC_PATH, "--to", "in-progress", "--id", "AC-00001"
+        hactors_root, "transition", "--artifact", RFC_PATH, "--to", "in-progress", "--id", "ACT-00001"
     )
-    assert "AC-00001 en 'rfcs/RFC-A00001.md': pending → in-progress" in result.output
+    assert "ACT-00001 en 'rfcs/RFC-A00001.md': pending → in-progress" in result.output
 
 
 def test_the_command_requires_its_two_options(hactors_root, project):
@@ -902,7 +902,7 @@ def test_every_state_takes_part_in_an_edge(family):
         (SPECS / "LIFECYCLE.md", "WORKFLOW y acciones derivadas", WORKFLOW_EDGES, False),
         (SPECS_TEMPLATES / "PLAN_TEMPLATE.md", "Estados", PLAN_EDGES, True),
         (SPECS / "TRIVIAL.md", "Estados", TRV_EDGES, True),
-        (SPECS_TEMPLATES / "AC_TEMPLATE.md", "Estados", ACTION_EDGES, True),
+        (SPECS_TEMPLATES / "ACT_TEMPLATE.md", "Estados", ACTION_EDGES, True),
         (SPECS_TEMPLATES / "FND_TEMPLATE.md", "Estados y transiciones", FINDING_EDGES, True),
     ],
 )

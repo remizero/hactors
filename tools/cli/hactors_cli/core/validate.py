@@ -36,15 +36,23 @@ TASK_CLOSED_STATUS = "done"
 RELATION_FIELDS = frozenset({"source", "target", "relation"})
 COUNTER_ID_PATTERNS = {
     "task": re.compile(r"TASK-([0-9]{5,})"),
-    "action": re.compile(r"AC-([0-9]{5,})"),
+    "action": re.compile(r"ACT-([0-9]{5,})"),
+    "plan": re.compile(r"PLAN-([0-9]{5,})"),
+    "test": re.compile(r"TEST-([0-9]{5,})"),
+    "harness": re.compile(r"HRN-([0-9]{5,})"),
+    "workflow": re.compile(r"WORKFLOW-([0-9]{5,})"),
     "evidence": re.compile(r"EVD-([0-9]{5,})"),
     "finding": re.compile(r"FND-([0-9]{5,})"),
     "adr": re.compile(r"ADR-([0-9]{5,})"),
 }
+# Un segmento de identidad de RFC es de tipo solo si es una letra de tipo seguida
+# de cifras; los modificadores (AM, AR, REV, V2, PATCH, FX) tienen un segundo
+# carácter no numérico y por tanto no coinciden.
+RFC_TYPE_SEGMENT = re.compile(r"([AFITD])([0-9]{5,})")
 RECORD_COUNTERS = (("EVD-", "evidence"), ("FND-", "finding"))
 ARTIFACT_PREFIXES = (
     "TASK-",
-    "AC-",
+    "ACT-",
     "PLAN-",
     "ADR-",
     "EVD-",
@@ -189,6 +197,26 @@ def _check_hierarchy(project: Path, instances: list) -> list[str]:
     return findings
 
 
+def _workflow_definitions(project: Path) -> list[str]:
+    directory = project / "workflows"
+    if not directory.is_dir():
+        return []
+    pattern = COUNTER_ID_PATTERNS["workflow"]
+    return sorted(
+        entry.name
+        for entry in directory.iterdir()
+        if entry.is_dir() and pattern.fullmatch(entry.name)
+    )
+
+
+def _rfc_type(identity: str) -> tuple[str, str]:
+    for segment in reversed(identity.split("-")):
+        match = RFC_TYPE_SEGMENT.fullmatch(segment)
+        if match:
+            return f"rfc_{match[1].lower()}", match[2]
+    return "", ""
+
+
 def _note(observed: dict, counter: str, identity: str, digits: str) -> None:
     number = int(digits)
     if number > observed.get(counter, (0, ""))[0]:
@@ -196,10 +224,22 @@ def _note(observed: dict, counter: str, identity: str, digits: str) -> None:
 
 
 def _observed_counters(
-    project: Path, rfc_ids: dict, statuses: dict, instances: list, records: list, adrs: list
+    project: Path,
+    rfc_ids: dict,
+    plan_ids: list,
+    test_ids: list,
+    catalogs: list,
+    statuses: dict,
+    instances: list,
+    records: list,
+    adrs: list,
 ) -> dict:
     observed: dict[str, tuple[int, str]] = {}
     documents_by_counter = [("task", stem) for stem in statuses]
+    documents_by_counter.extend(("plan", identity) for identity in plan_ids)
+    documents_by_counter.extend(("test", identity) for identity in test_ids)
+    documents_by_counter.extend(("harness", identity) for identity, _, _ in catalogs)
+    documents_by_counter.extend(("workflow", identity) for identity in _workflow_definitions(project))
     documents_by_counter.extend(
         (counter, identity)
         for identity, _ in records
@@ -211,18 +251,21 @@ def _observed_counters(
         match = COUNTER_ID_PATTERNS[counter].fullmatch(identity)
         if match:
             _note(observed, counter, identity, match[1])
-    for path in rfc_ids.values():
+    for identity, path in rfc_ids.items():
+        counter, digits = _rfc_type(identity)
+        if counter:
+            _note(observed, counter, identity, digits)
         try:
             actions = extract_actions(read(project, path))
         except (ActionSchemaError, ScanError):
             continue
         for element in actions if isinstance(actions, list) else []:
-            identity = element.get("id") if isinstance(element, dict) else None
-            if not isinstance(identity, str):
+            element_identity = element.get("id") if isinstance(element, dict) else None
+            if not isinstance(element_identity, str):
                 continue
-            match = COUNTER_ID_PATTERNS["action"].fullmatch(identity)
+            match = COUNTER_ID_PATTERNS["action"].fullmatch(element_identity)
             if match:
-                _note(observed, "action", identity, match[1])
+                _note(observed, "action", element_identity, match[1])
     for run_type, directory, _ in instances:
         if RUN_PATTERN.fullmatch(directory.name):
             digits = directory.name[len(run_type) + 1 :]
@@ -535,7 +578,9 @@ def validate_project(root: Path, project_name: str) -> list[str]:
     findings.extend(_check_references(project, instances, rfc_ids, plan_ids, test_ids))
     findings.extend(_check_hierarchy(project, instances))
     if not manifest_problems:
-        observed = _observed_counters(project, rfc_ids, statuses, instances, records, adrs)
+        observed = _observed_counters(
+            project, rfc_ids, plan_ids, test_ids, catalogs, statuses, instances, records, adrs
+        )
         findings.extend(_check_counters(manifest, observed))
     findings.extend(_check_relation_targets(project, relations, identities))
     recorded = _recorded_edges(relations)

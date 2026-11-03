@@ -14,7 +14,7 @@ Este documento trata del estado del trabajo, no del **estado activo**: `projects
 WORKFLOW ─▶ TASK ─▶ RFC ─▶ Acción
 ```
 
-`WORKFLOW` es el flujo que agrupa un alcance, `TASK` una unidad de trabajo que lo inicia, `RFC` una decisión contratada y `Acción` (`AC-nnnnn`) un entregable individual bajo una RFC. Cada nivel conserva su propio estado conforme a [LIFECYCLE.md](LIFECYCLE.md).
+`WORKFLOW` es el flujo que agrupa un alcance, `TASK` una unidad de trabajo que lo inicia, `RFC` una decisión contratada y `Acción` (`ACT-nnnnn`) un entregable individual bajo una RFC. Cada nivel conserva su propio estado conforme a [LIFECYCLE.md](LIFECYCLE.md).
 
 La jerarquía es documental: ordena alcances, no ejecuciones. El árbol de instancias `workflow_run → task_run → rfc_run → …` es otra estructura, definida en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#reglas-de-anidamiento); la contención de una instancia no la incorpora a esta jerarquía ni produce una arista del grafo, conforme a [RELATIONSHIPS.md](RELATIONSHIPS.md).
 
@@ -57,7 +57,7 @@ La terminalidad tampoco consolida por sí sola el resumen, que es otra operació
 
 ## Transiciones de una acción
 
-Los estados admitidos y sus caminos están en [AC_TEMPLATE.md](templates/AC_TEMPLATE.md); aquí se fija quién los recorre y qué efecto tienen.
+Los estados admitidos y sus caminos están en [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md); aquí se fija quién los recorre y qué efecto tienen.
 
 | Transición | Actor | Condición |
 |---|---|---|
@@ -74,10 +74,10 @@ Una acción `completed` sin evidencia verificable incumple el requisito y bloque
 
 | Nivel | Formato | Numeración |
 |---|---|---|
-| WORKFLOW | `WORKFLOW-nnnnn`; su versión publicada se escribe `WORKFLOW-nnnnn@vNNN`. | Sin contador: el siguiente correlativo se determina desde los catálogos existentes en `workflows/`, como en una RFC. Su estado, incluida la disposición `closed`, se registra en el `status` del catálogo conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md). |
+| WORKFLOW | `WORKFLOW-nnnnn`; su versión publicada se escribe `WORKFLOW-nnnnn@vNNN`. | Contador `workflow` del manifest del proyecto. Su estado, incluida la disposición `closed`, se registra en el `status` del catálogo conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md). |
 | TASK | `TASK-nnnnn` | Contador `task` del manifest del proyecto. |
-| RFC | Conforme a [RFC.md](RFC.md#identidad-y-tipos). | Sin contador: el siguiente correlativo se determina desde los documentos existentes, conforme a [RFC_SYSTEM.md](RFC_SYSTEM.md). |
-| Acción | `AC-nnnnn` | Contador `action` del manifest del proyecto. |
+| RFC | Conforme a [RFC.md](RFC.md#identidad-y-tipos). | Contador `rfc_<tipo>` del manifest del proyecto, uno por tipo; la asignación sigue [RFC_SYSTEM.md](RFC_SYSTEM.md#numeración). |
+| Acción | `ACT-nnnnn` | Contador `action` del manifest del proyecto. |
 
 Los contadores y su alcance están en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores). Un identificador retirado no se reutiliza, y el número no codifica parentesco, profundidad ni orden temporal.
 

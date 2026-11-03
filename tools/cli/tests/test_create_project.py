@@ -69,18 +69,14 @@ class TestCreateProject:
         assert "created_at" in data
         assert data["created_at"]
 
-    def test_manifest_yaml_fields_from_template(self, hactors_root: Path, load_yaml):
+    def test_manifest_yaml_fields_from_template(self, hactors_root: Path, load_yaml, zero_counters):
         create_project("test-project", hactors_root)
 
         data = load_yaml(hactors_root / "projects" / "test-project" / "manifest.yaml")
 
         assert data["project"] == "test-project"
         assert data["relations"] == []
-        assert data["counters"] == {
-            "task": 0, "action": 0, "workflow_run": 0, "task_run": 0,
-            "rfc_run": 0, "plan_run": 0, "test_run": 0, "harness_run": 0,
-            "evidence": 0, "finding": 0, "adr": 0,
-        }
+        assert data["counters"] == zero_counters
 
     def test_created_at_is_valid_iso8601(self, hactors_root: Path, load_yaml):
         create_project("test-project", hactors_root)

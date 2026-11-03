@@ -18,7 +18,7 @@ from hactors_cli.core.workflow import create_workflow
 
 ACTIONS = [
     {
-        "id": "AC-00001",
+        "id": "ACT-00001",
         "type": "implementation",
         "status": "pending",
         "actor": "agent",
@@ -47,8 +47,17 @@ def bump_counter(project: Path, counter: str, identity: str) -> None:
     path = project / "manifest.yaml"
     data = yaml.safe_load(path.read_text())
     counters = data.setdefault("counters", {})
-    counters[counter] = max(counters.get(counter, 0), int(identity.rsplit("-", 1)[-1]))
+    digits = "".join(c for c in identity.rsplit("-", 1)[-1] if c.isdigit())
+    if not digits:
+        return
+    counters[counter] = max(counters.get(counter, 0), int(digits))
     path.write_text(yaml.dump(data, sort_keys=False))
+
+
+def rfc_counter(identity: str) -> str:
+    """El contador de tipo que consume una RFC; vacío si su último segmento no es de tipo."""
+    segment = identity.rsplit("-", 1)[-1]
+    return f"rfc_{segment[0].lower()}" if segment[1:].isdigit() else ""
 
 
 def set_counter(project: Path, counter: str, value) -> None:
@@ -68,17 +77,23 @@ def rfc_document(project: Path, name: str = "RFC-A00001", actions=None, **extra)
     if actions is not None:
         data["actions"] = actions
     path = write_document(project / "rfcs" / f"{name}.md", data)
+    if rfc_counter(name):
+        bump_counter(project, rfc_counter(name), name)
     for action in actions or []:
         bump_counter(project, "action", action["id"])
     return path
 
 
 def plan_document(project: Path, plan_id: str = "PLAN-00001", location: str = "plans") -> Path:
-    return write_document(project / location / f"{plan_id}.md", {"id": plan_id})
+    path = write_document(project / location / f"{plan_id}.md", {"id": plan_id})
+    bump_counter(project, "plan", plan_id)
+    return path
 
 
 def verification_document(project: Path, test_id: str = "TEST-00001", **extra) -> Path:
-    return write_document(project / "tests" / f"{test_id}.md", {"id": test_id, **extra})
+    path = write_document(project / "tests" / f"{test_id}.md", {"id": test_id, **extra})
+    bump_counter(project, "test", test_id)
+    return path
 
 
 def task_document(project: Path, task_id: str = "TASK-00001", status: str = "draft") -> Path:
@@ -115,6 +130,7 @@ def harness_package(project: Path, harness_id: str = "HRN-00001", version: str =
     path = project / "harnesses" / harness_id / "versions" / version / "harness.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("id: HRN-00001\nversion: 1\n")
+    bump_counter(project, "harness", harness_id)
     return path
 
 
@@ -262,7 +278,7 @@ def test_actions_schema_is_checked_per_rfc(hactors_root, project):
     rfc_document(project, actions=[{**ACTIONS[0], "status": "cerrado"}])
     problems = validate(hactors_root, project)
     assert problems == [
-        "rfcs/RFC-A00001.md: AC-00001: `status` fuera de dominio: 'cerrado'."
+        "rfcs/RFC-A00001.md: ACT-00001: `status` fuera de dominio: 'cerrado'."
     ]
 
 
@@ -416,13 +432,13 @@ def test_command_requires_active_project(hactors_root):
 def test_command_lists_every_problem_and_fails(hactors_root, project, tree):
     set_identity(tree["workflow_run"] / "manifest.yaml", task_ref="TASK-00009")
     set_identity(tree["rfc_run"] / "manifest.yaml", rfc_ref="RFC-A00002")
-    rfc_document(project, actions=[{**ACTIONS[0], "id": "AC-1"}])
+    rfc_document(project, actions=[{**ACTIONS[0], "id": "ACT-1"}])
     task_document(project, status="done")
     finding_document(project, origin="TASK-00001")
     result = invoke(hactors_root, "validate", expected=1)
     assert "`task_ref` 'TASK-00009' no resuelve" in result.output
     assert "`rfc_ref` 'RFC-A00002' no resuelve" in result.output
-    assert "actions[1]: identificador inválido: 'AC-1'." in result.output
+    assert "actions[1]: identificador inválido: 'ACT-1'." in result.output
     assert "hallazgo `critical` en `open`" in result.output
     assert "4 inconsistencia(s) en el proyecto 'proj'." in result.output
 
@@ -467,6 +483,7 @@ def harness_catalog(project: Path, harness_id: str = "HRN-00001", **fields) -> P
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {"id": harness_id, "relations": [], "versions": [], **fields}
     path.write_text(yaml.dump(data, sort_keys=False))
+    bump_counter(project, "harness", harness_id)
     return path
 
 
@@ -474,6 +491,7 @@ def workflow_catalog(project: Path, workflow_id: str = "WORKFLOW-00001") -> Path
     path = project / "workflows" / workflow_id / "manifest.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.dump({"id": workflow_id, "versions": []}, sort_keys=False))
+    bump_counter(project, "workflow", workflow_id)
     return path
 
 
@@ -483,6 +501,7 @@ def workflow_definition(
     path = project / "workflows" / workflow_id / "versions" / version / "workflow.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"id: {workflow_id}\nversion: 1\n")
+    bump_counter(project, "workflow", workflow_id)
     return path
 
 
@@ -559,9 +578,9 @@ def test_target_fragment_is_not_resolved(hactors_root, project):
 
 def test_local_identifier_without_its_artifact_is_reported(hactors_root, project):
     rfc_document(project, actions=ACTIONS)
-    set_relations(project, [edge("EVD-00001", "AC-00001", "verifies")])
+    set_relations(project, [edge("EVD-00001", "ACT-00001", "verifies")])
     assert validate(hactors_root, project) == [
-        "manifest.yaml: relations[1]: `target` 'AC-00001' no resuelve a ningún artefacto del proyecto."
+        "manifest.yaml: relations[1]: `target` 'ACT-00001' no resuelve a ningún artefacto del proyecto."
     ]
 
 

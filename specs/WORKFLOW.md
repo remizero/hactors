@@ -10,7 +10,7 @@ Este WORKFLOW es el proceso abstracto; su instancia concreta es un `workflow_run
 
 ## Identidad y versiones
 
-Este documento fija las fases normativas del proceso, no los pasos de ninguna versión concreta. Cada definición que un proyecto usa se registra como `WORKFLOW-nnnnn` en `workflows/WORKFLOW-nnnnn/`, con un catálogo `manifest.yaml` y paquetes inmutables `versions/vNNN/workflow.yaml`, conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md) y a la disposición de [PROJECTS.md](PROJECTS.md).
+Este documento fija las fases normativas del proceso, no los pasos de ninguna versión concreta. Cada definición que un proyecto usa se registra como `WORKFLOW-nnnnn`, que numera el contador `workflow`, en `workflows/WORKFLOW-nnnnn/`, con un catálogo `manifest.yaml` y paquetes inmutables `versions/vNNN/workflow.yaml`, conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md) y a la disposición de [PROJECTS.md](PROJECTS.md).
 
 La versión declara los pasos `step_XXX` que realizan estas fases y las que excluye; un `workflow_run` referencia la versión exacta `WORKFLOW-nnnnn@vNNN` en su `identity.workflow_version` y usa esos identificadores en su `global_state`.
 

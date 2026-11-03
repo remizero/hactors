@@ -29,6 +29,6 @@ El formato, los campos y los tipos de evidencia se definen en [templates/EVD_TEM
 ## Relación con otros artefactos.
 
 - Una TASK referencia evidencias en `execution.evidence`.
-- Una acción derivada solo pasa a `completed` con al menos una evidencia referenciable, conforme a [templates/AC_TEMPLATE.md](templates/AC_TEMPLATE.md).
+- Una acción derivada solo pasa a `completed` con al menos una evidencia referenciable, conforme a [templates/ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md).
 - Un hallazgo solo pasa a `resolved` con evidencia verificada, conforme a [FINDING.md](FINDING.md).
 - Un workflow_run registra referencias de verificación en `integration.verification_refs`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md).

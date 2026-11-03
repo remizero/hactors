@@ -101,7 +101,7 @@ proposed → active → closing → closed
 `active` admite TASK nuevas; `closing` no acepta nuevas TASK pero queda pendiente de cierres humanos.
 `closed` exige cada TASK de su alcance en `done` y evidencia de aceptación `[actor: human]`.
 `cancelled` detiene el flujo por disposición directa sobre él; `aborted` lo detiene porque un descendiente no alcanza su éxito y `[actor: human]` no reduce el alcance del flujo. Ambas son disposición `[actor: human]`, pueden tomarse desde `active` o `closing`, son terminales y preservan el trabajo y la evidencia producidos.
-Los estados de una acción (`AC-nnnnn`) y sus transiciones se definen en [templates/AC_TEMPLATE.md](templates/AC_TEMPLATE.md); el actor de cada transición está en [PROJECT_STATE.md](PROJECT_STATE.md#transiciones-de-una-acción). Una RFC alcanza `done` solo con cada acción de su alcance en `completed`.
+Los estados de una acción (`ACT-nnnnn`) y sus transiciones se definen en [templates/ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md); el actor de cada transición está en [PROJECT_STATE.md](PROJECT_STATE.md#transiciones-de-una-acción). Una RFC alcanza `done` solo con cada acción de su alcance en `completed`.
 
 Estos estados describen el WORKFLOW y se registran en el `status` de su catálogo, conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md). Su instancia `workflow_run` registra el estado observable de la ejecución en `global_state.status`, con intentos y bloqueos propios, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#bloque-2-global_state); la distinción entre ambos se define en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#relación-entre-workflow-y-workflow_run). Un estado de instancia no sustituye la transición documental que autoriza `[actor: human]`.
 

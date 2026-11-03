@@ -72,11 +72,11 @@ Las referencias adicionales no sustituyen la carga definida por el índice.
 
 ## Acciones derivadas
 
-Cada elemento de `actions:` es una acción derivada (`AC-nnnnn`); sus tipos, sus estados y su regla de evidencia se definen en [AC_TEMPLATE.md](AC_TEMPLATE.md):
+Cada elemento de `actions:` es una acción derivada (`ACT-nnnnn`); sus tipos, sus estados y su regla de evidencia se definen en [ACT_TEMPLATE.md](ACT_TEMPLATE.md):
 
 ```yaml
 actions:
-  - id: AC-00001
+  - id: ACT-00001
     type: ""
     status: pending
     actor: ""
@@ -87,16 +87,16 @@ actions:
 
 | Campo | Descripción |
 |---|---|
-| `id` | `AC-nnnnn`, único en el proyecto; no se reutiliza al retirar la acción. |
-| `type` | Uno de los tipos de [AC_TEMPLATE.md](AC_TEMPLATE.md#tipos); no se definen tipos locales. |
-| `status` | Uno de los estados de [AC_TEMPLATE.md](AC_TEMPLATE.md#estados); una RFC no alcanza `done` mientras alguna acción de su alcance no esté en `completed`. |
+| `id` | `ACT-nnnnn`, único en el proyecto; no se reutiliza al retirar la acción. |
+| `type` | Uno de los tipos de [ACT_TEMPLATE.md](ACT_TEMPLATE.md#tipos); no se definen tipos locales. |
+| `status` | Uno de los estados de [ACT_TEMPLATE.md](ACT_TEMPLATE.md#estados); una RFC no alcanza `done` mientras alguna acción de su alcance no esté en `completed`. |
 | `actor` | Etiqueta de [DEFINITIONS.md](../DEFINITIONS.md#actores) que ejecuta la acción, sin el envoltorio `[actor: ]`: una o varias etiquetas combinadas, o `...` para prohibirla a todos. |
-| `depends_on` | `AC-nnnnn` que deben completarse antes; con alguna dependencia sin resolver, la acción está `blocked`. |
+| `depends_on` | `ACT-nnnnn` que deben completarse antes; con alguna dependencia sin resolver, la acción está `blocked`. |
 | `deliverable` | Artefacto o ruta que la acción produce; vacío mientras no exista. |
-| `evidence` | `EVD-nnnnn` que respaldan el resultado; `completed` exige al menos una, conforme a [AC_TEMPLATE.md](AC_TEMPLATE.md#evidencia). |
+| `evidence` | `EVD-nnnnn` que respaldan el resultado; `completed` exige al menos una, conforme a [ACT_TEMPLATE.md](ACT_TEMPLATE.md#evidencia). |
 
 El actor de cada transición y la propiedad del estado están en [PROJECT_STATE.md](../PROJECT_STATE.md#transiciones-de-una-acción); esta plantilla fija la forma del registro, no su ciclo de vida.
 
-`hactors create-action --rfc <ruta>` añade un elemento a este campo con el contador `action` del manifest del proyecto: lo inserta al final de la lista sin reescribir el resto del bloque, toma los valores iniciales de [action_template.yaml](action_template.yaml) y acepta `--type`, `--status`, `--actor`, `--deliverable`, `--depends-on` y `--evidence`. Exige que el archivo declare `rfc:` y un campo `actions:` en forma de bloque, y comprueba los valores declarados contra los tipos y los estados de [AC_TEMPLATE.md](AC_TEMPLATE.md) y las etiquetas de actor de [DEFINITIONS.md](../DEFINITIONS.md#actores).
+`hactors create-action --rfc <ruta>` añade un elemento a este campo con el contador `action` del manifest del proyecto: lo inserta al final de la lista sin reescribir el resto del bloque, toma los valores iniciales de [action_template.yaml](action_template.yaml) y acepta `--type`, `--status`, `--actor`, `--deliverable`, `--depends-on` y `--evidence`. Exige que el archivo declare `rfc:` y un campo `actions:` en forma de bloque, y comprueba los valores declarados contra los tipos y los estados de [ACT_TEMPLATE.md](ACT_TEMPLATE.md) y las etiquetas de actor de [DEFINITIONS.md](../DEFINITIONS.md#actores).
 
-El comando no produce el entregable ni la evidencia de la acción, no comprueba que exista el `AC-nnnnn` de `depends_on` ni el `EVD-nnnnn` de `evidence`, y no la hace cambiar de estado: registra el `status` declarado y el actor de cada transición sigue en [PROJECT_STATE.md](../PROJECT_STATE.md#transiciones-de-una-acción). Tampoco la representa en `relations` del manifest del proyecto, porque la correspondencia de [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#relaciones-del-proyecto) no traduce ninguno de sus campos.
+El comando no produce el entregable ni la evidencia de la acción, no comprueba que exista el `ACT-nnnnn` de `depends_on` ni el `EVD-nnnnn` de `evidence`, y no la hace cambiar de estado: registra el `status` declarado y el actor de cada transición sigue en [PROJECT_STATE.md](../PROJECT_STATE.md#transiciones-de-una-acción). Tampoco la representa en `relations` del manifest del proyecto, porque la correspondencia de [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md#relaciones-del-proyecto) no traduce ninguno de sus campos.

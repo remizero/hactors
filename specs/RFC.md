@@ -27,7 +27,7 @@ Los tipos no cambian la autoridad de aprobación ni implican que todo entregable
 ## Derivación y numeración
 
 - Una RFC puede existir sin origen o derivar de otra, conservando su identificador como prefijo.
-- Cada RFC nueva recibe el siguiente correlativo global de su tipo, también cuando es derivada.
+- Cada RFC nueva recibe el siguiente correlativo global de su tipo, también cuando es derivada; lo asigna el contador `rfc_<tipo>` del manifest del proyecto, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
 - El alcance físico o la RFC de origen no reinician ese contador.
 - Ejemplo: si `F` tiene último valor `6`, una derivada de `RFC-A00002` será `RFC-A00002-F00007`.
 - Una derivada de esa feature puede ser `RFC-A00002-F00007-T00008` (tests) o `RFC-A00002-F00007-D00003` (documentación).

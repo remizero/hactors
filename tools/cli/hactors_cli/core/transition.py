@@ -645,7 +645,7 @@ def _evidence_closure(target: _Target) -> list:
         return []
     return [
         f"{target.where}: la acción '{target.subject}' no declara evidencia, "
-        "que `completed` exige conforme a AC_TEMPLATE.md."
+        "que `completed` exige conforme a ACT_TEMPLATE.md."
     ]
 
 

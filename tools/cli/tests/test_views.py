@@ -30,7 +30,7 @@ MODEL_FIELDS = [
 STAMP = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 ACTIONS = [
     {
-        "id": "AC-00001",
+        "id": "ACT-00001",
         "type": "implementation",
         "status": "pending",
         "actor": "agent",
@@ -59,8 +59,17 @@ def bump_counter(project: Path, counter: str, identity: str) -> None:
     path = project / "manifest.yaml"
     data = yaml.safe_load(path.read_text())
     counters = data.setdefault("counters", {})
-    counters[counter] = max(counters.get(counter, 0), int(identity.rsplit("-", 1)[-1]))
+    digits = "".join(c for c in identity.rsplit("-", 1)[-1] if c.isdigit())
+    if not digits:
+        return
+    counters[counter] = max(counters.get(counter, 0), int(digits))
     path.write_text(yaml.dump(data, sort_keys=False))
+
+
+def rfc_counter(identity: str) -> str:
+    """El contador de tipo que consume una RFC; vacío si su último segmento no es de tipo."""
+    segment = identity.rsplit("-", 1)[-1]
+    return f"rfc_{segment[0].lower()}" if segment[1:].isdigit() else ""
 
 
 def rfc_document(project: Path, name: str = "RFC-A00001", actions=None, **extra) -> Path:
@@ -68,6 +77,8 @@ def rfc_document(project: Path, name: str = "RFC-A00001", actions=None, **extra)
     if actions is not None:
         data["actions"] = actions
     path = write_document(project / "rfcs" / f"{name}.md", data)
+    if rfc_counter(name):
+        bump_counter(project, rfc_counter(name), name)
     for action in actions or []:
         bump_counter(project, "action", action["id"])
     return path
@@ -76,11 +87,15 @@ def rfc_document(project: Path, name: str = "RFC-A00001", actions=None, **extra)
 def plan_document(
     project: Path, plan_id: str = "PLAN-00001", location: str = "plans", **extra
 ) -> Path:
-    return write_document(project / location / f"{plan_id}.md", {"id": plan_id, **extra})
+    path = write_document(project / location / f"{plan_id}.md", {"id": plan_id, **extra})
+    bump_counter(project, "plan", plan_id)
+    return path
 
 
 def verification_document(project: Path, test_id: str = "TEST-00001", **extra) -> Path:
-    return write_document(project / "tests" / f"{test_id}.md", {"id": test_id, **extra})
+    path = write_document(project / "tests" / f"{test_id}.md", {"id": test_id, **extra})
+    bump_counter(project, "test", test_id)
+    return path
 
 
 def harness_catalog(project: Path, harness_id: str = "HRN-00001") -> Path:
@@ -101,6 +116,7 @@ def harness_catalog(project: Path, harness_id: str = "HRN-00001") -> Path:
         "    published: null\n"
         "relations: []\n"
     )
+    bump_counter(project, "harness", harness_id)
     return path
 
 
@@ -285,9 +301,9 @@ def test_rfc_projects_its_status_without_actor(hactors_root, populated):
 def test_actions_nest_under_their_rfc(hactors_root, populated):
     model = build_model(hactors_root, populated.name)
     assert entry(model, "RFC-A00001")["actions"] == [
-        {"id": "AC-00001", "type": "implementation", "status": "pending", "actor": "agent"}
+        {"id": "ACT-00001", "type": "implementation", "status": "pending", "actor": "agent"}
     ]
-    assert "AC-00001" not in [item["id"] for item in model["artifacts"]]
+    assert "ACT-00001" not in [item["id"] for item in model["artifacts"]]
 
 
 def test_an_rfc_without_actions_projects_an_empty_list(hactors_root, populated):

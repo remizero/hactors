@@ -19,7 +19,7 @@ from ..core.transition import TransitionError, transition
     "--id",
     "identity",
     default=None,
-    help="`AC-nnnnn` del elemento de `actions:` cuando el estado no pertenece al archivo entero.",
+    help="`ACT-nnnnn` del elemento de `actions:` cuando el estado no pertenece al archivo entero.",
 )
 @click.option(
     "--root",

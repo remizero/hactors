@@ -10,18 +10,18 @@ HACTORS no mantiene un índice de RFC vigentes ni un archivo de RFC terminales: 
 
 ## Numeración
 
-El manifest del proyecto no tiene contador `rfc`. Los contadores numeran TASK, acciones derivadas, decisiones, evidencias, hallazgos e instancias de ejecución, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores); la identidad de una RFC la determina su derivación, no un contador.
+El manifest del proyecto tiene un contador por tipo de RFC: `rfc_a`, `rfc_f`, `rfc_i`, `rfc_t` y `rfc_d`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores). Los demás contadores numeran TASK, acciones derivadas, planes, TEST, HRN, WORKFLOW, decisiones, evidencias, hallazgos e instancias de ejecución; la identidad de una RFC la determina su derivación y su correlativo, el contador de su tipo.
 
 No existe un comando que cree una RFC: el documento lo redactan [actor: human | agent] desde [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md) y su variante de tipo, conforme a [RFC.md](RFC.md#guía-de-construcción-por-tipo). La asignación sigue este orden:
 
 1. Determinar el tipo (`A`, `F`, `I`, `T`, `D`) y la RFC de origen, si deriva de alguna.
-2. Recorrer las RFC ya registradas en el proyecto, en cualquiera de las ubicaciones que admite [RFC.md](RFC.md#ubicación-de-una-rfc), y tomar el mayor correlativo existente de ese tipo. El alcance físico y la RFC de origen no reinician ese contador.
+2. Tomar el siguiente valor del contador `rfc_<tipo>` del manifest del proyecto e incrementarlo en la misma operación. El alcance físico y la RFC de origen no reinician ese contador.
 3. Formar el identificador completo con toda su cadena de derivación y, si procede, su modificador.
 4. Comprobar su ausencia: no existe ningún documento con esa identidad, ninguna arista del grafo la usa como extremo y ninguna instancia la referencia.
 5. Crear el documento con su cabecera y su cuerpo.
 6. Representar sus aristas en `relations` del manifest dentro de la misma operación.
 
-Determinar el correlativo desde los documentos existentes no autoriza a suponer un contador inicial: si pueden existir RFC previas en otra ubicación del proyecto, se recorren antes de asignar.
+El contador de un tipo se incorpora al manifest al declarar su primera RFC. Antes de asignar se recorren las RFC ya registradas, en cualquiera de las ubicaciones que admite [RFC.md](RFC.md#ubicación-de-una-rfc): un contador por debajo de una identidad existente es una inconsistencia que reporta `hactors validate`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
 
 ## Modificadores
 

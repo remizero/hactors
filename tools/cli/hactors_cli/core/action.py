@@ -13,7 +13,7 @@ ACTION_TEMPLATE = "action_template.yaml"
 ACTIONS_FIELD = re.compile(r"^actions:[ \t]*(?P<value>[^ \t].*)?$")
 LIST_ITEM = re.compile(r"^(?P<indent>[ ]*)-[ \t]")
 DEFAULT_ITEM_INDENT = "  "
-ACTION_ID_PATTERN = re.compile(r"AC-[0-9]{5,}")
+ACTION_ID_PATTERN = re.compile(r"ACT-[0-9]{5,}")
 EVIDENCE_ID_PATTERN = re.compile(r"EVD-[0-9]{5,}")
 ACTION_TYPES = frozenset(
     {"analysis", "plan", "decision", "implementation", "test", "evidence", "documentation"}

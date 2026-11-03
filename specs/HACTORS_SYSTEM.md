@@ -95,7 +95,7 @@ projects/.state.yaml
 | Ruta | Artefacto | Contenido |
 |------|-----------|-----------|
 | `project.yaml` | Identidad del proyecto | Nombre, descripción, fecha de creación y referencia normativa. |
-| `manifest.yaml` | Grafo del proyecto | Relaciones entre artefactos y contadores de ejecución. |
+| `manifest.yaml` | Grafo del proyecto | Relaciones entre artefactos y los contadores que numeran cada tipo. |
 | `decisions/` | ADRs | Decisiones registradas del proyecto, cada una en su propio archivo; ver [DECISIONS.md](DECISIONS.md). |
 | `tasks/` | TASKs | Artefactos iniciadores. Cada TASK define qué se pretende ejecutar. |
 | `rfcs/` | RFCs | Especificaciones normativas originales e inmutables. |
@@ -156,7 +156,7 @@ Padre, ascendencia y profundidad se calculan desde la ruta; no se duplican como 
 
 ## 3. Manifest del proyecto: contadores y relaciones
 
-El archivo `manifest.yaml` en la raíz del proyecto tiene tres responsabilidades: identificar el proyecto, registrar las relaciones entre artefactos y mantener los contadores de ejecución.
+El archivo `manifest.yaml` en la raíz del proyecto tiene tres responsabilidades: identificar el proyecto, registrar las relaciones entre artefactos y mantener los contadores que numeran cada tipo de artefacto y de instancia.
 
 ### Estructura y campos
 
@@ -166,7 +166,7 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 
 **`relations`** — El grafo del proyecto: la lista de las relaciones entre sus artefactos. Permite navegar la trazabilidad sin mantener índices duplicados. Su elemento, su vocabulario y su correspondencia con las declaraciones documentales se definen en «Relaciones del proyecto».
 
-**`counters`** — Contadores secuenciales para cada tipo de artefacto ejecutable. Se incrementan automáticamente al crear una nueva instancia.
+**`counters`** — Contadores secuenciales, uno por tipo de artefacto y de instancia. Se incrementan al crear la instancia o al declarar el artefacto documental que numeran.
 
 ### Relaciones del proyecto
 
@@ -207,7 +207,12 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 | Contador | Se incrementa al crear | Formato del ID generado |
 |----------|------------------------|--------------------------|
 | `task` | Una TASK en `tasks/` | `TASK-00001` |
-| `action` | Una acción derivada declarada en el campo `actions:` de una RFC | `AC-00001` |
+| `action` | Una acción derivada declarada en el campo `actions:` de una RFC | `ACT-00001` |
+| `rfc_a`, `rfc_f`, `rfc_i`, `rfc_t`, `rfc_d` | Una RFC nueva de su tipo, también cuando es derivada | `RFC-A00001` |
+| `plan` | Un documento PLAN en `plans/` o `docs/plans/` | `PLAN-00001` |
+| `test` | Un TEST en `tests/` | `TEST-00001` |
+| `harness` | Un catálogo HRN en `harnesses/` | `HRN-00001` |
+| `workflow` | Una definición WORKFLOW en `workflows/` | `WORKFLOW-00001` |
 | `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001` |
 | `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
 | `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
@@ -218,11 +223,13 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 | `finding` | Un hallazgo en el directorio de su origen | `FND-00001` |
 | `adr` | Una decisión en `decisions/` | `ADR-00001` |
 
-Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos WORKFLOW, RFC, PLAN, TEST, HRN ni versiones de receta o de definición, y no se reinician al abrir una rama.
+Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores documentales numeran el artefacto, no sus versiones: las versiones de receta y de definición (`@vNNN`) no consumen contador. Ningún contador se reinicia al abrir una rama ni al derivar; una RFC derivada consume el correlativo global de su tipo, conforme a [RFC.md](RFC.md#derivación-y-numeración).
 
-Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación.
+Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación. Los contadores `rfc_a` a `rfc_d`, `plan`, `test`, `harness` y `workflow` tampoco son de ejecución y ningún comando los consume: numeran artefactos documentales que se redactan a mano, así que quien declara uno incrementa el contador de su tipo en la misma operación.
 
-Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
+Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia o al declarar su primer artefacto del tipo; no es necesario reescribir los objetos anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
+
+Como un artefacto descartado o no implementado permanece en el proyecto como historia y nunca se elimina, el contador de un tipo y el número de artefactos de ese tipo presentes coinciden siempre: un mismo campo es a la vez el siguiente identificador y el recuento de existentes. Retirar un artefacto no decrementa su contador, porque reasignar ese identificador rompería las referencias que ya lo nombran.
 
 ### Ejemplo
 
@@ -850,7 +857,7 @@ Cada instancia persistida bajo `hactors/` vive dentro del padre que admite la ta
 
 ### Contadores
 
-Cada contador de `manifest.yaml` es mayor o igual que cualquier identidad existente de su tipo: `task`, `evidence`, `finding` y `adr` desde los documentos y registros del proyecto, `action` desde los `id` del campo `actions:` de las RFC con identidad, y los seis contadores de ejecución desde los directorios de instancia. Un contador que no es un entero no negativo se denuncia por sí mismo; uno sin identidades de su tipo no se comprueba, porque cualquier valor satisface la invariante. La comprobación no renumera nada: la corrección es incrementar al máximo observado, conforme a [TRANSACTIONS.md](TRANSACTIONS.md#detección).
+Cada contador de `manifest.yaml` es mayor o igual que cualquier identidad existente de su tipo: `task`, `plan` y `test` desde los documentos del proyecto, `evidence` y `finding` desde sus registros, `adr` desde los archivos de `decisions/`, `harness` desde los catálogos y `workflow` desde los directorios de `workflows/`, `action` desde los `id` del campo `actions:` de las RFC con identidad, `rfc_a` a `rfc_d` desde el último segmento de tipo de cada identidad de RFC, y los seis contadores de ejecución desde los directorios de instancia. Un contador que no es un entero no negativo se denuncia por sí mismo; uno sin identidades de su tipo no se comprueba, porque cualquier valor satisface la invariante. La comprobación no renumera nada: la corrección es incrementar al máximo observado, conforme a [TRANSACTIONS.md](TRANSACTIONS.md#detección).
 
 ### Hallazgos bloqueantes
 
@@ -858,13 +865,13 @@ Ningún `FND-nnnnn.yaml` con severidad `critical` o `high` en estado `open` tien
 
 ### Esquema de las acciones derivadas
 
-El campo `actions:` de cada documento de `rfcs/` cumple el esquema de [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), con los tipos y los estados de [AC_TEMPLATE.md](templates/AC_TEMPLATE.md). Una RFC que no declara el campo incumple el esquema; una acción con campos por resolver no, porque los valores vacíos son información pendiente.
+El campo `actions:` de cada documento de `rfcs/` cumple el esquema de [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), con los tipos y los estados de [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md). Una RFC que no declara el campo incumple el esquema; una acción con campos por resolver no, porque los valores vacíos son información pendiente.
 
 ### Grafo del proyecto
 
 Las dos comprobaciones sobre `relations` aplican el elemento y la tabla de traducción de la sección 3.
 
-**Resolución de destinos.** Cada elemento es un mapeo con `source`, `target` y `relation`, sin campos ajenos al esquema. Un `target` que identifica una familia con objeto propio en el proyecto —`WORKFLOW-`, `TASK-`, `PLAN-`, `TEST-`, `ADR-`, `EVD-`, `FND-`, `HRN-` y `RFC-X`, con formato en [DEFINITIONS.md](DEFINITIONS.md#nomenclatura)— debe resolver al objeto que lo porta: su documento, su archivo, su catálogo o, con `@vNNN`, su paquete de versión. Un identificador local declarado sin el artefacto que lo define no resuelve, conforme a [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md): es el caso de `AC-nnnnn`, que vive en el campo `actions:` de su RFC y cuya referencia con el artefacto que lo define no está escrita en ninguna especificación. Una referencia vacía es una relación por representar, no una inconsistencia.
+**Resolución de destinos.** Cada elemento es un mapeo con `source`, `target` y `relation`, sin campos ajenos al esquema. Un `target` que identifica una familia con objeto propio en el proyecto —`WORKFLOW-`, `TASK-`, `PLAN-`, `TEST-`, `ADR-`, `EVD-`, `FND-`, `HRN-` y `RFC-X`, con formato en [DEFINITIONS.md](DEFINITIONS.md#nomenclatura)— debe resolver al objeto que lo porta: su documento, su archivo, su catálogo o, con `@vNNN`, su paquete de versión. Un identificador local declarado sin el artefacto que lo define no resuelve, conforme a [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md): es el caso de `ACT-nnnnn`, que vive en el campo `actions:` de su RFC y cuya referencia con el artefacto que lo define no está escrita en ninguna especificación. Una referencia vacía es una relación por representar, no una inconsistencia.
 
 Un `target` ajeno a esas familias no se denuncia, porque su forma escrita no está definida: ni la referencia a un módulo del sistema documentado, ni la referencia a otro proyecto. El fragmento `#<identificador>` tampoco se comprueba: ninguna especificación define cómo se escribe un criterio u objetivo dentro de su artefacto. `source` no se resuelve.
 
@@ -903,7 +910,7 @@ La única ruta que puede resolver fuera del proyecto es la del TRV de la raíz d
 | PLAN | `plans/` y `docs/plans/` | `status` | [PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md#estados) |
 | ADR | `decisions/ADR-nnnnn — nombre-descriptivo.md` | `status` | [DECISIONS.md](DECISIONS.md#estados-de-adr) |
 | TRV | `trivial/TRV-nnnnn — nombre-descriptivo.md` del proyecto, o de la raíz de la copia | `status` | [TRIVIAL.md](TRIVIAL.md#estados) |
-| Acción derivada | Un archivo de `rfcs/`, el elemento de `actions:` que identifica `--id` | `status` | [AC_TEMPLATE.md](templates/AC_TEMPLATE.md#estados) y [PROJECT_STATE.md](PROJECT_STATE.md#transiciones-de-una-acción) |
+| Acción derivada | Un archivo de `rfcs/`, el elemento de `actions:` que identifica `--id` | `status` | [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md#estados) y [PROJECT_STATE.md](PROJECT_STATE.md#transiciones-de-una-acción) |
 | Hallazgo | Cualquier `FND-nnnnn.yaml` del proyecto | `state` | [FND_TEMPLATE.md](templates/FND_TEMPLATE.md#estados-y-transiciones) |
 
 La familia se determina por la ubicación y por el campo de identidad que el archivo declara, con el criterio de los barridos de la sección 16: en `rfcs/`, el archivo que declara `rfc:` es una RFC y el que declara `artifact:` es su resumen. Un archivo cuya identidad no corresponde a su ubicación se rechaza antes que transicionarlo.
@@ -930,7 +937,7 @@ El comando comprueba antes de escribir, y rechaza sin escribir nada cuando algun
 |---|---|
 | TASK `done` | Cada identidad de su campo `rfcs:` resuelve a un documento de `rfcs/` en `done`, o en `superseded` cuyo `superseded_by` también conste en `rfcs:` y esté en `done`, que es la incorporación de [actor: human] que exige [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). Y ningún hallazgo `critical` o `high` cuya TASK de origen sea esa queda en `open`, la invariante de la sección 16. |
 | RFC `done` | Cada elemento de su campo `actions:` está en `completed`. |
-| Acción `completed` | Su campo `evidence` no está vacío, conforme a [AC_TEMPLATE.md](templates/AC_TEMPLATE.md#evidencia). |
+| Acción `completed` | Su campo `evidence` no está vacío, conforme a [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md#evidencia). |
 | Resumen `consolidated` | Ningún hallazgo `critical` o `high` en `open` cuyo origen sea el artefacto que resume: `source.artifact` igual a la ruta de la RFC cuando resume una RFC, o `source.execution` dentro del subárbol del workflow_run cuando resume uno, con las dos vías de la sección 16. La condición la fija [SUMMARY.md](SUMMARY.md#fase-y-consolidación). |
 | WORKFLOW `closed` | Ninguna: el catálogo no declara su alcance, que se recupera de los workflow_run que referencian sus versiones, y `identity.workflow_version` es una referencia que la sección 16 aún no resuelve. La regla 1 de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles) no es decidible sobre los datos persistidos y queda en quien invoca el comando, no en la comprobación. |
 

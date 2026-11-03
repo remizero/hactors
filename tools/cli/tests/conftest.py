@@ -10,23 +10,23 @@ from hactors_cli.core.rfc_run import create_rfc_run
 from hactors_cli.core.task_run import create_task_run
 from hactors_cli.core.workflow import create_workflow
 
-FIXTURES_ROOT = Path(__file__).parent / "fixtures"
+TEMPLATES = Path(__file__).resolve().parents[3] / "specs" / "templates"
 
 
 @pytest.fixture
 def hactors_root(tmp_path: Path) -> Path:
-    src = FIXTURES_ROOT / "hactors_repo"
     dst = tmp_path / "hactors_repo"
-    shutil.copytree(src, dst)
-    templates = Path(__file__).resolve().parents[3] / "specs" / "templates"
-    for name in (
-        "rfc_run_template.yaml", "plan_run_template.yaml", "test_run_template.yaml",
-        "harness_run_template.yaml", "evidence_template.yaml", "finding_template.yaml",
-        "summary_template.yaml", "task_template.yaml", "action_template.yaml",
-        "adr_template.yaml",
-    ):
-        shutil.copy2(templates / name, dst / "specs" / "templates" / name)
+    (dst / "specs").mkdir(parents=True)
+    (dst / "projects").mkdir()
+    shutil.copytree(TEMPLATES, dst / "specs" / "templates")
     return dst
+
+
+@pytest.fixture
+def zero_counters() -> dict:
+    """Los contadores que la plantilla normativa declara en un manifest nuevo."""
+    with (TEMPLATES / "manifest_template.yaml").open() as f:
+        return yaml.safe_load(f)["counters"]
 
 
 @pytest.fixture(params=[0, 4], ids=["initial-rfc", "deep-derived-rfc"])

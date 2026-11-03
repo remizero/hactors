@@ -11,7 +11,7 @@ Un TEST especifica una propiedad bajo verificación y los criterios que deciden 
 
 | Elemento | Formato | Ejemplo |
 |---|---|---|
-| ID | `TEST-nnnnn` único en el proyecto | `TEST-00001` |
+| ID | `TEST-nnnnn` único en el proyecto, del contador `test` | `TEST-00001` |
 | Documento | `tests/TEST-nnnnn.md`, en la raíz del proyecto | `tests/TEST-00001.md` |
 | Campo de identidad | `id:` en un bloque `yaml` del documento | `id: TEST-00001` |
 

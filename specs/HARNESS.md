@@ -2,7 +2,7 @@
 
 Este documento define el modelo de HARNESS; su formato se concreta en [templates/HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md). La creación y selección de `harness_run` están implementadas conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#12-harness_run-ejecución-de-una-versión-de-harness); no incluyen resolver el catálogo, verificar contenido, publicar versiones ni construir o ejecutar recetas.
 
-Un HARNESS es una receta persistente con identidad `HRN-nnnnn`, independiente del harness construido, que es efímero, y de cada instancia de ejecución que lo utiliza.
+Un HARNESS es una receta persistente con identidad `HRN-nnnnn`, que numera el contador `harness`, independiente del harness construido, que es efímero, y de cada instancia de ejecución que lo utiliza.
 
 ## Origen, pertenencia y reutilización
 

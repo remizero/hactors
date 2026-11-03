@@ -10,15 +10,15 @@ from ..core.state import StateError, require_active_project
 
 @click.command("create-action")
 @click.option("--rfc", required=True, help="Ruta relativa al proyecto del archivo de la RFC.")
-@click.option("--type", "type_", default=None, help="Tipo de acción de AC_TEMPLATE.md.")
-@click.option("--status", default=None, help="Estado inicial de AC_TEMPLATE.md; por omisión, `pending`.")
+@click.option("--type", "type_", default=None, help="Tipo de acción de ACT_TEMPLATE.md.")
+@click.option("--status", default=None, help="Estado inicial de ACT_TEMPLATE.md; por omisión, `pending`.")
 @click.option(
     "--actor",
     default=None,
     help="Etiqueta de actor que ejecuta la acción, sin el envoltorio `[actor: ]`.",
 )
 @click.option("--deliverable", default=None, help="Artefacto o ruta que la acción produce.")
-@click.option("--depends-on", multiple=True, help="`AC-nnnnn` que deben completarse antes; repetible.")
+@click.option("--depends-on", multiple=True, help="`ACT-nnnnn` que deben completarse antes; repetible.")
 @click.option("--evidence", multiple=True, help="`EVD-nnnnn` que respaldan el resultado; repetible.")
 @click.option(
     "--root",
@@ -36,7 +36,7 @@ def create_action_cmd(
     evidence: tuple[str, ...],
     root: Optional[Path],
 ) -> None:
-    """Añadir una acción derivada AC al campo `actions:` de una RFC, sin redactar su contenido."""
+    """Añadir una acción derivada ACT al campo `actions:` de una RFC, sin redactar su contenido."""
     hactors_root = root if root is not None else find_hactors_root(Path.cwd())
     try:
         project_name = require_active_project(hactors_root)

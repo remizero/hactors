@@ -1,6 +1,6 @@
 <!-- schema: action/1.0 -->
 
-# Plantilla de acción derivada (AC-nnnnn)
+# Plantilla de acción derivada (ACT-nnnnn)
 
 [actor: human | agent] utiliza esta plantilla al registrar o actualizar una acción derivada en el campo `actions:` de la RFC correspondiente.
 Los valores permitidos de `type` y `status` y sus transiciones se definen aquí; el actor de cada transición y su efecto sobre el cierre de la RFC están en [PROJECT_STATE.md](../PROJECT_STATE.md#transiciones-de-una-acción).
@@ -10,7 +10,7 @@ Los identificadores y relaciones siguen [RELATIONSHIPS.md](../RELATIONSHIPS.md).
 
 | Campo | Formato | Ejemplo |
 |---|---|---|
-| ID | `AC-nnnnn` único en el proyecto | `AC-00042` |
+| ID | `ACT-nnnnn` único en el proyecto | `ACT-00042` |
 
 Un identificador retirado no se reutiliza.
 
@@ -60,7 +60,7 @@ El formato mínimo de la evidencia está en [EVIDENCE.md](../EVIDENCE.md).
 ## Diagrama de dependencias
 
 ```text
-AC-00001 → AC-00002 → AC-00003
+ACT-00001 → ACT-00002 → ACT-00003
 ```
 
 Incluir en la RFC cuando existan dependencias entre acciones de su alcance.

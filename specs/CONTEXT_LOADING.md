@@ -67,7 +67,7 @@ También se leen los contratos y la documentación de los módulos afectados, y 
 | [templates/TASK_TEMPLATE.md](templates/TASK_TEMPLATE.md) | Se redacta una TASK. |
 | [templates/PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md) | Se redacta o revisa un PLAN. |
 | [templates/TEST_TEMPLATE.md](templates/TEST_TEMPLATE.md) | Se redacta un TEST: identidad, propiedad bajo verificación y criterios. |
-| [templates/AC_TEMPLATE.md](templates/AC_TEMPLATE.md) | Se registra o actualiza una acción derivada en el campo `actions:` de su RFC. |
+| [templates/ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md) | Se registra o actualiza una acción derivada en el campo `actions:` de su RFC. |
 | [templates/ADR_TEMPLATE.md](templates/ADR_TEMPLATE.md) | Se redacta una decisión. |
 | [templates/SUMMARY_TEMPLATE.md](templates/SUMMARY_TEMPLATE.md) | Se redacta el resumen de una RFC o de un workflow_run. |
 | [templates/EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md) | Se registra una evidencia. |

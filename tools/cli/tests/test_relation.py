@@ -11,7 +11,7 @@ from hactors_cli.core.task import create_task
 
 ACTIONS = [
     {
-        "id": "AC-00001",
+        "id": "ACT-00001",
         "type": "implementation",
         "status": "pending",
         "actor": "agent",
@@ -44,7 +44,10 @@ def bump_counter(project: Path, counter: str, identity: str) -> None:
     path = project / "manifest.yaml"
     data = yaml.safe_load(path.read_text())
     counters = data.setdefault("counters", {})
-    counters[counter] = max(counters.get(counter, 0), int(identity.rsplit("-", 1)[-1]))
+    digits = "".join(c for c in identity.rsplit("-", 1)[-1] if c.isdigit())
+    if not digits:
+        return
+    counters[counter] = max(counters.get(counter, 0), int(digits))
     path.write_text(yaml.dump(data, sort_keys=False))
 
 
@@ -53,6 +56,9 @@ def rfc_document(project: Path, name: str = "RFC-A00001", **extra) -> Path:
     path = project / "rfcs" / f"{name}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"# Documento\n\n```yaml\n{yaml.dump(data, sort_keys=False)}```\n")
+    segment = name.rsplit("-", 1)[-1]
+    if segment[1:].isdigit():
+        bump_counter(project, f"rfc_{segment[0].lower()}", name)
     for action in extra.get("actions") or []:
         bump_counter(project, "action", action["id"])
     return path
