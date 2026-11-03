@@ -134,6 +134,34 @@ El visor enumera los proyectos de la raíz y enlaza el tablero de cada uno. De u
 
 Un directorio de `projects/` que no satisface los requisitos de un proyecto se lista con la razón por la que no se puede proyectar, en lugar de omitirse en silencio: ocultarlo sería una segunda forma de desmentir lo que hay en la raíz.
 
+## El visor servido
+
+`tools/viewer/` produce una vista sin escribir ningún archivo: sirve la proyección por HTTP. Resuelve el modelo de lectura en memoria en cada petición con el mismo cálculo que `export` —`root_models` de `hactors_cli.core.model`, el que `write_model` vuelca a `project.json`— y lo dibuja en una página. No es el visor de `projects/views/index.html`, que es un archivo derivado que `render` reemplaza: este no deja nada detrás, así que apagarlo no le quita nada a la raíz y encenderlo no le añade nada.
+
+Tres rasgos suyos que la disposición de archivos de arriba no contempla quedan fijados aquí:
+
+- **No cachea entre peticiones.** Una vista de archivo se queda atrás hasta que alguien la regenera; esta se resuelve entera cada vez, y lo que muestra es lo que hay en el instante de pedirla.
+- **Vive en `tools/`, no en `projects/`.** Es herramienta como la CLI y no artefacto de un proyecto: ningún barrido de `projects/` la recorre, no se cuenta al enumerar la raíz y no resuelve como destino de una relación.
+- **Su selección no es el contexto activo.** El proyecto consultado viaja en la consulta, `?proyecto=<nombre>`, y no en `projects/.state.yaml`: mirar un proyecto no es ponerlo en curso. Un nombre que no existe en la raíz se denuncia en la página en lugar de resolverse en silencio al proyecto activo.
+
+Consume la CLI como biblioteca para calcular y nunca para escribir: importa el cálculo del modelo y no invoca ningún comando que modifique artefactos, contadores, relaciones o el estado activo.
+
+### Las tres columnas
+
+La página se dispone en tres columnas y cada una responde a una pregunta distinta:
+
+| Columna | Responde | No hace |
+|---|---|---|
+| Izquierda, los proyectos | Qué proyectos hay en la raíz, cuál es el activo, cuál no se puede proyectar y con qué razón, y cuál se está consultando, con sus recuentos de artefactos, de ejecuciones y de inconsistencias. | No cambia el proyecto activo: seleccionar es seguir un enlace, no ejecutar `use-project`. |
+| Central, la vista | Las cifras del ámbito consultado —las ocho familias, las ejecuciones y las inconsistencias del proyecto elegido, o los totales de la raíz— y el texto de cada inconsistencia tal como `validate` lo denuncia. | No reinterpreta estados ni rellena lo que un artefacto no declara. Las vistas posteriores del proyecto se añaden a esta columna sin alterar las otras dos. |
+| Derecha, las acciones | Qué comando de la CLI produce cada operación que interesa sobre lo consultado, con el texto y el alcance exactos de ese comando. | No ejecuta ninguno: el visor no autentica a nadie y no tiene autoridad para operar, y quien quiera ejecutar copia el comando y lo lanza fuera de la página. |
+
+La columna derecha declara el límite del visor en lugar de esconderlo: lo que la página no puede hacer aparece con el comando que sí lo hace, y cuando el proyecto consultado no es el activo, con el aviso de que la CLI opera sobre el activo y de qué comando lo cambia.
+
+### Lo que el visor servido no hace
+
+No autentica a quien lo abre ni registra quién consultó qué: ninguna vista acredita operadores, y esta tampoco. No ejecuta Git ni asume que existe un repositorio. No carga recursos de la red ni ejecuta JavaScript: la página es HTML y CSS autocontenidos, y todo lo que interpola del proyecto lo escapa como texto.
+
 ## Lo que una vista no hace
 
 El HTML es autocontenido: no carga hojas de estilo ni scripts de la red, no hace peticiones y no ejecuta código del proyecto que muestra. Todo lo que se interpola del proyecto se escapa como texto, así que un título no puede convertir una vista en un ejecutor.

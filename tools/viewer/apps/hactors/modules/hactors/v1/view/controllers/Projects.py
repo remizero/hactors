@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from success.engine.infrastructure.SuccessController import SuccessController
 
@@ -43,12 +44,20 @@ class Projects ( SuccessController ) :
       for kind, count in row [ "counts" ].items () :
         totals [ kind ] = totals.get ( kind, 0 ) + count
 
+    # La selección vive en la consulta y no en el estado activo: elegir qué
+    # proyecto se ve no es declarar cuál está en curso.
+    wanted   = str ( payload.get ( "proyecto", "" ) ).strip ()
+    selected = next ( ( row for row in rows if row [ "name" ] == wanted ), None )
+
     return {
       "status"   : 200,
       "root"     : str ( root ),
       "active"   : active,
       "projects" : rows,
-      "cards"    : self._cards ( rows, totals )
+      "selected" : selected,
+      "missing"  : wanted if wanted and selected is None else "",
+      "cards"    : self._project_cards ( selected ) if selected else self._cards ( rows, totals ),
+      "actions"  : self._actions ( selected, active )
     }
 
 
@@ -73,12 +82,8 @@ class Projects ( SuccessController ) :
       "active"      : entry [ "name" ] == active,
       "artifacts"   : len ( model.get ( "artifacts", [] ) ),
       "runs"        : len ( model.get ( "runs", [] ) ),
-      "problems"    : len ( model.get ( "problems", [] ) ),
+      "problems"    : model.get ( "problems", [] ),
       "counts"      : counts,
-      "chips"       : [
-        { "label" : FAMILY_LABELS.get ( kind, kind ), "count" : count }
-        for kind, count in sorted ( counts.items (), key = lambda item : ( -item [ 1 ], item [ 0 ] ) )
-      ],
       "error"       : entry [ "error" ]
     }
 
@@ -98,8 +103,86 @@ class Projects ( SuccessController ) :
     } )
     cards.append ( {
       "label" : "inconsistencias",
-      "count" : sum ( row [ "problems" ] for row in rows ),
+      "count" : sum ( len ( row [ "problems" ] ) for row in rows ),
       "kind"  : "problem"
     } )
 
     return cards
+
+
+  def _project_cards ( self, row : dict ) -> list :
+    """Las tarjetas del proyecto seleccionado, con sus ocho familias incluso vacías."""
+    cards = [
+      { "label" : FAMILY_LABELS [ kind ], "count" : row [ "counts" ].get ( kind, 0 ), "kind" : kind }
+      for kind in FAMILY_LABELS
+    ]
+
+    cards.append ( { "label" : "ejecuciones", "count" : row [ "runs" ], "kind" : "run" } )
+    cards.append ( { "label" : "inconsistencias", "count" : len ( row [ "problems" ] ), "kind" : "problem" } )
+
+    return cards
+
+
+  def _actions ( self, selected : Optional [ dict ], active : str ) -> list :
+    """
+    Las acciones con el comando de la CLI que las produce.
+
+    El visor no los ejecuta: los muestra. Las descripciones reproducen el help
+    de cada comando, y el aviso del grupo declara que la CLI solo opera sobre el
+    proyecto activo, que no tiene por qué ser el seleccionado aquí.
+    """
+    groups = [ {
+      "title"   : "Globales",
+      "note"    : "",
+      "actions" : [
+        {
+          "label"   : "Regenerar las vistas derivadas",
+          "command" : "hactors render",
+          "detail"  : "Dibuja el visor de projects/views/ y el tablero de cada proyecto, sin exigir proyecto activo."
+        },
+        {
+          "label"   : "Listar los comandos",
+          "command" : "hactors --help",
+          "detail"  : "La enumeración de la CLI, de la que esta columna es un resumen."
+        }
+      ]
+    } ]
+
+    if selected is None :
+      return groups
+
+    actions : list = []
+    note           = ""
+
+    if selected [ "name" ] != active :
+      note = (
+        f"La CLI solo opera sobre el proyecto activo, que ahora es «{active or 'ninguno'}»: "
+        "ejecuta el primer comando antes que los demás."
+      )
+      actions.append ( {
+        "label"   : "Establecer como proyecto activo",
+        "command" : f"hactors use-project {selected [ 'name' ]}",
+        "detail"  : "Fija el proyecto activo y limpia la selección de ejecución."
+      } )
+
+    actions.extend ( [
+      {
+        "label"   : "Comprobar el proyecto",
+        "command" : "hactors validate",
+        "detail"  : "Referencias, grafo, hallazgos bloqueantes y actions: del proyecto activo, sin reparar nada."
+      },
+      {
+        "label"   : "Proyectar el modelo de lectura",
+        "command" : "hactors export",
+        "detail"  : "Escribe views/project.json del proyecto activo."
+      },
+      {
+        "label"   : "Crear una TASK",
+        "command" : 'hactors create-task --task "<descripción>"',
+        "detail"  : "TASK-nnnnn en tasks/ con su cabecera, sin validar su contenido."
+      }
+    ] )
+
+    groups.append ( { "title" : f"Proyecto {selected [ 'name' ]}", "note" : note, "actions" : actions } )
+
+    return groups

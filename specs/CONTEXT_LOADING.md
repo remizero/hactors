@@ -38,7 +38,7 @@ La creación de una primera RFC es una tarea de propuesta: no exige una RFC prev
 | [EVIDENCE.md](EVIDENCE.md) | Se registra o consulta la evidencia que sostiene una transición de estado o la resolución de un hallazgo. |
 | [DECISIONS.md](DECISIONS.md) | Se adopta, revisa, sustituye o registra una decisión. |
 | [SUMMARY.md](SUMMARY.md) | Se redacta, consolida o consulta el resumen de una RFC o de un workflow_run. |
-| [VIEWS.md](VIEWS.md) | Se proyecta el modelo de lectura o se dibujan el tablero y el visor. |
+| [VIEWS.md](VIEWS.md) | Se proyecta el modelo de lectura, se dibujan el tablero y el visor, o se trabaja en el visor servido. |
 | [RELATIONSHIPS.md](RELATIONSHIPS.md) | Se declaran, modifican o verifican relaciones entre artefactos. |
 | [WORKFLOW.md](WORKFLOW.md) | Se ordenan fases y pasos o se determina un punto de intervención. |
 | [PROJECT_STATE.md](PROJECT_STATE.md) | Se interpreta el estado de una acción derivada o una invariante de cierre entre niveles. |
