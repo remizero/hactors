@@ -136,15 +136,15 @@ Un directorio de `projects/` que no satisface los requisitos de un proyecto se l
 
 ## El visor servido
 
-`tools/viewer/` produce una vista sin escribir ningún archivo: sirve la proyección por HTTP. Resuelve el modelo de lectura en memoria en cada petición con el mismo cálculo que `export` —`root_models` de `hactors_cli.core.model`, el que `write_model` vuelca a `project.json`— y lo dibuja en una página. No es el visor de `projects/views/index.html`, que es un archivo derivado que `render` reemplaza: este no deja nada detrás, así que apagarlo no le quita nada a la raíz y encenderlo no le añade nada.
+`tools/viewer/` produce una vista sin escribir ningún archivo derivado: sirve la proyección por HTTP. Resuelve el modelo de lectura en memoria en cada petición con el mismo cálculo que `export` —`root_models` de `hactors_cli.core.model`, el que `write_model` vuelca a `project.json`— y lo dibuja en una página. No es el visor de `projects/views/index.html`, que es un archivo derivado que `render` reemplaza: este no deja vistas detrás, así que apagarlo no le quita nada a la raíz y encenderlo no le añade nada.
 
 Tres rasgos suyos que la disposición de archivos de arriba no contempla quedan fijados aquí:
 
 - **No cachea entre peticiones.** Una vista de archivo se queda atrás hasta que alguien la regenera; esta se resuelve entera cada vez, y lo que muestra es lo que hay en el instante de pedirla.
 - **Vive en `tools/`, no en `projects/`.** Es herramienta como la CLI y no artefacto de un proyecto: ningún barrido de `projects/` la recorre, no se cuenta al enumerar la raíz y no resuelve como destino de una relación.
-- **Su selección no es el contexto activo.** El proyecto consultado viaja en la consulta, `?proyecto=<nombre>`, y no en `projects/.state.yaml`: mirar un proyecto no es ponerlo en curso. Un nombre que no existe en la raíz se denuncia en la página en lugar de resolverse en silencio al proyecto activo.
+- **Su selección no es el contexto activo.** El proyecto consultado viaja en la consulta, `?proyecto=<nombre>`, y no en `projects/.state.yaml`: mirar un proyecto no es ponerlo en curso. Un nombre que no existe en la raíz se denuncia en la página en lugar de resolverse en silencio al proyecto activo. Ponerlo en curso es otra cosa: la operación de la columna derecha, que sí escribe el estado activo.
 
-Consume la CLI como biblioteca para calcular y nunca para escribir: importa el cálculo del modelo y no invoca ningún comando que modifique artefactos, contadores, relaciones o el estado activo.
+Consume la CLI como biblioteca, para calcular y para su única escritura: importa el cálculo del modelo y `set_active_project` de `hactors_cli.core.state`, la misma función que ejecuta `hactors use-project`. No invoca ningún otro comando ni escribe nada más: ni artefactos, ni contadores, ni relaciones, ni vistas.
 
 ### Las tres columnas
 
@@ -152,18 +152,27 @@ La página se dispone en tres columnas y cada una responde a una pregunta distin
 
 | Columna | Responde | No hace |
 |---|---|---|
-| Izquierda, los proyectos | Qué proyectos hay en la raíz, cuál es el activo, cuál no se puede proyectar y con qué razón, y cuál se está consultando, con sus recuentos de artefactos, de ejecuciones y de inconsistencias. | No cambia el proyecto activo: seleccionar es seguir un enlace, no ejecutar `use-project`. |
-| Central, la vista | Las cifras del ámbito consultado —las ocho familias, las ejecuciones y las inconsistencias del proyecto elegido, o los totales de la raíz— y el texto de cada inconsistencia tal como `validate` lo denuncia. | No reinterpreta estados ni rellena lo que un artefacto no declara. Las vistas posteriores del proyecto se añaden a esta columna sin alterar las otras dos. |
-| Derecha, las acciones | Qué comando de la CLI produce cada operación que interesa sobre lo consultado, con el texto y el alcance exactos de ese comando. | No ejecuta ninguno: el visor no autentica a nadie y no tiene autoridad para operar, y quien quiera ejecutar copia el comando y lo lanza fuera de la página. |
+| Izquierda, los proyectos | Qué proyectos hay en la raíz, cuál es el activo, cuál no se puede proyectar y con qué razón, y cuál se está consultando, con sus recuentos de artefactos, de ejecuciones y de inconsistencias. | No cambia el proyecto activo: seleccionar es seguir un enlace, no enviar la operación. |
+| Central, la vista | Las cifras del ámbito consultado —las ocho familias, las ejecuciones y las inconsistencias del proyecto elegido, o los totales de la raíz—, el texto de cada inconsistencia tal como `validate` lo denuncia, y los `workflow_run` del proyecto elegido con su identificador, su estado tal como consta, su ruta relativa y su motivo de bloqueo cuando lo tienen. | No reinterpreta estados ni rellena lo que un artefacto no declara: un estado vacío se muestra como ausencia y no se sustituye por uno deducido. Las vistas posteriores del proyecto se añaden a esta columna sin alterar las otras dos. |
+| Derecha, operaciones y comandos | Qué operación escribe el visor sobre la raíz, y qué comando de la CLI produce cada una de las demás que interesan sobre lo consultado, con el texto y el alcance exactos de ese comando. | No ejecuta los comandos que solo muestra: quien quiera lanzarlos los copia y los ejecuta fuera de la página. Y no escribe sin envío expreso: elegir qué proyecto se ve no activa nada. |
 
-La columna derecha declara el límite del visor en lugar de esconderlo: lo que la página no puede hacer aparece con el comando que sí lo hace, y cuando el proyecto consultado no es el activo, con el aviso de que la CLI opera sobre el activo y de qué comando lo cambia.
+La columna derecha separa lo que el visor hace de lo que solo enseña a hacer, en lugar de esconder el límite: lo que la página no puede hacer aparece con el comando que sí lo hace, y cuando el proyecto consultado no es el activo, con el aviso de que la CLI opera sobre el activo y de dónde se activa.
+
+### La operación de activar
+
+El visor ejecuta una sola operación: fijar el proyecto activo, que es lo único que escribe. Su contrato:
+
+- **Se envía, no se elige.** Cada proyecto de la raíz es un botón de envío de un formulario `POST`; no hay activación por selección ni por enlace, y sin JavaScript nada puede enviar el formulario sin un clic.
+- **Lleva la marca de la página.** El formulario porta una marca derivada del secreto de la aplicación, así que un formulario servido por otro origen no la reproduce y su envío se rechaza.
+- **El destino lo guarda la CLI.** El nombre enviado se comprueba contra los proyectos de la raíz y la escritura la hace `set_active_project`, cuya guarda es la de `use-project`: un nombre que la CLI no acepta se rechaza con su mismo motivo, sin que el visor decida por su cuenta qué nombre es activable.
+- **Redirige tras escribir.** La respuesta es un `303` al tablero con el proyecto ya activo, así que recargar la página no vuelve a enviar la operación. Un rechazo se dibuja en el propio tablero con su motivo y un estado `400`, y no cambia nada.
 
 ### Lo que el visor servido no hace
 
-No autentica a quien lo abre ni registra quién consultó qué: ninguna vista acredita operadores, y esta tampoco. No ejecuta Git ni asume que existe un repositorio. No carga recursos de la red ni ejecuta JavaScript: la página es HTML y CSS autocontenidos, y todo lo que interpola del proyecto lo escapa como texto.
+No autentica a quien lo abre ni registra quién consultó u operó qué: ninguna vista acredita operadores, y esta tampoco. No ejecuta Git ni asume que existe un repositorio. No carga recursos de la red ni ejecuta JavaScript: la página es HTML y CSS autocontenidos, y todo lo que interpola del proyecto lo escapa como texto. Fuera de la operación de activar no escribe nada: ni artefactos, ni contadores, ni relaciones, ni vistas derivadas.
 
 ## Lo que una vista no hace
 
 El HTML es autocontenido: no carga hojas de estilo ni scripts de la red, no hace peticiones y no ejecuta código del proyecto que muestra. Todo lo que se interpola del proyecto se escapa como texto, así que un título no puede convertir una vista en un ejecutor.
 
-Una vista no escribe de vuelta sobre los artefactos, no consume contadores, no registra relaciones, no cambia estados y no repara lo que denuncia. No es un sustituto de `validate`: reproduce sus inconsistencias, no las reevalúa con otro criterio. Y no es un mecanismo de reconstrucción: borrar `views/` entero no le quita nada al proyecto, y regenerarlo no le añade nada.
+Una vista no escribe de vuelta sobre los artefactos, no consume contadores, no registra relaciones, no cambia estados y no repara lo que denuncia. No es un sustituto de `validate`: reproduce sus inconsistencias, no las reevalúa con otro criterio. Y no es un mecanismo de reconstrucción: borrar `views/` entero no le quita nada al proyecto, y regenerarlo no le añade nada. La única escritura de una vista servida no es de la vista sino de su operación: fijar el contexto activo, conforme a [«El visor servido»](#el-visor-servido); ni esa toca un artefacto.

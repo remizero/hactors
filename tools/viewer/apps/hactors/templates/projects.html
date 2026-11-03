@@ -199,6 +199,12 @@
       color: var(--bad);
     }
 
+    .badge.is-empty {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--muted);
+    }
+
     .pnums {
       display: flex;
       gap: .6rem;
@@ -304,10 +310,55 @@
     .clean { margin: 0; font-size: .82rem; color: var(--good); }
 
     .clean code,
-    .anote code {
+    .anote code,
+    .adetail code {
       font-family: var(--mono);
       color: var(--text);
       opacity: .8;
+    }
+
+    /* ---- Workflows del proyecto ---- */
+
+    .wlist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: .5rem;
+    }
+
+    .witem {
+      display: grid;
+      gap: .3rem;
+      padding: .6rem .8rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .55rem;
+    }
+
+    .whead { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+
+    .wname {
+      font-family: var(--mono);
+      font-size: .84rem;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .wpath {
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .wblock {
+      padding: .4rem .6rem;
+      border-left: 2px solid var(--bad);
+      background: rgba(240, 113, 120, .07);
+      border-radius: 0 .35rem .35rem 0;
+      font-size: .72rem;
+      color: var(--bad);
     }
 
     .empty {
@@ -318,13 +369,59 @@
       font-style: italic;
     }
 
-    /* ---- Columna derecha: acciones ---- */
+    /* ---- Columna derecha: operaciones y comandos ---- */
 
     .anote {
       margin: 0 0 .9rem;
       font-size: .72rem;
       color: var(--muted);
     }
+
+    .opform {
+      display: grid;
+      gap: .4rem;
+      margin: .6rem 0 0;
+    }
+
+    /* Un botón por proyecto: sin script no hay forma de enviar el formulario en
+       dos pasos, así que el envío es el propio clic. */
+    .opbtn {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: .5rem;
+      width: 100%;
+      padding: .5rem .65rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .5rem;
+      color: var(--text);
+      font: inherit;
+      font-size: .8rem;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .opbtn:hover:not(:disabled) { border-color: rgba(110, 168, 254, .4); }
+
+    .opbtn:disabled { cursor: default; opacity: .6; }
+
+    .opbtn .opname { font-family: var(--mono); overflow-wrap: anywhere; }
+
+    .opbtn .ophint {
+      font-size: .58rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .opbtn.is-current {
+      background: rgba(110, 168, 254, .1);
+      border-color: var(--accent);
+    }
+
+    .opbtn.is-current .ophint { color: var(--accent); }
 
     .agroup + .agroup {
       margin-top: 1.1rem;
@@ -362,7 +459,8 @@
 
     /* user-select: all es el equivalente sin script de un botón de copiar: un
        clic selecciona el comando entero. */
-    .action code {
+    .action code,
+    .op > code {
       display: block;
       margin-top: .35rem;
       padding: .4rem .55rem;
@@ -406,7 +504,7 @@
         <span class="sep">·</span> sin proyecto activo
         {% endif %}
       </p>
-      <span class="live">Resuelto en vivo · solo lectura</span>
+      <span class="live">Resuelto en vivo · sin caché</span>
     </div>
   </header>
 
@@ -468,6 +566,26 @@
         </div>
       </div>
 
+      <h2>Workflows</h2>
+      <div class="panel">
+        {% if data.selected.workflows %}
+        <ul class="wlist">
+          {% for wf in data.selected.workflows %}
+          <li class="witem">
+            <span class="whead">
+              <span class="wname">{{ wf.id }}</span>
+              <span class="badge{% if not wf.status %} is-empty{% endif %}">{{ wf.status or 'sin estado' }}</span>
+            </span>
+            <span class="wpath">{{ wf.path }}</span>
+            {% if wf.blocked_reason %}<span class="wblock">{{ wf.blocked_reason }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="clean">Ninguno: el proyecto no declara ninguna instancia <code>workflow_run</code>.</p>
+        {% endif %}
+      </div>
+
       <h2>Inconsistencias</h2>
       <div class="panel">
         {% if data.selected.problems %}
@@ -508,12 +626,47 @@
     </main>
 
     <aside class="col-side">
-      <h2>Acciones</h2>
+      <h2>Operaciones</h2>
       <div class="panel">
         <p class="anote">
-          El visor no ejecuta nada: cada acción muestra el comando de la CLI que la produce.
-          Se supone ejecutado desde <code>{{ data.root }}</code>; desde otro directorio,
-          añade <code>--root</code>.
+          Estas sí las ejecuta el visor, sobre la raíz <code>{{ data.root }}</code>. Cada una
+          muestra el comando de la CLI que produce lo mismo.
+        </p>
+
+        {% if data.rejected %}<p class="gnote">{{ data.rejected }}</p>{% endif %}
+
+        <div class="op">
+          <div class="alabel">Proyecto activo</div>
+          <p class="adetail">
+            Ahora <b>{{ data.active or 'ninguno' }}</b>. Activar otro escribe
+            <code>projects/.state.yaml</code> y limpia la selección de ejecución.
+          </p>
+
+          {% if data.projects %}
+          <form class="opform" method="post" action="?">
+            <input type="hidden" name="marca" value="{{ data.marca }}">
+            {% for project in data.projects %}
+            <button class="opbtn{% if project.active %} is-current{% endif %}" type="submit"
+                    name="proyecto" value="{{ project.name }}"{% if project.active %} disabled{% endif %}>
+              <span class="opname">{{ project.name }}</span>
+              <span class="ophint">{% if project.active %}activo{% else %}activar{% endif %}</span>
+            </button>
+            {% endfor %}
+          </form>
+          {% else %}
+          <p class="empty">No hay ningún proyecto que activar.</p>
+          {% endif %}
+
+          <code>hactors use-project &lt;nombre&gt;</code>
+        </div>
+      </div>
+
+      <h2>Comandos</h2>
+      <div class="panel">
+        <p class="anote">
+          Estos no los ejecuta el visor: cada uno es el comando de la CLI que produce la misma
+          operación. Se supone ejecutado desde <code>{{ data.root }}</code>; desde otro
+          directorio, añade <code>--root</code>.
         </p>
 
         {% for group in data.actions %}
@@ -535,9 +688,11 @@
   </div>
 
   <footer>
-    Esta página no escribe nada: no genera artefactos, no consume contadores, no registra
-    relaciones ni cambia el estado activo. El proyecto elegido vive en la consulta y no en
-    <code>projects/.state.yaml</code>. Ninguna de sus cifras es fuente de verdad.
+    El visor resuelve en vivo y no es fuente de verdad: ninguna de sus cifras acredita el
+    estado de un proyecto. No genera artefactos, no consume contadores ni registra relaciones;
+    lo único que escribe es el proyecto activo, en <code>projects/.state.yaml</code> y solo por
+    el formulario de operaciones. El proyecto elegido para verlo vive en la consulta y no en el
+    estado activo.
   </footer>
 
 </div>

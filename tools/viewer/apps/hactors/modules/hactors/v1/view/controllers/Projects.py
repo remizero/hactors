@@ -1,12 +1,17 @@
+import hashlib
+import hmac
 import os
+import secrets
 from pathlib import Path
 from typing import Optional
+
+from flask import current_app
 
 from success.engine.infrastructure.SuccessController import SuccessController
 
 from hactors_cli.core.model import root_models
 from hactors_cli.core.paths import find_hactors_root
-from hactors_cli.core.state import StateError, load_state
+from hactors_cli.core.state import StateError, load_state, set_active_project
 
 # Las etiquetas son las familias del corpus, no nombres inventados: las mismas
 # que usa la tabla de VIEWS.md#artefactos.
@@ -21,13 +26,23 @@ FAMILY_LABELS : dict = {
   "harness"  : "HRN"
 }
 
+# La marca se deriva del secreto de la aplicación, así que solo esta página puede
+# emitirla: un formulario servido por otro origen no la reproduce y su envío se
+# rechaza.
+MARK_SCOPE = b"hactors/viewer/use-project"
+
+
+def operation_mark () -> str :
+  return hmac.new ( str ( current_app.secret_key ).encode (), MARK_SCOPE, hashlib.sha256 ).hexdigest ()
+
 
 class Projects ( SuccessController ) :
   """
-  Proyecta los proyectos gestionados por HACTORS.
+  Proyecta los proyectos gestionados por HACTORS y permite activar uno.
 
-  Solo lectura: resuelve en vivo desde la raíz de HACTORS en cada petición y no
-  escribe artefactos, vistas ni estado activo.
+  Resuelve en vivo desde la raíz de HACTORS en cada petición y no guarda nada
+  entre una y otra. `load` solo lee; `useProject` es la única escritura del
+  visor y reproduce lo que hace `hactors use-project`.
   """
 
   def load ( self, payload : dict ) -> dict :
@@ -57,8 +72,40 @@ class Projects ( SuccessController ) :
       "selected" : selected,
       "missing"  : wanted if wanted and selected is None else "",
       "cards"    : self._project_cards ( selected ) if selected else self._cards ( rows, totals ),
-      "actions"  : self._actions ( selected, active )
+      "actions"  : self._actions ( selected, active ),
+      "marca"    : operation_mark ()
     }
+
+
+  def useProject ( self, payload : dict ) -> dict :
+    """
+    Fija el proyecto activo, como `hactors use-project`.
+
+    Devuelve el nombre activado para que la acción redirija, o el tablero de la
+    raíz con el motivo del rechazo. La guarda del proyecto la pone la CLI: el
+    visor no decide por su cuenta qué nombre es activable.
+    """
+    root = self._root ()
+    name = str ( payload.get ( "proyecto", "" ) ).strip ()
+    mark = str ( payload.get ( "marca", "" ) )
+
+    if not secrets.compare_digest ( mark.encode (), operation_mark ().encode () ) :
+      rejected = "La operación no lleva la marca de esta página: recarga el visor y vuelve a enviarla."
+    elif name not in { entry [ "name" ] for entry in root_models ( root ) } :
+      rejected = f"No hay ningún proyecto llamado «{name}» en la raíz."
+    else :
+      try :
+        set_active_project ( root, name )
+      except StateError as exc :
+        rejected = str ( exc )
+      else :
+        return { "activated" : name }
+
+    # El nombre enviado no pasa a la selección: el rechazo ya lo nombra, y la
+    # página no lo denuncia dos veces.
+    board              = self.load ( {} )
+    board [ "rejected" ] = rejected
+    return board
 
 
   def _root ( self ) -> Path :
@@ -82,6 +129,7 @@ class Projects ( SuccessController ) :
       "active"      : entry [ "name" ] == active,
       "artifacts"   : len ( model.get ( "artifacts", [] ) ),
       "runs"        : len ( model.get ( "runs", [] ) ),
+      "workflows"   : [ run for run in model.get ( "runs", [] ) if run.get ( "kind" ) == "workflow_run" ],
       "problems"    : model.get ( "problems", [] ),
       "counts"      : counts,
       "error"       : entry [ "error" ]
@@ -157,13 +205,8 @@ class Projects ( SuccessController ) :
     if selected [ "name" ] != active :
       note = (
         f"La CLI solo opera sobre el proyecto activo, que ahora es «{active or 'ninguno'}»: "
-        "ejecuta el primer comando antes que los demás."
+        f"activa «{selected [ 'name' ]}» en el bloque de operaciones antes de ejecutar estos comandos."
       )
-      actions.append ( {
-        "label"   : "Establecer como proyecto activo",
-        "command" : f"hactors use-project {selected [ 'name' ]}",
-        "detail"  : "Fija el proyecto activo y limpia la selección de ejecución."
-      } )
 
     actions.extend ( [
       {

@@ -6,6 +6,6 @@
     "rule": "/",
     "action": "apps/hactors/services/view/viewer/v1/render/projects",
     "action_name": "projects",
-    "methods": [ "GET" ]
+    "methods": [ "GET", "POST" ]
   }
 ]
