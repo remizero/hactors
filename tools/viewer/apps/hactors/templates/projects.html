@@ -317,9 +317,10 @@
       opacity: .8;
     }
 
-    /* ---- Workflows del proyecto ---- */
+    /* ---- Filas de la columna central: workflows y artefactos ---- */
 
-    .wlist {
+    .wlist,
+    .alist {
       list-style: none;
       margin: 0;
       padding: 0;
@@ -327,7 +328,8 @@
       gap: .5rem;
     }
 
-    .witem {
+    .witem,
+    .aitem {
       display: grid;
       gap: .3rem;
       padding: .6rem .8rem;
@@ -336,16 +338,19 @@
       border-radius: .55rem;
     }
 
-    .whead { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+    .whead,
+    .ahead { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
 
-    .wname {
+    .wname,
+    .aname {
       font-family: var(--mono);
       font-size: .84rem;
       font-weight: 500;
       overflow-wrap: anywhere;
     }
 
-    .wpath {
+    .wpath,
+    .apath {
       font-family: var(--mono);
       font-size: .68rem;
       color: var(--muted);
@@ -359,6 +364,36 @@
       border-radius: 0 .35rem .35rem 0;
       font-size: .72rem;
       color: var(--bad);
+    }
+
+    .fgroup + .fgroup { margin-top: 1.1rem; }
+
+    .atitle { font-size: .8rem; }
+
+    .aactor {
+      font-family: var(--mono);
+      font-size: .64rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    /* Las acciones derivadas y las versiones viven dentro del archivo de su
+       artefacto, así que se dibujan anidadas bajo su fila. */
+    .asub {
+      list-style: none;
+      margin: .15rem 0 0;
+      padding: 0 0 0 .7rem;
+      border-left: 1px solid var(--line);
+      display: grid;
+      gap: .3rem;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .asub code {
+      font-family: var(--mono);
+      color: var(--text);
+      opacity: .85;
     }
 
     .empty {
@@ -564,6 +599,56 @@
           </div>
           {% endfor %}
         </div>
+      </div>
+
+      <h2>Artefactos</h2>
+      <div class="panel">
+        {% if data.selected.artifacts %}
+        {% for group in data.selected.artifacts %}
+        <div class="fgroup">
+          <p class="gtitle">{{ group.label }}</p>
+          <ul class="alist">
+            {% for art in group.entries %}
+            <li class="aitem">
+              <span class="ahead">
+                <span class="aname">{{ art.id }}</span>
+                <span class="badge{% if not art.status %} is-empty{% endif %}">{{ art.status or 'sin estado' }}</span>
+                {% if group.kind == 'task' %}
+                <span class="aactor">{{ art.actor or 'sin actor' }}</span>
+                {% endif %}
+              </span>
+              {% if art.title %}<span class="atitle">{{ art.title }}</span>{% endif %}
+              <span class="apath">{{ art.path }}</span>
+              {% if art.actions %}
+              <ul class="asub">
+                {% for act in art.actions %}
+                <li>
+                  <code>{{ act.id }}</code> {{ act.type }}
+                  <span class="badge{% if not act.status %} is-empty{% endif %}">{{ act.status or 'sin estado' }}</span>
+                  <span class="aactor">{{ act.actor or 'sin actor' }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+              {% if art.versions %}
+              <ul class="asub">
+                {% for ver in art.versions %}
+                <li>
+                  <code>{{ ver.version if ver.version != '' else 'sin número' }}</code>
+                  <span class="badge{% if not ver.status %} is-empty{% endif %}">{{ ver.status or 'sin estado' }}</span>
+                  {% if ver.published %}<span class="aactor">{{ ver.published }}</span>{% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="clean">Ninguno: el proyecto no declara artefactos documentales.</p>
+        {% endif %}
       </div>
 
       <h2>Workflows</h2>

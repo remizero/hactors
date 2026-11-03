@@ -130,10 +130,26 @@ class Projects ( SuccessController ) :
       "artifacts"   : len ( model.get ( "artifacts", [] ) ),
       "runs"        : len ( model.get ( "runs", [] ) ),
       "workflows"   : [ run for run in model.get ( "runs", [] ) if run.get ( "kind" ) == "workflow_run" ],
+      "artifacts"   : self._artifact_groups ( model ),
       "problems"    : model.get ( "problems", [] ),
       "counts"      : counts,
       "error"       : entry [ "error" ]
     }
+
+
+  def _artifact_groups ( self, model : dict ) -> list :
+    """Los artefactos del proyecto agrupados por familia, en el orden del corpus."""
+    # La clave no puede llamarse `items`: Jinja resuelve antes el atributo del
+    # dict y devolvería el método `dict.items` en lugar de la lista.
+    return [
+      {
+        "kind"    : kind,
+        "label"   : label,
+        "entries" : [ entry for entry in model.get ( "artifacts", [] ) if entry.get ( "kind" ) == kind ]
+      }
+      for kind, label in FAMILY_LABELS.items ()
+      if any ( entry.get ( "kind" ) == kind for entry in model.get ( "artifacts", [] ) )
+    ]
 
 
   def _cards ( self, rows : list, totals : dict ) -> list :
