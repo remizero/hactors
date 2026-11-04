@@ -123,6 +123,9 @@ class Projects ( SuccessController ) :
       kind           = artifact.get ( "kind", "" )
       counts [ kind ] = counts.get ( kind, 0 ) + 1
 
+    # `artifacts` es el recuento y `families` la lista agrupada: dos claves para
+    # dos valores, porque la columna izquierda dibuja el número y la central los
+    # grupos, y una clave repetida en el literal hace ganar al último valor.
     return {
       "name"        : entry [ "name" ],
       "description" : model.get ( "description", "" ),
@@ -130,7 +133,7 @@ class Projects ( SuccessController ) :
       "artifacts"   : len ( model.get ( "artifacts", [] ) ),
       "runs"        : len ( model.get ( "runs", [] ) ),
       "workflows"   : [ run for run in model.get ( "runs", [] ) if run.get ( "kind" ) == "workflow_run" ],
-      "artifacts"   : self._artifact_groups ( model ),
+      "families"    : self._artifact_groups ( model ),
       "problems"    : model.get ( "problems", [] ),
       "counts"      : counts,
       "error"       : entry [ "error" ]
