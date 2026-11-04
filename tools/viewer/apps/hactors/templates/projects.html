@@ -56,6 +56,12 @@
       color: transparent;
     }
 
+    /* `inherit` y no el color del enlace: el degradado del h1 se recorta sobre su propio texto. */
+    h1 a {
+      color: inherit;
+      text-decoration: none;
+    }
+
     .headmeta { text-align: right; }
 
     .tagline {
@@ -537,7 +543,7 @@
 <div class="wrap">
 
   <header>
-    <h1>HACTORS</h1>
+    <h1><a href="?">HACTORS</a></h1>
     <div class="headmeta">
       <p class="tagline">
         Raíz <code>{{ data.root }}</code>
