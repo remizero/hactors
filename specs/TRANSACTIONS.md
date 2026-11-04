@@ -35,7 +35,7 @@ Toda operación sigue este orden estricto. Los pasos que no aplican se omiten si
 5. **Contexto activo**: actualizar `projects/.state.yaml`, solo cuando la operación crea o selecciona una instancia.
 6. **Cierre**: verificar las invariantes del tipo y dar la operación por terminada.
 
-Si un paso falla, la operación no se considera terminada y su motivo se comunica. Los archivos ya modificados en pasos anteriores no se revierten automáticamente: la reconciliación detecta y corrige. Un identificador consumido no se reutiliza aunque el artefacto no llegue a existir; el hueco queda documentado y el contador no retrocede.
+Si un paso falla, la operación no se considera terminada y su motivo se comunica. Los archivos ya modificados en pasos anteriores no se revierten automáticamente: la reconciliación detecta y corrige. Un identificador consumido no se reutiliza aunque el artefacto no llegue a existir; el hueco queda documentado y el contador no retrocede, así que la igualdad entre el contador y las identidades de su tipo presentes solo se restaura creando el artefacto que ese identificador reservó.
 
 ## Operaciones
 
@@ -73,7 +73,7 @@ De las siete verificaciones de la tabla, `hactors validate` automatiza las seis 
 | Verificación | Fuentes cruzadas | Corrección canónica |
 |---|---|---|
 | Toda arista declarada por un documento consta en `relations`. | Documentos ↔ manifest del proyecto. | Añadir la arista que falta. |
-| Todo contador es mayor o igual que cualquier identidad existente de su tipo. | Manifest ↔ documentos e instancias. | Incrementar al máximo observado; nunca renumerar. |
+| Todo contador iguala exactamente las identidades de su tipo presentes, y ninguna identidad existente lo excede. | Manifest ↔ documentos e instancias. | El que va por detrás se incrementa al máximo observado; el que va por delante denuncia un hueco, que se cierra creando el artefacto que ese número reservó. Una definición WORKFLOW sin ejecutar se cierra ejecutándola, no incrementando el contador. Nunca renumerar ni retroceder un contador. |
 | Toda instancia tiene el padre admitido y `identity.id` igual a su componente de ruta. | Árbol de directorios ↔ manifiestos. | Corregir el manifiesto; no mover la instancia. |
 | Toda referencia documental de una instancia resuelve. | `identity.*_ref` ↔ documentos y catálogos. | Corregir la referencia o registrar el artefacto ausente. |
 | Ningún origen cerrado conserva un hallazgo `critical` o `high` en `open`. | `FND-nnnnn.yaml` ↔ TASK de origen. | Reconciliar en el origen que se cerró indebidamente, conforme a [FINDING.md](FINDING.md). |

@@ -166,7 +166,7 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 
 **`relations`** — El grafo del proyecto: la lista de las relaciones entre sus artefactos. Permite navegar la trazabilidad sin mantener índices duplicados. Su elemento, su vocabulario y su correspondencia con las declaraciones documentales se definen en «Relaciones del proyecto».
 
-**`counters`** — Contadores secuenciales, uno por tipo de artefacto y de instancia. Se incrementan al crear la instancia o al declarar el artefacto documental que numeran.
+**`counters`** — Contadores secuenciales, uno por tipo de artefacto y de instancia. Se incrementan al crear la instancia o al declarar el artefacto documental que numeran. La definición WORKFLOW y su ejecución son la excepción: comparten `workflow_run`, porque lo que se numera y se cuenta es lo físico.
 
 ### Relaciones del proyecto
 
@@ -212,8 +212,7 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 | `plan` | Un documento PLAN en `plans/` o `docs/plans/` | `PLAN-00001` |
 | `test` | Un TEST en `tests/` | `TEST-00001` |
 | `harness` | Un catálogo HRN en `harnesses/` | `HRN-00001` |
-| `workflow` | Una definición WORKFLOW en `workflows/` | `WORKFLOW-00001` |
-| `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001` |
+| `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001`; la definición WORKFLOW que lo anticipa se redacta con ese mismo número, `WORKFLOW-00001` |
 | `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
 | `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
 | `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
@@ -225,11 +224,13 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 
 Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores documentales numeran el artefacto, no sus versiones: las versiones de receta y de definición (`@vNNN`) no consumen contador. Ningún contador se reinicia al abrir una rama ni al derivar; una RFC derivada consume el correlativo global de su tipo, conforme a [RFC.md](RFC.md#derivación-y-numeración).
 
-Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación. Los contadores `rfc_a` a `rfc_d`, `plan`, `test`, `harness` y `workflow` tampoco son de ejecución y ningún comando los consume: numeran artefactos documentales que se redactan a mano, así que quien declara uno incrementa el contador de su tipo en la misma operación.
+Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación. Los contadores `rfc_a` a `rfc_d`, `plan`, `test` y `harness` tampoco son de ejecución y ningún comando los consume: numeran artefactos documentales que se redactan a mano, así que quien declara uno incrementa el contador de su tipo en la misma operación. La definición WORKFLOW se redacta a mano como esos artefactos, pero no tiene contador propio ni consume ninguno: un único campo `workflow_run` numera el concepto y su ejecución, porque lo físico es la instancia y una definición de trabajo no tiene un recuento propio. Solo `hactors create-workflow` lo consume, al crear el workflow_run; el catálogo de `workflows/` se redacta con el número que tendrá su workflow_run, así que mientras esa definición no se ejecute el contador va por detrás de su número y `hactors validate` denuncia el hueco.
 
 Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia o al declarar su primer artefacto del tipo; no es necesario reescribir los objetos anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
 
 Como un artefacto descartado o no implementado permanece en el proyecto como historia y nunca se elimina, el contador de un tipo y el número de artefactos de ese tipo presentes coinciden siempre: un mismo campo es a la vez el siguiente identificador y el recuento de existentes. Retirar un artefacto no decrementa su contador, porque reasignar ese identificador rompería las referencias que ya lo nombran.
+
+`hactors validate` comprueba esa igualdad en cada contador que esta tabla define, en las dos direcciones: un valor por debajo de una identidad existente anuncia que la próxima creación repetiría un número ya asignado, y un valor por encima denuncia el hueco entre lo numerado y lo presente. La definición WORKFLOW cuenta para el límite inferior y no para el recuento, porque la cuentan sus workflow_run. La corrección canónica de cada caso está en [TRANSACTIONS.md](TRANSACTIONS.md#detección).
 
 ### Ejemplo
 
@@ -252,7 +253,7 @@ counters:
   adr: 0
 ```
 
-Los contadores registran la numeración asignada, no la ubicación ni una comprobación de existencia. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
+Los contadores registran la numeración asignada, no la ubicación. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
 
 ## 4. Archivo de estado activo
 
@@ -857,7 +858,7 @@ Cada instancia persistida bajo `hactors/` vive dentro del padre que admite la ta
 
 ### Contadores
 
-Cada contador de `manifest.yaml` es mayor o igual que cualquier identidad existente de su tipo: `task`, `plan` y `test` desde los documentos del proyecto, `evidence` y `finding` desde sus registros, `adr` desde los archivos de `decisions/`, `harness` desde los catálogos y `workflow` desde los directorios de `workflows/`, `action` desde los `id` del campo `actions:` de las RFC con identidad, `rfc_a` a `rfc_d` desde el último segmento de tipo de cada identidad de RFC, y los seis contadores de ejecución desde los directorios de instancia. Un contador que no es un entero no negativo se denuncia por sí mismo; uno sin identidades de su tipo no se comprueba, porque cualquier valor satisface la invariante. La comprobación no renumera nada: la corrección es incrementar al máximo observado, conforme a [TRANSACTIONS.md](TRANSACTIONS.md#detección).
+Cada contador que la tabla de la sección 3 define cumple dos invariantes sobre las identidades de su tipo: no es menor que ninguna identidad existente e iguala exactamente la cantidad de las presentes. Las identidades se observan en `task`, `plan` y `test` desde los documentos del proyecto, en `evidence` y `finding` desde sus registros, en `adr` desde los archivos de `decisions/`, en `harness` desde los catálogos, en `action` desde los `id` del campo `actions:` de las RFC con identidad, en `rfc_a` a `rfc_d` desde el último segmento de tipo de cada identidad de RFC, y en los seis contadores de ejecución desde los directorios de instancia. Los directorios de `workflows/` se observan bajo `workflow_run` y solo para el límite inferior: la definición no consume contador ni cuenta entre las presentes, que son sus workflow_run. Un contador que no es un entero no negativo se denuncia por sí mismo y no se compara con nada; uno sin identidades de su tipo presentes debe valer cero. La comprobación no renumera nada ni repara el manifest: la corrección es la de [TRANSACTIONS.md](TRANSACTIONS.md#detección).
 
 ### Hallazgos bloqueantes
 

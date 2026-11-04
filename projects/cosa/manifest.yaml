@@ -254,7 +254,6 @@ counters:
   plan: 1
   test: 3
   harness: 0
-  workflow: 1
   workflow_run: 1
   task_run: 1
   rfc_run: 4

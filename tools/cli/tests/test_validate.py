@@ -27,6 +27,8 @@ ACTIONS = [
         "evidence": [],
     }
 ]
+# La RFC derivada declara su propia acción: repetir ACT-00001 rompería la igualdad del contador.
+DERIVED_ACTIONS = [{**ACTIONS[0], "id": "ACT-00002"}]
 
 
 def invoke(root, *args, expected=0):
@@ -130,7 +132,6 @@ def harness_package(project: Path, harness_id: str = "HRN-00001", version: str =
     path = project / "harnesses" / harness_id / "versions" / version / "harness.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("id: HRN-00001\nversion: 1\n")
-    bump_counter(project, "harness", harness_id)
     return path
 
 
@@ -358,6 +359,8 @@ def test_illegible_manifest_is_reported(hactors_root, project, tree):
 
 
 def test_a_counter_below_an_observed_identity_is_reported(hactors_root, project):
+    for number in range(1, 4):
+        task_document(project, task_id=f"TASK-{number:05d}")
     task_document(project, task_id="TASK-00004")
     set_counter(project, "task", 2)
     assert validate(hactors_root, project) == [
@@ -366,6 +369,35 @@ def test_a_counter_below_an_observed_identity_is_reported(hactors_root, project)
     ]
 
     bump_counter(project, "task", "TASK-00004")
+    assert validate(hactors_root, project) == []
+
+
+def test_a_counter_above_the_identities_present_is_reported(hactors_root, project):
+    task_document(project)
+    set_counter(project, "task", 3)
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: el contador `task` vale 3 y hay 1 identidad(es) de su tipo presente(s); "
+        "debe igualar exactamente esa cantidad."
+    ]
+
+
+def test_a_workflow_catalog_is_numbered_by_the_run_it_awaits(hactors_root, project):
+    catalog = project / "workflows" / "WORKFLOW-00001" / "manifest.yaml"
+    catalog.parent.mkdir(parents=True)
+    catalog.write_text(yaml.dump({"id": "WORKFLOW-00001", "versions": []}, sort_keys=False))
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: el contador `workflow_run` vale 0 y existe la identidad 'WORKFLOW-00001'; "
+        "debe ser mayor o igual que cualquier identidad de su tipo."
+    ]
+
+    # El catálogo no consume: hasta que su workflow_run exista, el número que anticipa sobra.
+    set_counter(project, "workflow_run", 1)
+    assert validate(hactors_root, project) == [
+        "manifest.yaml: el contador `workflow_run` vale 1 y hay 0 identidad(es) de su tipo "
+        "presente(s); debe igualar exactamente esa cantidad."
+    ]
+
+    paired_workflow_run(project, "WORKFLOW-00001")
     assert validate(hactors_root, project) == []
 
 
@@ -389,6 +421,7 @@ def test_an_instance_outside_its_admitted_parent_is_reported(hactors_root, proje
     misplaced = tree["workflow_run"] / "rfc_run_000001"
     misplaced.mkdir()
     (misplaced / "manifest.yaml").write_text("identity:\n  id: rfc_run_000001\n  rfc_ref: ''\n")
+    set_counter(project, "rfc_run", 2)
     assert validate(hactors_root, project) == [
         "hactors/workflow_run_000001/rfc_run_000001: jerarquía inválida: "
         "rfc_run no puede vivir dentro de workflow_run."
@@ -407,6 +440,7 @@ def test_an_identity_that_does_not_match_its_directory_is_reported(hactors_root,
 
 def test_an_active_run_that_no_longer_exists_is_reported(hactors_root, project, tree):
     shutil.rmtree(tree["harness_run"])
+    set_counter(project, "harness_run", 0)
     assert validate(hactors_root, project) == [
         f"projects/.state.yaml: la instancia activa '{active_run(hactors_root)}' no es válida: "
         "harness_run no encontrado o sin manifest: 'harness_run_000001'."
@@ -433,6 +467,8 @@ def test_command_lists_every_problem_and_fails(hactors_root, project, tree):
     set_identity(tree["workflow_run"] / "manifest.yaml", task_ref="TASK-00009")
     set_identity(tree["rfc_run"] / "manifest.yaml", rfc_ref="RFC-A00002")
     rfc_document(project, actions=[{**ACTIONS[0], "id": "ACT-1"}])
+    # 'ACT-1' no es una identidad ACT, así que ninguna acción consume el contador.
+    set_counter(project, "action", 0)
     task_document(project, status="done")
     finding_document(project, origin="TASK-00001")
     result = invoke(hactors_root, "validate", expected=1)
@@ -487,11 +523,28 @@ def harness_catalog(project: Path, harness_id: str = "HRN-00001", **fields) -> P
     return path
 
 
+def paired_workflow_run(project: Path, workflow_id: str) -> None:
+    """El catálogo no consume contador: lo consume su ejecución, con el mismo número."""
+    number = int(workflow_id.rsplit("-", 1)[-1])
+    run = project / "hactors" / f"workflow_run_{number:06d}"
+    run.mkdir(parents=True, exist_ok=True)
+    (run / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                run.name: {"identity": {"id": run.name, "task_ref": ""}},
+                "global_state": {"status": "open"},
+            },
+            sort_keys=False,
+        )
+    )
+    bump_counter(project, "workflow_run", run.name)
+
+
 def workflow_catalog(project: Path, workflow_id: str = "WORKFLOW-00001") -> Path:
     path = project / "workflows" / workflow_id / "manifest.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.dump({"id": workflow_id, "versions": []}, sort_keys=False))
-    bump_counter(project, "workflow", workflow_id)
+    paired_workflow_run(project, workflow_id)
     return path
 
 
@@ -501,7 +554,7 @@ def workflow_definition(
     path = project / "workflows" / workflow_id / "versions" / version / "workflow.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"id: {workflow_id}\nversion: 1\n")
-    bump_counter(project, "workflow", workflow_id)
+    paired_workflow_run(project, workflow_id)
     return path
 
 
@@ -560,13 +613,13 @@ def test_target_resolves_against_its_artifact(hactors_root, project, target, set
 
 def test_rfc_target_resolves_against_its_document(hactors_root, project):
     rfc_document(project, actions=ACTIONS)
-    set_relations(project, [edge("RFC-A00001", "RFC-F00002", "informs")])
+    set_relations(project, [edge("RFC-A00001", "RFC-F00001", "informs")])
     problems = validate(hactors_root, project)
     assert problems == [
-        "manifest.yaml: relations[1]: `target` 'RFC-F00002' no resuelve a ningún artefacto del proyecto."
+        "manifest.yaml: relations[1]: `target` 'RFC-F00001' no resuelve a ningún artefacto del proyecto."
     ]
 
-    rfc_document(project, name="RFC-F00002", actions=ACTIONS)
+    rfc_document(project, name="RFC-F00001", actions=DERIVED_ACTIONS)
     assert validate(hactors_root, project) == []
 
 
@@ -602,28 +655,28 @@ def test_harness_catalog_without_identity_is_reported(hactors_root, project):
 
 def test_rfc_origin_produces_an_inverted_derives_edge(hactors_root, project):
     rfc_document(project, actions=ACTIONS)
-    rfc_document(project, name="RFC-F00002", actions=ACTIONS, origin="RFC-A00001")
+    rfc_document(project, name="RFC-F00001", actions=DERIVED_ACTIONS, origin="RFC-A00001")
     assert validate(hactors_root, project) == [
-        "rfcs/RFC-F00002.md: el campo `origin` declara la arista "
-        "{source: RFC-A00001, target: RFC-F00002, relation: derives}, "
+        "rfcs/RFC-F00001.md: el campo `origin` declara la arista "
+        "{source: RFC-A00001, target: RFC-F00001, relation: derives}, "
         "que no consta en `relations` del manifest."
     ]
 
-    set_relations(project, [edge("RFC-A00001", "RFC-F00002", "derives")])
+    set_relations(project, [edge("RFC-A00001", "RFC-F00001", "derives")])
     assert validate(hactors_root, project) == []
 
 
 @pytest.mark.parametrize(
     "field, value, expected",
     [
-        ("depends_on", ["RFC-A00001"], edge("RFC-F00002", "RFC-A00001", "depends-on")),
-        ("supersedes", "RFC-A00001", edge("RFC-F00002", "RFC-A00001", "supersedes")),
-        ("superseded_by", "RFC-A00001", edge("RFC-A00001", "RFC-F00002", "supersedes")),
+        ("depends_on", ["RFC-A00001"], edge("RFC-F00001", "RFC-A00001", "depends-on")),
+        ("supersedes", "RFC-A00001", edge("RFC-F00001", "RFC-A00001", "supersedes")),
+        ("superseded_by", "RFC-A00001", edge("RFC-A00001", "RFC-F00001", "supersedes")),
     ],
 )
 def test_rfc_fields_produce_their_edge(hactors_root, project, field, value, expected):
     rfc_document(project, actions=ACTIONS)
-    rfc_document(project, name="RFC-F00002", actions=ACTIONS, **{field: value})
+    rfc_document(project, name="RFC-F00001", actions=DERIVED_ACTIONS, **{field: value})
     problems = validate(hactors_root, project)
     assert len(problems) == 1
     assert f"el campo `{field}` declara la arista" in problems[0]
@@ -633,12 +686,12 @@ def test_rfc_fields_produce_their_edge(hactors_root, project, field, value, expe
 
 
 def test_supersedes_declared_from_both_ends_is_one_edge(hactors_root, project):
-    rfc_document(project, actions=ACTIONS, superseded_by="RFC-F00002")
-    rfc_document(project, name="RFC-F00002", actions=ACTIONS, supersedes="RFC-A00001")
+    rfc_document(project, actions=ACTIONS, superseded_by="RFC-F00001")
+    rfc_document(project, name="RFC-F00001", actions=DERIVED_ACTIONS, supersedes="RFC-A00001")
     problems = validate(hactors_root, project)
     assert problems == [
         "rfcs/RFC-A00001.md: el campo `superseded_by` declara la arista "
-        "{source: RFC-F00002, target: RFC-A00001, relation: supersedes}, "
+        "{source: RFC-F00001, target: RFC-A00001, relation: supersedes}, "
         "que no consta en `relations` del manifest."
     ]
 
@@ -647,11 +700,11 @@ def test_document_relation_list_is_represented_with_its_source(hactors_root, pro
     rfc_document(
         project,
         actions=ACTIONS,
-        relations=[{"target": "RFC-F00002#C1", "relation": "informs"}],
+        relations=[{"target": "RFC-F00001#C1", "relation": "informs"}],
     )
     assert validate(hactors_root, project) == [
         "rfcs/RFC-A00001.md: el campo `relations` declara la arista "
-        "{source: RFC-A00001, target: RFC-F00002#C1, relation: informs}, "
+        "{source: RFC-A00001, target: RFC-F00001#C1, relation: informs}, "
         "que no consta en `relations` del manifest."
     ]
 
@@ -712,7 +765,7 @@ def test_harness_relations_use_the_identity_and_the_exact_version(hactors_root, 
 
 
 def test_command_reports_graph_problems(hactors_root, project):
-    rfc_document(project, actions=ACTIONS, origin="RFC-F00002")
+    rfc_document(project, actions=ACTIONS, origin="RFC-F00001")
     set_relations(project, [edge("RFC-A00001", "TASK-00009", "depends-on")])
     result = invoke(hactors_root, "validate", expected=1)
     assert "`target` 'TASK-00009' no resuelve" in result.output

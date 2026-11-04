@@ -74,7 +74,7 @@ Una acción `completed` sin evidencia verificable incumple el requisito y bloque
 
 | Nivel | Formato | Numeración |
 |---|---|---|
-| WORKFLOW | `WORKFLOW-nnnnn`; su versión publicada se escribe `WORKFLOW-nnnnn@vNNN`. | Contador `workflow` del manifest del proyecto. Su estado, incluida la disposición `closed`, se registra en el `status` del catálogo conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md). |
+| WORKFLOW | `WORKFLOW-nnnnn`; su versión publicada se escribe `WORKFLOW-nnnnn@vNNN`. | Contador `workflow_run` del manifest del proyecto, compartido con su ejecución: la definición se redacta con el número que tendrá su workflow_run y no lo consume. Su estado, incluida la disposición `closed`, se registra en el `status` del catálogo conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md). |
 | TASK | `TASK-nnnnn` | Contador `task` del manifest del proyecto. |
 | RFC | Conforme a [RFC.md](RFC.md#identidad-y-tipos). | Contador `rfc_<tipo>` del manifest del proyecto, uno por tipo; la asignación sigue [RFC_SYSTEM.md](RFC_SYSTEM.md#numeración). |
 | Acción | `ACT-nnnnn` | Contador `action` del manifest del proyecto. |

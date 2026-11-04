@@ -34,7 +34,7 @@ Un **artefacto** se identifica en mayúsculas con cinco cifras y ceros iniciales
 Una **instancia de ejecución** se identifica en minúsculas con seis cifras: `workflow_run_000001`, `task_run_000001`, `rfc_run_000001`, `plan_run_000001`, `test_run_000001` y `harness_run_000001`.
 El SUMMARY carece de identidad propia: se identifica por el artefacto que resume.
 
-Un identificador es único en el proyecto y no se reutiliza al retirar el artefacto. El número no codifica parentesco, profundidad ni orden temporal, y lo asigna el contador de su tipo en el manifest, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores); como ningún artefacto se elimina, ese contador es también el recuento de artefactos del tipo presentes en el proyecto.
+Un identificador es único en el proyecto y no se reutiliza al retirar el artefacto. El número no codifica parentesco, profundidad ni orden temporal, y lo asigna el contador de su tipo en el manifest, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores); como ningún artefacto se elimina, ese contador es también el recuento de artefactos del tipo presentes en el proyecto. La excepción es el WORKFLOW, que no tiene contador propio ni cuenta entre los presentes: comparte el contador `workflow_run` con su ejecución, que es lo que se cuenta, y se numera con el que tendrá su workflow_run.
 
 En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una tabla de contadores se escribe un ejemplo real.
 

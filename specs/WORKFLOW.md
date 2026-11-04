@@ -10,11 +10,11 @@ Este WORKFLOW es el proceso abstracto; su instancia concreta es un `workflow_run
 
 ## Identidad y versiones
 
-Este documento fija las fases normativas del proceso, no los pasos de ninguna versión concreta. Cada definición que un proyecto usa se registra como `WORKFLOW-nnnnn`, que numera el contador `workflow`, en `workflows/WORKFLOW-nnnnn/`, con un catálogo `manifest.yaml` y paquetes inmutables `versions/vNNN/workflow.yaml`, conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md) y a la disposición de [PROJECTS.md](PROJECTS.md).
+Este documento fija las fases normativas del proceso, no los pasos de ninguna versión concreta. Cada definición que un proyecto usa se registra como `WORKFLOW-nnnnn`, en `workflows/WORKFLOW-nnnnn/`, con un catálogo `manifest.yaml` y paquetes inmutables `versions/vNNN/workflow.yaml`, conforme a [templates/WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md) y a la disposición de [PROJECTS.md](PROJECTS.md). No tiene contador propio: su número es el que tendrá su `workflow_run`, y lo numera el contador `workflow_run` del manifest conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
 
 La versión declara los pasos `step_XXX` que realizan estas fases y las que excluye; un `workflow_run` referencia la versión exacta `WORKFLOW-nnnnn@vNNN` en su `identity.workflow_version` y usa esos identificadores en su `global_state`.
 
-El estado del WORKFLOW, incluida su disposición `closed`, se registra en el `status` del catálogo con los estados de [LIFECYCLE.md](LIFECYCLE.md#workflow-y-acciones-derivadas) y lo transiciona [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales), cuya comprobación no alcanza la regla 1 de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). Tampoco existe un comando que cree la definición: la redactan [actor: human | agent], igual que una RFC, un PLAN, un TEST o una receta HARNESS.
+El estado del WORKFLOW, incluida su disposición `closed`, se registra en el `status` del catálogo con los estados de [LIFECYCLE.md](LIFECYCLE.md#workflow-y-acciones-derivadas) y lo transiciona [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#17-transición-de-estados-documentales), cuya comprobación no alcanza la regla 1 de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). Tampoco existe un comando que cree la definición: la redactan [actor: human | agent], igual que una RFC, un PLAN, un TEST o una receta HARNESS, pero a diferencia de esos artefactos no incrementa ningún contador al declararla. El número que escribe es el que consumirá `hactors create-workflow` al crear su workflow_run, y hasta que eso ocurra `hactors validate` denuncia el hueco entre el contador y la definición que lo anticipa.
 
 ## 0. Resolver contexto
 

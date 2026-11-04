@@ -15,7 +15,7 @@ Las fases normativas están en [WORKFLOW.md](../WORKFLOW.md); sus estados, en [L
 | Directorio de versión | `v` y número con un mínimo de tres dígitos | `v001` |
 | Referencia exacta | ID y directorio de versión separados por `@` | `WORKFLOW-00001@v001` |
 
-No se reutilizan identificadores ni números de versión retirados. Una referencia fuera del proyecto debe identificar también el proyecto propietario. La referencia exacta resuelve la definición fijada al publicarse, no la versión vigente del catálogo.
+No se reutilizan identificadores ni números de versión retirados. Una referencia fuera del proyecto debe identificar también el proyecto propietario. La referencia exacta resuelve la definición fijada al publicarse, no la versión vigente del catálogo. Una definición nueva toma el número siguiente del contador `workflow_run`, que comparte con sus workflow_run y no consume al redactarla, conforme a [WORKFLOW.md](../WORKFLOW.md#identidad-y-versiones).
 
 ## Catálogo: manifest.yaml
 

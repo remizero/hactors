@@ -3,7 +3,13 @@ from pathlib import Path
 
 from .action import ActionSchemaError, extract_actions, validate_rfc_actions
 from .documents import DocumentError, yaml_blocks
-from .paths import RUN_CHILD_TYPES, RUN_PATTERN, require_project_directory, require_run_directory
+from .paths import (
+    RUN_CHILD_TYPES,
+    RUN_PATTERN,
+    RUN_TYPES,
+    require_project_directory,
+    require_run_directory,
+)
 from .scan import (
     FINDING_FILE_PATTERN,
     HARNESS_REF_PATTERN,
@@ -40,16 +46,24 @@ COUNTER_ID_PATTERNS = {
     "plan": re.compile(r"PLAN-([0-9]{5,})"),
     "test": re.compile(r"TEST-([0-9]{5,})"),
     "harness": re.compile(r"HRN-([0-9]{5,})"),
-    "workflow": re.compile(r"WORKFLOW-([0-9]{5,})"),
+    "workflow_run": re.compile(r"workflow_run_([0-9]{6,})"),
     "evidence": re.compile(r"EVD-([0-9]{5,})"),
     "finding": re.compile(r"FND-([0-9]{5,})"),
     "adr": re.compile(r"ADR-([0-9]{5,})"),
 }
+# El catálogo WORKFLOW no consume contador: se redacta con el número que tendrá
+# su workflow_run, así que su identidad se observa bajo el contador unificado.
+WORKFLOW_DEFINITION_PATTERN = re.compile(r"WORKFLOW-([0-9]{5,})")
 # Un segmento de identidad de RFC es de tipo solo si es una letra de tipo seguida
 # de cifras; los modificadores (AM, AR, REV, V2, PATCH, FX) tienen un segundo
 # carácter no numérico y por tanto no coinciden.
 RFC_TYPE_SEGMENT = re.compile(r"([AFITD])([0-9]{5,})")
 RECORD_COUNTERS = (("EVD-", "evidence"), ("FND-", "finding"))
+KNOWN_COUNTERS = (
+    frozenset(COUNTER_ID_PATTERNS)
+    | frozenset(RUN_TYPES)
+    | {f"rfc_{letter}" for letter in "afitd"}
+)
 ARTIFACT_PREFIXES = (
     "TASK-",
     "ACT-",
@@ -201,7 +215,7 @@ def _workflow_definitions(project: Path) -> list[str]:
     directory = project / "workflows"
     if not directory.is_dir():
         return []
-    pattern = COUNTER_ID_PATTERNS["workflow"]
+    pattern = WORKFLOW_DEFINITION_PATTERN
     return sorted(
         entry.name
         for entry in directory.iterdir()
@@ -217,10 +231,14 @@ def _rfc_type(identity: str) -> tuple[str, str]:
     return "", ""
 
 
-def _note(observed: dict, counter: str, identity: str, digits: str) -> None:
+def _note(observed: dict, counter: str, identity: str, digits: str, present: bool = True) -> None:
     number = int(digits)
-    if number > observed.get(counter, (0, ""))[0]:
-        observed[counter] = (number, identity)
+    entry = observed.setdefault(counter, [0, "", 0])
+    if number > entry[0]:
+        entry[0] = number
+        entry[1] = identity
+    if present:
+        entry[2] += 1
 
 
 def _observed_counters(
@@ -239,7 +257,6 @@ def _observed_counters(
     documents_by_counter.extend(("plan", identity) for identity in plan_ids)
     documents_by_counter.extend(("test", identity) for identity in test_ids)
     documents_by_counter.extend(("harness", identity) for identity, _, _ in catalogs)
-    documents_by_counter.extend(("workflow", identity) for identity in _workflow_definitions(project))
     documents_by_counter.extend(
         (counter, identity)
         for identity, _ in records
@@ -251,6 +268,10 @@ def _observed_counters(
         match = COUNTER_ID_PATTERNS[counter].fullmatch(identity)
         if match:
             _note(observed, counter, identity, match[1])
+    for identity in _workflow_definitions(project):
+        match = WORKFLOW_DEFINITION_PATTERN.fullmatch(identity)
+        if match:
+            _note(observed, "workflow_run", identity, match[1], present=False)
     for identity, path in rfc_ids.items():
         counter, digits = _rfc_type(identity)
         if counter:
@@ -278,14 +299,23 @@ def _check_counters(manifest: dict, observed: dict) -> list[str]:
     if not isinstance(counters, dict):
         return [f"manifest.yaml: `counters` debe ser un mapeo, no {type(counters).__name__}."]
     findings: list[str] = []
-    for counter, (number, identity) in sorted(observed.items()):
+    for counter in sorted(set(counters) | set(observed)):
+        if counter not in KNOWN_COUNTERS:
+            continue
         declared = counters.get(counter)
         if type(declared) is not int or declared < 0:
             findings.append(f"manifest.yaml: el contador `{counter}` no es un entero no negativo.")
-        elif declared < number:
+            continue
+        number, identity, present = observed.get(counter, (0, "", 0))
+        if declared < number:
             findings.append(
                 f"manifest.yaml: el contador `{counter}` vale {declared} y existe la identidad "
                 f"'{identity}'; debe ser mayor o igual que cualquier identidad de su tipo."
+            )
+        elif declared != present:
+            findings.append(
+                f"manifest.yaml: el contador `{counter}` vale {declared} y hay {present} "
+                f"identidad(es) de su tipo presente(s); debe igualar exactamente esa cantidad."
             )
     return findings
 

@@ -11,7 +11,6 @@ counters:
   plan: 0
   test: 0
   harness: 0
-  workflow: 0
   workflow_run: 0
   task_run: 0
   rfc_run: 0

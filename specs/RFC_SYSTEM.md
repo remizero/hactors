@@ -10,7 +10,7 @@ HACTORS no mantiene un índice de RFC vigentes ni un archivo de RFC terminales: 
 
 ## Numeración
 
-El manifest del proyecto tiene un contador por tipo de RFC: `rfc_a`, `rfc_f`, `rfc_i`, `rfc_t` y `rfc_d`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores). Los demás contadores numeran TASK, acciones derivadas, planes, TEST, HRN, WORKFLOW, decisiones, evidencias, hallazgos e instancias de ejecución; la identidad de una RFC la determina su derivación y su correlativo, el contador de su tipo.
+El manifest del proyecto tiene un contador por tipo de RFC: `rfc_a`, `rfc_f`, `rfc_i`, `rfc_t` y `rfc_d`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores). Los demás contadores numeran TASK, acciones derivadas, planes, TEST, HRN, decisiones, evidencias, hallazgos e instancias de ejecución; la identidad de una RFC la determina su derivación y su correlativo, el contador de su tipo.
 
 No existe un comando que cree una RFC: el documento lo redactan [actor: human | agent] desde [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md) y su variante de tipo, conforme a [RFC.md](RFC.md#guía-de-construcción-por-tipo). La asignación sigue este orden:
 
@@ -21,7 +21,7 @@ No existe un comando que cree una RFC: el documento lo redactan [actor: human | 
 5. Crear el documento con su cabecera y su cuerpo.
 6. Representar sus aristas en `relations` del manifest dentro de la misma operación.
 
-El contador de un tipo se incorpora al manifest al declarar su primera RFC. Antes de asignar se recorren las RFC ya registradas, en cualquiera de las ubicaciones que admite [RFC.md](RFC.md#ubicación-de-una-rfc): un contador por debajo de una identidad existente es una inconsistencia que reporta `hactors validate`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
+El contador de un tipo se incorpora al manifest al declarar su primera RFC. Antes de asignar se recorren las RFC ya registradas, en cualquiera de las ubicaciones que admite [RFC.md](RFC.md#ubicación-de-una-rfc): un contador que no iguala exactamente las RFC de su tipo presentes, o que va por debajo de una identidad existente, es una inconsistencia que reporta `hactors validate`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#contadores).
 
 ## Modificadores
 
