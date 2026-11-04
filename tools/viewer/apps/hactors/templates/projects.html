@@ -98,6 +98,48 @@
       vertical-align: baseline;
     }
 
+    /* ---- Panel de wildcards ---- */
+
+    /* Banda a todo el ancho entre la cabecera y las tres columnas: las cifras
+       del ámbito consultado son el resumen de la página entera y no caben bien
+       en la columna central, que es la que las demás vistas irán ocupando. */
+    .wildcards { margin-bottom: 1.75rem; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+      gap: .6rem;
+    }
+
+    .card {
+      padding: .7rem .85rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .55rem;
+    }
+
+    .card .label {
+      font-family: var(--mono);
+      font-size: .64rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card .count {
+      margin-top: .25rem;
+      font-size: 1.6rem;
+      font-weight: 650;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card.is-project .count { color: var(--accent); }
+    .card.is-bad     { border-color: rgba(240, 113, 120, .35); background: rgba(240, 113, 120, .07); }
+    .card.is-bad .count,
+    .card.is-bad .label { color: var(--bad); }
+    .card.is-zero .count { color: var(--muted); }
+
     /* ---- Armazón de tres columnas ---- */
 
     /* Las dos laterales se pegan al borde superior para que la central, que es
@@ -230,41 +272,6 @@
 
     /* ---- Columna central ---- */
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-      gap: .6rem;
-    }
-
-    .card {
-      padding: .7rem .85rem;
-      background: var(--raised);
-      border: 1px solid var(--line);
-      border-radius: .55rem;
-    }
-
-    .card .label {
-      font-family: var(--mono);
-      font-size: .64rem;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .card .count {
-      margin-top: .25rem;
-      font-size: 1.6rem;
-      font-weight: 650;
-      line-height: 1.1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .card.is-project .count { color: var(--accent); }
-    .card.is-bad     { border-color: rgba(240, 113, 120, .35); background: rgba(240, 113, 120, .07); }
-    .card.is-bad .count,
-    .card.is-bad .label { color: var(--bad); }
-    .card.is-zero .count { color: var(--muted); }
-
     .desc {
       margin: 0 0 1rem;
       color: var(--muted);
@@ -287,7 +294,8 @@
       font-size: .82rem;
     }
 
-    .panel > .broken:first-child { margin-top: 0; }
+    .panel > .broken:first-child,
+    .panel > .hint:first-child { margin-top: 0; }
 
     .problems {
       list-style: none;
@@ -543,6 +551,30 @@
     </div>
   </header>
 
+  <section class="wildcards">
+    {% if data.selected %}
+    <h2>Cifras<span class="scope">{{ data.selected.name }}</span></h2>
+    {% else %}
+    <h2>Cifras de la raíz</h2>
+    {% endif %}
+    <div class="panel">
+      <div class="cards">
+        {% for card in data.cards %}
+        <div class="card
+                    {%- if card.kind == 'project' %} is-project
+                    {%- elif card.kind == 'problem' and card.count %} is-bad
+                    {%- elif not card.count %} is-zero{% endif %}">
+          <div class="label">{{ card.label }}</div>
+          <div class="count">{{ card.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if data.missing %}
+      <p class="broken">No hay ningún proyecto llamado «{{ data.missing }}» en la raíz.</p>
+      {% endif %}
+    </div>
+  </section>
+
   <div class="shell">
 
     <aside class="col-side">
@@ -587,19 +619,6 @@
       </div>
       {% else %}
       <p class="desc">{{ data.selected.description or 'Sin descripción declarada.' }}</p>
-
-      <div class="panel">
-        <div class="cards">
-          {% for card in data.cards %}
-          <div class="card
-                      {%- if card.kind == 'problem' and card.count %} is-bad
-                      {%- elif not card.count %} is-zero{% endif %}">
-            <div class="label">{{ card.label }}</div>
-            <div class="count">{{ card.count }}</div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
 
       <h2>Artefactos</h2>
       <div class="panel">
@@ -688,23 +707,9 @@
       {% else %}
       <h2>Vista general</h2>
       <div class="panel">
-        <div class="cards">
-          {% for card in data.cards %}
-          <div class="card
-                      {%- if card.kind == 'project' %} is-project
-                      {%- elif card.kind == 'problem' and card.count %} is-bad
-                      {%- elif not card.count %} is-zero{% endif %}">
-            <div class="label">{{ card.label }}</div>
-            <div class="count">{{ card.count }}</div>
-          </div>
-          {% endfor %}
-        </div>
-        {% if data.missing %}
-        <p class="broken">No hay ningún proyecto llamado «{{ data.missing }}» en la raíz.</p>
-        {% endif %}
         <p class="hint">
-          Cifras de toda la raíz. Elige un proyecto a la izquierda para ver las suyas; las
-          vistas del proyecto elegido se irán añadiendo a esta columna.
+          Ningún proyecto consultado: las cifras de arriba son las de toda la raíz. Elige uno a
+          la izquierda y sus vistas se irán añadiendo a esta columna.
         </p>
       </div>
       {% endif %}
