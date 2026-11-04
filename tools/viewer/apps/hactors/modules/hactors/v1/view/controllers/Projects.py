@@ -158,6 +158,13 @@ class Projects ( SuccessController ) :
   def _cards ( self, rows : list, totals : dict ) -> list :
     cards = [ { "label" : "proyectos", "count" : len ( rows ), "kind" : "project" } ]
 
+    # WORKFLOW y workflow_run son un mismo contador: lo físico es la instancia, no el concepto.
+    cards.append ( {
+      "label" : "workflow",
+      "count" : sum ( len ( row [ "workflows" ] ) for row in rows ),
+      "kind"  : "workflow"
+    } )
+
     cards.extend (
       { "label" : FAMILY_LABELS [ kind ], "count" : totals [ kind ], "kind" : kind }
       for kind in FAMILY_LABELS if totals.get ( kind )
@@ -178,11 +185,13 @@ class Projects ( SuccessController ) :
 
 
   def _project_cards ( self, row : dict ) -> list :
-    """Las tarjetas del proyecto seleccionado, con sus ocho familias incluso vacías."""
-    cards = [
+    """Las tarjetas del proyecto seleccionado: el contador de workflows y sus ocho familias incluso vacías."""
+    cards = [ { "label" : "workflow", "count" : len ( row [ "workflows" ] ), "kind" : "workflow" } ]
+
+    cards.extend (
       { "label" : FAMILY_LABELS [ kind ], "count" : row [ "counts" ].get ( kind, 0 ), "kind" : kind }
       for kind in FAMILY_LABELS
-    ]
+    )
 
     cards.append ( { "label" : "ejecuciones", "count" : row [ "runs" ], "kind" : "run" } )
     cards.append ( { "label" : "inconsistencias", "count" : len ( row [ "problems" ] ), "kind" : "problem" } )
