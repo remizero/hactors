@@ -1,0 +1,21 @@
+id: FND-00001
+title: Un actor que comparte el proceso anfitrión elimina el recurso protegido con unlink directo tras recibir CAPABILITY/Denied,
+  sin atravesar el Executor
+kind: defect
+severity: critical
+state: open
+source:
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001
+  artifact: tests/security_t001/UnauthorizedCapabilityExecutionTest.cpp
+  workflow: ''
+  task: ''
+  rfc: ''
+actions: []
+relations:
+- target: RFC-A00001-A00001
+  relation: affects
+- target: PLAN-00001
+  relation: affects
+opened: '2026-09-17'
+updated: '2026-09-20'
+resolved: null

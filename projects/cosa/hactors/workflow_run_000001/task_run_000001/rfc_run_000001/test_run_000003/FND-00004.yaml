@@ -1,0 +1,21 @@
+id: FND-00004
+title: Una segunda conexión del mismo proceso registra una identidad ya vinculada a otro descriptor y obtiene su
+  capability
+kind: defect
+severity: critical
+state: resolved
+source:
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000003
+  artifact: tests/security_t007/IdentitySpoofingDoesNotGrantAuthorizationTest.cpp
+  workflow: ''
+  task: ''
+  rfc: ''
+actions:
+- ACT-00007
+- ACT-00008
+relations:
+- target: RFC-A00001-F00002
+  relation: affects
+opened: '2026-09-17'
+updated: '2026-09-20'
+resolved: '2026-09-20'

@@ -1,0 +1,66 @@
+workflow_run_000001:
+  identity:
+    id: workflow_run_000001
+    task_ref: TASK-00001
+    workflow_version: WORKFLOW-00001@v001
+  global_state:
+    status: blocked
+    current_step: step_008
+    blocked_reason: 'step_008 es [actor: human] y su aprobación no consta en ningún
+      registro, así que la ejecución no puede avanzar a step_009. Además el alcance
+      corregido no está completo: FND-00001 sigue open, ACT-00005 y ACT-00009 siguen
+      pending, y los pasos 4 a 8 de PLAN-00001 no llegaron a iniciarse porque gate_003
+      no tiene decisión registrada y el documento real de la fase de confinamiento
+      está vacío.'
+    steps:
+      step_001:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_002:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_003:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_004:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_005:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_006:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_007:
+        status: completed
+        checkpoint_ref: ''
+        attempts: []
+      step_008:
+        status: pending
+        checkpoint_ref: ''
+        attempts: []
+      step_009:
+        status: pending
+        checkpoint_ref: ''
+        attempts: []
+  integration:
+    git_ref: 1d58d531452d04a5c10f2ab61ea1b72567d93307
+    verification_refs:
+    - EVD-00001
+    - EVD-00002
+    - EVD-00003
+    - EVD-00004
+    - EVD-00005
+    - EVD-00006
+    - EVD-00007
+    - EVD-00008
+  review:
+    acceptance: pending
+    accepted_by: ''
+    accepted_at: ''

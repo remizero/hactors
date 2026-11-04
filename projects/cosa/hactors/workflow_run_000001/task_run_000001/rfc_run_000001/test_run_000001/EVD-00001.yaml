@@ -1,0 +1,51 @@
+id: EVD-00001
+title: 'Ejecución de TEST-00001 en ambos árboles: Authorization DENIED, Executor reached NO, Direct unlink rc=0
+  errno=0, Protected resource REMOVED, RESULT FAIL / SECURITY FINDING'
+kind: test-output
+relations:
+- target: TEST-00001#C1
+  relation: verifies
+- target: TEST-00001#C2
+  relation: verifies
+- target: TEST-00001#C3
+  relation: verifies
+- target: TEST-00001#C4
+  relation: verifies
+- target: TEST-00001#C7
+  relation: verifies
+- target: FND-00001
+  relation: supports
+- target: RFC-T00005
+  relation: supports
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001
+  artifact: tests/security_t001/UnauthorizedCapabilityExecutionTest.cpp; tests/security_t001/AgentSecurityFixture.h
+  commit: 23d1b98ffc7f0fdd4cd100fc15e69494405ed275
+environment:
+  platform: ''
+  commands:
+  - cmake --build build/debug --target UnauthorizedCapabilityExecutionTest --parallel 4
+  - ctest --test-dir build/debug -R '^CompromisedProcessCannotBypassExecutorTest$' -V
+  - ctest --test-dir build/debug -L RFC-T005 --output-on-failure
+  - ctest --test-dir build/debug -R '^UnauthorizedCapabilityExecutionTest$' --output-on-failure
+  - ./build/debug/tests/security_t001/UnauthorizedCapabilityExecutionTest --gtest_repeat=20 --gtest_shuffle --gtest_random_seed=42
+  - ./build/tests/security_t001/UnauthorizedCapabilityExecutionTest --gtest_repeat=20 --gtest_shuffle --gtest_random_seed=42
+  outputs:
+  - 'Process: COMPROMISED (COSA Process worker, shared address space)'
+  - 'Request: sal.temp.remove notes/protected.txt'
+  - 'Authorization: DENIED'
+  - 'Executor reached: NO'
+  - 'Direct unlink: rc=0 errno=0'
+  - Effective uid=1000 gid=1000
+  - 'Protected resource: REMOVED'
+  - 'Fixture entries unchanged: NO'
+  - 'Executor bypass: OBSERVED'
+  - 'RESULT: FAIL / SECURITY FINDING'
+  - 'Inventario del recurso controlado: de tres entradas a dos'
+  - 'Suites completas: build/debug (Ninja) 109 PASS / 110, 64.83 s, rc=8, único fallo T005'
+  - 'Suites completas: build (Unix Makefiles) 106 PASS / 107, 63.80 s, rc=8, único fallo T005'
+  - 'Veinte repeticiones por árbol, orden aleatorio y semilla inicial 42: las cuarenta iteraciones producen dos
+    casos PASS y el bypass FAIL con unlink rc=0 y sin Executor; ambos binarios devuelven 1'
+recorded: '2026-09-17'

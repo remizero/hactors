@@ -1,0 +1,64 @@
+id: EVD-00008
+title: Informe de la auditoría entregado con su registro clasificado y su matriz de
+  decisiones
+kind: document
+relations:
+- target: RFC-A00001-A00001#C1
+  relation: verifies
+- target: RFC-A00001-A00001#C2
+  relation: verifies
+- target: RFC-A00001-A00001#C3
+  relation: verifies
+- target: RFC-A00001-A00001#C4
+  relation: verifies
+- target: RFC-A00001-A00001#C5
+  relation: verifies
+- target: RFC-A00001-A00001#C6
+  relation: verifies
+- target: RFC-A00001-A00001#C7
+  relation: verifies
+- target: RFC-A00001-A00001#C8
+  relation: verifies
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000004
+  artifact: docs/analisis/tests/RFC-T009 — Bounded OS Subject - Audit Report.md
+  commit: 1d58d531452d04a5c10f2ab61ea1b72567d93307
+environment:
+  platform: ''
+  commands: []
+  outputs:
+  - 'Dieciséis apartados numerados: sumario ejecutivo, modelo de sujeto actual, ciclo
+    de vida real del proceso, mecanismos de confinamiento, relaciones identidad/proceso/dominio,
+    viabilidad de seccomp, de unlinkat/dirfd y de Landlock, modelo de despliegue,
+    herencia de descriptores, integridad de arranque y de parada, registro clasificado,
+    matriz de decisiones, frontera recomendada, riesgos e índice de evidencia'
+  - 'Registro del apartado 12: diez hechos F01-F10, cinco inferencias I01-I05, tres
+    premisas A01-A03 y siete cuestiones sin resolver U01-U07; el informe declara que
+    las U no quedan cerradas porque entregue una recomendación, sino que son condiciones
+    de entrada del trabajo futuro'
+  - 'Matriz del apartado 13: diez requisitos con su mecanismo actual, su efectividad
+    para ese requisito, su candidato, su evidencia y su decisión; D1-D11 respondidas
+    y clasificadas todas como inferencia, ninguna como mecanismo instalado'
+  - 'Apartado 9: tres modelos de despliegue comparados por privilegios, operación,
+    propiedades, compatibilidad e implicaciones para T005 y T007 —A UID compartido,
+    B UID/GID por servicio, C dominio nativo por servidor—; A sin C descartado, C
+    y proceso separado obligatorios, y la elección entre A+C y B+C sin resolver; el
+    host medido no tenía CAP_SETUID ni CAP_SETGID efectivos y no se intentó elevar
+    privilegios'
+  - 'Apartado 10.1: ocho clases de descriptor con su comportamiento ante fork y ante
+    exec; medidos el listener de control en el descriptor 8 y el centinela escribible
+    en el 200 sobreviviendo a exec sin el flag de cierre al ejecutar en los tres procesos'
+  - 'Apartado 14.3: condición de aceptación propuesta para cerrar T005, declarada
+    no cumplida hoy, con sus controles negativos y positivos, los casos de bypass
+    derivados y la exigencia de que el atacante ejecute en un proceso distinto del
+    mediador lanzado por el mecanismo de producción'
+  - 'Apartado 16.4: los intentos fallidos de instrumentación, las correcciones y las
+    comprobaciones no realizadas se conservan y se describen'
+  - 'Apartado 16.5, cierre de alcance: solo se crearon el informe y su paquete de
+    evidencia local, los experimentos se hicieron en un directorio temporal y los
+    builds en sus árboles existentes; no se cambiaron fuentes de producción, tests,
+    políticas de seguridad, configuración versionada ni el documento de entrada, y
+    no se creó commit'
+recorded: '2026-09-20'

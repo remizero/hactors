@@ -1,0 +1,36 @@
+id: EVD-00007
+title: 'Paquete de evidencia de la auditoría: 36 ficheros con sha256 af728a49...250bf1,
+  selección de doce entradas CTest 11/12 por árbol con T005 fallando y exit 8'
+kind: artifact
+relations:
+- target: FND-00001
+  relation: supports
+- target: TEST-00001#C7
+  relation: verifies
+- target: RFC-A00001-A00001
+  relation: supports
+- target: RFC-A00001-A00001#C8
+  relation: verifies
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000004/test_run_000006
+  artifact: docs/analisis/tests/RFC-T009-evidence-2026-09-20.tar.gz
+  commit: 1d58d531452d04a5c10f2ab61ea1b72567d93307
+environment:
+  platform: Linux x86_64, kernel 6.12.107+deb13-amd64 (host medido por la auditoría)
+  commands:
+  - sha256sum docs/analisis/tests/RFC-T009-evidence-2026-09-20.tar.gz
+  outputs:
+  - 'SHA-256 del paquete: af728a49e489bdba6ce1029cb10a1c7988b111103bccb8e5dbed75e524250bf1;
+    recomputado sobre el archivo conservado hoy y coincide con el que declara el informe'
+  - 36 ficheros de evidencia con sus hashes SHA-256 verificados, más evidence-manifest.json
+  - Nombres relativos al directorio de trabajo temporal original /tmp/cosa-t009-gawwa2i_;
+    no contiene binarios de COSA ni el entorno completo, solo una comprobación booleana
+    del marcador inofensivo y datos seleccionados de /proc
+  - 'Entrada E12: build-debug.log, build-make.log, test-commands.json, tests-debug.log,
+    tests-make.log -> builds exit 0, CTest exit 8 en ambos, T005 falla, los controles
+    y las otras once entradas pasan'
+  - Las rutas, PIDs e inodes del paquete son los de cada ejecución histórica y no
+    son reutilizables para enviar señales
+recorded: '2026-09-20'

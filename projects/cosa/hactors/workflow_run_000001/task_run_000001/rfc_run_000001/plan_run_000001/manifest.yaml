@@ -1,0 +1,6 @@
+identity:
+  id: plan_run_000001
+  plan_run_ref: PLAN-00001
+state:
+  status: blocked
+  blocked_reason: 'Los pasos 4 a 8 no llegaron a iniciarse: gate_003, la decisión de despliegue y credenciales, no consta registrada, y el documento real de la fase de confinamiento está vacío. Los pasos 1 a 3 sí se ejecutaron; del paso 1 quedó sin cumplir la cláusula de veinte repeticiones globales de AC1, por un agotamiento de tiempo ajeno a su alcance, y gate_001 no registró su aceptación de esa desviación.'

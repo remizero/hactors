@@ -1,0 +1,17 @@
+id: FND-00005
+title: docs/security.md:1249 y el Summary de RFC-T006 nombran VALIDATION/1 un valor, 17179869185, que decodifica
+  a la categoría de aplicación y al subcódigo de operación desconocida
+kind: inconsistency
+severity: low
+state: open
+source:
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001
+  artifact: docs/security.md
+  workflow: ''
+  task: ''
+  rfc: ''
+actions: []
+relations: []
+opened: '2026-09-17'
+updated: '2026-11-04'
+resolved: null

@@ -1,0 +1,6 @@
+identity:
+  id: task_run_000001
+  task_run_ref: TASK-00001
+state:
+  status: in_progress
+  blocked_reason: ''

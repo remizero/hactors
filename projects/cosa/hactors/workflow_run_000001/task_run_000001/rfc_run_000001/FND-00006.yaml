@@ -1,0 +1,17 @@
+id: FND-00006
+title: Ningún documento versionado del árbol enumera el filtro seccomp del trabajador confinado, cuya whitelist
+  es de exactamente tres syscalls
+kind: gap
+severity: low
+state: open
+source:
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001
+  artifact: libs/sal/linux/src/LinuxSandbox.cpp
+  workflow: ''
+  task: ''
+  rfc: ''
+actions: []
+relations: []
+opened: '2026-09-17'
+updated: '2026-09-20'
+resolved: null

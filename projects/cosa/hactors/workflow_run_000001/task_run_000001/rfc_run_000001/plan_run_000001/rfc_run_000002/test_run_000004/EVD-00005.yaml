@@ -1,0 +1,67 @@
+id: EVD-00005
+title: 'Verificación de la Fase 1: InvalidIpcMessageContractValidationTest 10/10, suites 129/132 a 131/133 y 126/129
+  a 128/130, causalidad 3/3, repetibilidad global NO cumplida'
+kind: test-output
+relations:
+- target: RFC-A00001-F00001#C1
+  relation: verifies
+- target: RFC-A00001-F00001#C2
+  relation: verifies
+- target: RFC-A00001-F00001#C3
+  relation: verifies
+- target: RFC-A00001-F00001#C4
+  relation: verifies
+- target: RFC-A00001-F00001#C5
+  relation: verifies
+- target: RFC-A00001-F00001#C6
+  relation: verifies
+- target: RFC-A00001-F00001#C7
+  relation: verifies
+- target: RFC-A00001-F00001#C8
+  relation: verifies
+- target: TEST-00002#C1
+  relation: verifies
+- target: FND-00002
+  relation: supports
+- target: FND-00003
+  relation: supports
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/test_run_000004
+  artifact: docs/analisis/tests/RFC-T006-F1 — IPC Consumer-Side Contract Enforcement - Summary.md
+  commit: ''
+environment:
+  platform: ''
+  commands: []
+  outputs:
+  - InvalidIpcMessageContractValidationTest pasa de 7/10 a 10/10
+  - 'Desviación declarada: la RFC pedía AgentRequestStatus::InvalidOperation pero tests/security_t006/InvalidIpcMessageContractValidationTest.cpp:220-224
+    exige Malformed, así que F1 devuelve Malformed = SECURITY/1 = 0x500000001'
+  - 'Suites: baseline 129/132 y 126/129 -> 131/133 y 128/130'
+  - 'Repetibilidad NO cumplida: ThreadPoolExecutorTest agota los 600 s en los dos árboles; en debug muere en la
+    iteración 1 en ThreadPoolExecutorExecution.ExecuteReturnsSuccessCodeBits y en make llega a la iteración 7 e
+    interrumpe la 8 en ThreadPoolExecutorDestructor.StopsPoolWithoutExplicitShutdown'
+  - 'Ejecución aislada de ThreadPoolExecutorTest: ~6.05 s idénticos antes y después de la corrección; async_module_unchanged:
+    true; no se atribuye causalidad al cambio'
+  - 120 suites y 40.040 ejecuciones de caso en debug; 117 y 39.580 en make; no-GoogleTest 12/12 en ambos; runner
+    rc=1; semillas 42 a 61
+  - 'Causalidad 3/3 con restauración byte a byte: git diff --binary idéntico, git diff --check limpio y nueve ficheros
+    protegidos con hash idéntico'
+  - 'Suites nuevas: AgentRequestTest 8 casos (3 nuevos), InboundPipelineSecurityTest 32 (18 nuevos), MessageDispatcherTest
+    28 (24 nuevos), InboundContractRejectionTest 12 nuevos'
+  - 'Forma del cambio: libs/common/src/AgentRequest.cpp (+5/-3) llama al is_valid_operation existente sobre la vista
+    prestada y devuelve std::unexpected(AgentRequestStatus::Malformed)'
+  - libs/core/src/InboundPipeline.cpp:174 y libs/server/src/MessageDispatcher.cpp:35 conservan extractores independientes
+    que devuelven std::optional<std::string_view> con nullopt = malformado; 0x1F deja de ser terminador
+  - Nuevo libs/server/include/cosa/server/IInboundContractRejectionObserver.h con kMalformedInboundContract = make_error(SECURITY,
+    1) = 0x500000001 y on_inbound_contract_rejected(const CallerContext&) noexcept
+  - 'InboundPipeline.cpp:866-880 registra [KERNEL] inbound frame rejected: reason=malformed_routing; AgentEndpoint.h
+    hereda la faceta y llama a audit_rejected(malformed_routing, caller); el contador es por endpoint, no global
+    de IPC'
+  - Once ficheros modificados y dos nuevos, 512 inserciones y 38 borrados; sin commits ni push en el momento de
+    la medición, trabajo sin commitear en dev
+  - 'Pendientes declarados: causa del agotamiento de ThreadPoolExecutorTest; T005 y T007 siguen en rojo; cuatro
+    documentos versionados sin addendum; la RFC sigue DRAFT con su §10 de baseline superado; el extractor compartido
+    (B3) sin implementar'
+recorded: '2026-09-18'

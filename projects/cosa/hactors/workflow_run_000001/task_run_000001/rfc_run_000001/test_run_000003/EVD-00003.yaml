@@ -1,0 +1,50 @@
+id: EVD-00003
+title: 'Ejecución de TEST-00003 en ambos árboles: 4 casos PASS y 1 FAIL en NewConnectionCannotTurnTheSameAttackerProcessIntoB;
+  suites 109/112 y 106/109'
+kind: test-output
+relations:
+- target: TEST-00003#C1
+  relation: verifies
+- target: TEST-00003#C2
+  relation: verifies
+- target: TEST-00003#C5
+  relation: verifies
+- target: TEST-00003#C10
+  relation: verifies
+- target: FND-00004
+  relation: supports
+- target: RFC-T00007
+  relation: supports
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000003
+  artifact: tests/security_t007/IdentitySpoofingDoesNotGrantAuthorizationTest.cpp
+  commit: 4e21a5c5ab6f3541183bc4bc27f629f1875ac9d7
+environment:
+  platform: ''
+  commands:
+  - cmake -S . -B build/debug -DFETCHCONTENT_FULLY_DISCONNECTED=ON && cmake --build build/debug --parallel 4
+  - cmake -S . -B build -DFETCHCONTENT_FULLY_DISCONNECTED=ON && cmake --build build --parallel 4
+  - ctest --test-dir build/debug -R '^IdentitySpoofingDoesNotGrantAuthorizationTest$' --output-on-failure
+  - ctest --test-dir build -R '^IdentitySpoofingDoesNotGrantAuthorizationTest$' --output-on-failure
+  - build/debug/tests/security_t007/IdentitySpoofingDoesNotGrantAuthorizationTest --gtest_repeat=20 --gtest_shuffle
+    --gtest_random_seed=42
+  - build/tests/security_t007/IdentitySpoofingDoesNotGrantAuthorizationTest --gtest_repeat=20 --gtest_shuffle --gtest_random_seed=42
+  - ctest --test-dir build/debug --output-on-failure
+  - ctest --test-dir build --output-on-failure
+  outputs:
+  - 4 PASS / 1 FAIL; el único rojo es NewConnectionCannotTurnTheSameAttackerProcessIntoB
+  - '[SECURITY TEST] Actual process: pid=80580 uid=1000'
+  - 'HeaderAndBodyClaimCannotOverrideRegisteredIdentity PASS: log del kernel claimed=c002... verified=c007... (IPC/RouteDenied),
+    endpoint no alcanzado, cero registros, fingerprint intacto'
+  - 'Suites completas: build/debug (Ninja) 109/112 registros CTest, 64.82 s, rc=8, fallos T005, T006 y T007'
+  - 'Suites completas: build (Unix Makefiles) 106/109 registros CTest, 63.88 s, rc=8, fallos T005, T006 y T007'
+  - 'Veinte repeticiones por árbol, orden aleatorio y semilla inicial 42: exactamente cuatro casos verdes y el mismo
+    rojo en cada iteración; el binario devuelve rc=1 y las veinte iteraciones imprimen New capability for B: YES'
+  - El registro CTest de T007 ejecuta cinco casos de GoogleTest
+  - 'Re-medido sobre el árbol que ya contiene el cambio de producción de T008: 4 PASSED / 1 FAILED, mismo caso,
+    rc=1 en ambos árboles; tras T008 los totales pasaron a 110/113 y 107/110 con el mismo conjunto de rojos (Summary
+    de T008, §8)'
+  - Cuatro ficheros, 654 inserciones y 0 borrados en el commit de la revisión examinada
+recorded: '2026-09-17'

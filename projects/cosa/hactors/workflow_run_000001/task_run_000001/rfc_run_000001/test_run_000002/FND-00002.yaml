@@ -1,0 +1,20 @@
+id: FND-00002
+title: AgentRequest con operación vacía o no imprimible atraviesa el decodificador y alcanza la admisión
+kind: defect
+severity: high
+state: resolved
+source:
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000002
+  artifact: tests/security_t006/InvalidIpcMessageContractValidationTest.cpp
+  workflow: ''
+  task: ''
+  rfc: ''
+actions:
+- ACT-00001
+- ACT-00004
+relations:
+- target: RFC-A00001-F00001
+  relation: affects
+opened: '2026-09-17'
+updated: '2026-09-18'
+resolved: '2026-09-18'

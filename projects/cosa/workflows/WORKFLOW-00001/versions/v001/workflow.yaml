@@ -1,0 +1,93 @@
+id: WORKFLOW-00001
+version: 1
+purpose: >-
+  Ordenar el trabajo del proyecto cosa desde la resolución del contexto hasta el cierre o la
+  declaración explícita de la deuda que lo impide: análisis de hallazgos, correcciones derivadas,
+  auditorías de arquitectura y su verificación medida.
+scope: >-
+  Todo el trabajo del proyecto que se canalice por una TASK y sus RFC: análisis, correcciones de
+  implementación derivadas, auditorías sin cambio de producción, verificación de seguridad y la
+  sincronización documental que las acompaña.
+out_of_scope: []
+steps:
+- id: step_001
+  phase: 0
+  title: Resolver el contexto de la TASK y de sus RFC aplicables
+  actor: 'human | agent'
+  exit_criteria: >-
+    Carga de contexto resuelta conforme a specs/CONTEXT_LOADING.md, estado del trabajo leído y
+    ejecuciones localizadas en el árbol de instancias, y alcance, entregables, criterios, autoridad y
+    estado inicial comprobados; o la acción afectada detenida cuando falta una fuente necesaria o
+    existe una contradicción sin resolver.
+- id: step_002
+  phase: 1
+  title: Proponer las RFC del alcance y obtener su aprobación
+  actor: 'human | agent'
+  exit_criteria: >-
+    Cada RFC del alcance está delimitada con su plantilla de tipo, [actor: human] ha revisado y
+    aprobado contratos, alcance y criterios antes de habilitar la ejecución, y la identidad de cada
+    RFC está asignada con sus aristas representadas en el grafo dentro de la misma operación.
+- id: step_003
+  phase: 2
+  title: Preparar la ejecución y crear las instancias que la registrarán
+  actor: 'human | agent'
+  exit_criteria: >-
+    Dependencias, estado del espacio de trabajo y cambios ajenos comprobados, rama prevista creada
+    cuando el proyecto usa control de versiones, y creados el workflow_run con su task_ref, su
+    task_run y el rfc_run inicial, con las comprobaciones aplicables y el destino de su evidencia
+    identificados.
+- id: step_004
+  phase: 3
+  title: Producir los entregables en incrementos pequeños y verificables
+  actor: 'human | agent'
+  exit_criteria: >-
+    Los entregables del alcance autorizado existen, cada acción derivada está registrada en el campo
+    actions: de su RFC, el progreso de la TASK no atribuye a la RFC hitos que solo cumple una parte de
+    ella, y todo cambio de contrato, arquitectura o alcance no aprobado se ha elevado a decisión.
+- id: step_005
+  phase: 4
+  title: Verificar y registrar resultados, evidencia y hallazgos
+  actor: 'human | agent | ci'
+  exit_criteria: >-
+    Ejecutadas las comprobaciones aplicables —los TEST conforme a specs/TESTS.md y las recetas de
+    verificación conforme a specs/HARNESS.md— y registrados resultados, entorno y evidencia junto a su
+    origen, incluidos los fallos y las comprobaciones no realizadas; lo observado que requiera
+    tratamiento consta como hallazgo; ningún rojo obligatorio sin tratar y ningún fallo ajeno
+    presentado como éxito ni como permiso para ampliar el alcance.
+- id: step_006
+  phase: 5
+  title: Sincronizar la documentación afectada y el resumen del artefacto
+  actor: 'human | agent'
+  exit_criteria: >-
+    Actualizadas las capas afectadas conforme a specs/DOCUMENTATION.md, comprobadas referencias,
+    contratos, decisiones y ejemplos, documentación y entregables relacionados incluidos en el mismo
+    cambio de integración, y redactado o actualizado el resumen conforme a specs/SUMMARY.md.
+- id: step_007
+  phase: 6
+  title: Solicitar la revisión de los entregables y de su evidencia
+  actor: 'human | agent'
+  exit_criteria: >-
+    Presentados los entregables con su evidencia y abierta la solicitud de integración cuando el
+    proyecto usa control de versiones, ejecutadas las comprobaciones de integración previstas,
+    [actor: human] ha revisado arquitectura, contratos y suficiencia de la evidencia de aceptación, y
+    las observaciones de implementación atendidas con sus verificaciones repetidas.
+- id: step_008
+  phase: 7
+  title: Validar e integrar el resultado aprobado
+  actor: 'human'
+  exit_criteria: >-
+    [actor: human] ha aprobado el resultado con los criterios y las revisiones exigidas satisfechos,
+    ha integrado el cambio cuando la tarea incluye integración, y la aceptación consta en el bloque
+    review del manifiesto del workflow_run junto con la referencia de integración en su bloque
+    integration cuando aplique.
+- id: step_009
+  phase: 8
+  title: Cerrar y dar continuidad
+  actor: 'human | agent'
+  exit_criteria: >-
+    Cerradas las TASK y las RFC de su alcance que cumplen sus criterios con cada acción en completed,
+    detectado y elevado a decisión cualquier descendiente que no alcanza su éxito, hactors validate
+    sin inconsistencias antes de dar por terminada la operación, autorización de [actor: human] para el
+    cierre de TASK y de WORKFLOW, resúmenes consolidados, e informe de entregables, comprobaciones,
+    limitaciones y decisiones pendientes sin reescribir la evidencia histórica.
+created: '2026-11-04'

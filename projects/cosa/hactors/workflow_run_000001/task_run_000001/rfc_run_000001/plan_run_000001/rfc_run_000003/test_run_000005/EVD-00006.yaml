@@ -1,0 +1,64 @@
+id: EVD-00006
+title: 'Medición de la Fase 2 por la auditoría sobre la revisión 1d58d53: ExclusiveIdentityBindingTest e IdentitySpoofingDoesNotGrantAuthorizationTest
+  verdes en los dos árboles'
+kind: test-output
+relations:
+- target: RFC-A00001-F00002#C1
+  relation: verifies
+- target: RFC-A00001-F00002#C2
+  relation: verifies
+- target: RFC-A00001-F00002#C7
+  relation: verifies
+- target: TEST-00003#C5
+  relation: verifies
+- target: FND-00004
+  relation: supports
+- target: FND-00001
+  relation: supports
+- target: RFC-A00001-F00002#C3
+  relation: verifies
+- target: RFC-A00001-F00002#C4
+  relation: verifies
+- target: RFC-A00001-F00002#C5
+  relation: verifies
+- target: TEST-00003#C6
+  relation: verifies
+- target: TEST-00003#C7
+  relation: verifies
+- target: TEST-00003#C8
+  relation: verifies
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000003/test_run_000005
+  artifact: docs/analisis/tests/RFC-T009 — Bounded OS Subject - Audit Report.md
+  commit: 1d58d531452d04a5c10f2ab61ea1b72567d93307
+environment:
+  platform: Linux x86_64, kernel 6.12.107+deb13-amd64 (host medido por la auditoría)
+  commands:
+  - cmake --build build/debug --target cosa-init cosa_kernel_bin cosa_dummy_bin LinuxSandboxTest ControlledFilespaceTest
+    UnauthorizedCapabilityExecutionTest IdentitySpoofingDoesNotGrantAuthorizationTest ExclusiveIdentityBindingTest
+    InvalidIpcMessageContractValidationTest InboundContractRejectionTest PeerCredentialsTest StaticPeerIdentityPolicyTest
+    ServiceOutputCaptureTest SupervisorLifecycleTest StopDeadlineTest
+  - cmake --build build --target LinuxSandboxTest ControlledFilespaceTest UnauthorizedCapabilityExecutionTest IdentitySpoofingDoesNotGrantAuthorizationTest
+    ExclusiveIdentityBindingTest InvalidIpcMessageContractValidationTest InboundContractRejectionTest PeerCredentialsTest
+    StaticPeerIdentityPolicyTest ServiceOutputCaptureTest SupervisorLifecycleTest StopDeadlineTest
+  - 'ctest --output-on-failure --timeout 25 -j 1 -R <regex anclada de las doce entradas>  # argv exactos conservados
+    en test-commands.json'
+  outputs:
+  - 'Selección CTest de doce entradas, no suite completa: InvalidIpcMessageContractValidationTest; IdentitySpoofingDoesNotGrantAuthorizationTest;
+    ExclusiveIdentityBindingTest; PeerCredentialsTest; ControlledFilespaceTest; LinuxSandboxTest; StaticPeerIdentityPolicyTest;
+    InboundContractRejectionTest; ServiceOutputCaptureTest; SupervisorLifecycleTest; StopDeadlineTest; CompromisedProcessCannotBypassExecutorTest'
+  - 'Debug: 11/12, 10.74 s; Make: 11/12, 10.71 s; el único fallo es CompromisedProcessCannotBypassExecutorTest'
+  - El wrapper que recopiló ambos árboles terminó 0, pero test-commands.json conserva el exit 8 de cada CTest
+  - 'CompromisedProcessCannotBypassExecutorTest ejecuta tres casos GTest: sus dos controles pasan y falla el caso
+    T005'
+  - El rebuild de Debug registró ExclusiveIdentityBindingTest, ausente en el listado previo sin regeneración
+  - ExclusiveIdentityBindingTest e IdentitySpoofingDoesNotGrantAuthorizationTest verdes en los dos árboles
+  - 'Lectura del código en la revisión examinada: la búsqueda de otra conexión verificada con la misma identidad
+    se realiza bajo el lock de sesiones y se mantiene la invariante de como máximo un binding activo por identidad'
+  - 'La entrada CTest ExclusiveIdentityBindingTest ejecuta seis casos, medidos en tests/security_t007_f1/ExclusiveIdentityBindingTest.cpp:
+    UniqueIdentityRegistration, DuplicateIdentityRegistrationRejected, DifferentIdentitiesIndependentlyRegistrable,
+    BindingReleasedAfterDisconnect, ExistingBindingSurvivesRejectedDuplicate y RepeatedDuplicateAttemptsPreserveInvariant;
+    una entrada verde acredita los seis'
+recorded: '2026-09-20'

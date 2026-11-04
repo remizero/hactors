@@ -1,0 +1,41 @@
+id: EVD-00004
+title: Informe de doce apartados y matriz de trazabilidad de RFC-A00001, con la baseline declarada 110/113 Ninja
+  y 107/110 Makefiles
+kind: document
+relations:
+- target: RFC-A00001#C1
+  relation: verifies
+- target: RFC-A00001#C2
+  relation: verifies
+- target: RFC-A00001#C3
+  relation: verifies
+- target: RFC-A00001#C4
+  relation: verifies
+- target: RFC-A00001#C5
+  relation: verifies
+- target: RFC-A00001#C6
+  relation: verifies
+- target: RFC-A00001#C7
+  relation: verifies
+- target: FND-00005
+  relation: supports
+- target: FND-00006
+  relation: supports
+- target: FND-00007
+  relation: supports
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001
+  artifact: 'docs/analisis/analysis/RFC-A00001 — Security Findings Analysis: T005, T006 and T007 - Summary.md'
+  commit: c0c5610f3465964bb0a38c0b73cc2f53fda5059d
+environment:
+  platform: ''
+  commands: []
+  outputs:
+  - Informe de doce apartados con la matriz de trazabilidad RFC-Txxx -> hallazgo -> causa raíz -> componente ->
+    corrección -> tests -> fase
+  - 'Baseline declarada vigente por el informe: 110/113 Ninja y 107/110 Makefiles, tomada del Summary de RFC-T008
+    §8'
+  - El análisis no modifica código de producción ni tests y no crea commits de implementación
+recorded: '2026-09-17'

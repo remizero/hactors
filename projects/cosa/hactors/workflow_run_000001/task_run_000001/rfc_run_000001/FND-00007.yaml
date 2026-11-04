@@ -1,0 +1,19 @@
+id: FND-00007
+title: La deuda de T005 ya estaba catalogada en el mapa de fronteras y en el modelo de seguridad, y la Fase 3 no
+  los cita como origen
+kind: inconsistency
+severity: low
+state: open
+source:
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001
+  artifact: 'docs/analisis/tests/RFC-T009 — Bounded OS Subject: Architecture & Feasibility Audit.md'
+  workflow: ''
+  task: ''
+  rfc: ''
+actions: []
+relations:
+- target: RFC-A00001-A00001
+  relation: affects
+opened: '2026-09-17'
+updated: '2026-09-17'
+resolved: null

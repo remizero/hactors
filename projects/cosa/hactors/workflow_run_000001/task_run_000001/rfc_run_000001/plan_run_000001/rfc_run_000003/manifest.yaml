@@ -1,0 +1,6 @@
+identity:
+  id: rfc_run_000003
+  rfc_run_ref: RFC-A00001-F00002
+state:
+  status: in_progress
+  blocked_reason: ''

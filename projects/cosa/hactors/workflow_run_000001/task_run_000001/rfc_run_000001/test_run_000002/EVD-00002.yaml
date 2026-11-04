@@ -1,0 +1,50 @@
+id: EVD-00002
+title: 'Ejecución de TEST-00002 en ambos árboles: 7 casos PASS y 3 FAIL reproducibles; suites completas 109/111
+  y 106/108 con rc=8'
+kind: test-output
+relations:
+- target: TEST-00002#C1
+  relation: verifies
+- target: TEST-00002#C2
+  relation: verifies
+- target: TEST-00002#C4
+  relation: verifies
+- target: TEST-00002#C5
+  relation: verifies
+- target: TEST-00002#C6
+  relation: verifies
+- target: FND-00002
+  relation: supports
+- target: FND-00003
+  relation: supports
+- target: RFC-T00006
+  relation: supports
+source:
+  rfc: ''
+  harness: ''
+  execution: hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000002
+  artifact: tests/security_t006/InvalidIpcMessageContractValidationTest.cpp
+  commit: 94bdb193b6ab31d440ca22f12befe86d1f642e52
+environment:
+  platform: ''
+  commands: []
+  outputs:
+  - Seis cuerpos malformados reciben Malformed -> SECURITY/1, exactamente un registro security.inbound.rejected/malformed_wire,
+    cero registros de admisión/Executor/handler, cero ejecuciones y el archivo temporal intacto en contenido, inode,
+    modo, tamaño, mtime/ctime e inventario
+  - 'Hallazgo F1: operación ausente y operación no imprimible pasan el decoder; el endpoint las registra como inbound
+    aceptado e identidad verificada y llegan a admisión, que devuelve VALIDATION/1 y unknown_operation; sin ejecución
+    ni efecto, pero requests_denied() queda en cero'
+  - 'Hallazgo F2: sustituir únicamente el NUL obligatorio por 0x1F produce una ejecución autorizada — una entrada
+    de admisión, tres registros de Executor, uno del handler, un conteo de ejecución y eliminación del archivo protegido'
+  - 'Control positivo: la solicitud válida recorre el mismo camino real y elimina el archivo temporal, con ocho
+    registros ordenados'
+  - 'T006 aislado: 7 PASS / 3 FAIL en los dos árboles'
+  - 'Suites completas: build/debug (Ninja) 109/111 registros CTest, 64.52 s, rc=8, fallos T005 y T006'
+  - 'Suites completas: build (Unix Makefiles) 106/108 registros CTest, 63.74 s, rc=8, fallos T005 y T006'
+  - Veinte repeticiones con orden aleatorio y semilla inicial 42 por árbol reproducen en cada iteración los mismos
+    siete casos correctos y tres fallos; el binario devuelve rc=1
+  - El registro CTest de T006 ejecuta diez casos de GoogleTest
+  - 'Límites: composición real de codecs, socket UNIX local, dispatcher y pipeline en un único proceso; no arranca
+    kernel ni servidores, no ejecuta InboundPipeline, registro de peers ni SO_PEERCRED'
+recorded: '2026-09-17'
