@@ -1,0 +1,15 @@
+[
+  {
+    "id": "projects_view",
+    "module": {
+      "name": "render",
+      "path": {
+        "protocol": "view",
+        "service": "viewer",
+        "version": "v1",
+        "actions": "projects"
+      }
+    },
+    "url_prefix": "/"
+  }
+]

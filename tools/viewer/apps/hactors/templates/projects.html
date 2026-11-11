@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HACTORS</title>
+  <style>
+    :root {
+      --bg:      #0b0e14;
+      --surface: #141922;
+      --raised:  #1b212c;
+      --line:    rgba(255, 255, 255, .08);
+      --text:    #e6e9ef;
+      --muted:   #8b93a7;
+      --accent:  #6ea8fe;
+      --good:    #7ee0a8;
+      --bad:     #f07178;
+      --mono:    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 2rem 1.5rem 3rem;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 104rem; margin: 0 auto; }
+
+    /* ---- Cabecera ---- */
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: .2em;
+      line-height: 1;
+      text-indent: .2em;
+      background: linear-gradient(100deg, #ffffff 10%, var(--accent) 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* `inherit` y no el color del enlace: el degradado del h1 se recorta sobre su propio texto. */
+    h1 a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .headmeta { text-align: right; }
+
+    .tagline {
+      margin: 0;
+      font-size: .78rem;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+
+    .tagline code {
+      font-family: var(--mono);
+      font-size: .95em;
+      color: var(--text);
+      opacity: .8;
+      overflow-wrap: anywhere;
+    }
+
+    /* El separador de las líneas de metadatos: la cabecera, el verbo de una
+       relación y las fechas de un registro. */
+    .sep { opacity: .4; padding: 0 .45rem; }
+
+    /* `inline` y no el bloque por omisión del formulario: el selector ocupa el
+       hueco que ocupaba el nombre del proyecto activo en la línea. */
+    .pickform { display: inline; margin: 0; }
+
+    .pick {
+      padding: .05rem .3rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .35rem;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .95em;
+      letter-spacing: normal;
+      color-scheme: dark;
+      cursor: pointer;
+    }
+
+    .pick:hover, .pick:focus-visible { border-color: rgba(110, 168, 254, .4); outline: none; }
+
+    .live {
+      display: inline-block;
+      margin-top: .6rem;
+      padding: .22rem .6rem;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      background: var(--surface);
+      font-size: .68rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .live::before {
+      content: "";
+      display: inline-block;
+      width: .4rem; height: .4rem;
+      margin-right: .45rem;
+      border-radius: 50%;
+      background: var(--good);
+      vertical-align: baseline;
+    }
+
+    /* ---- Panel de wildcards ---- */
+
+    /* Banda a todo el ancho entre la cabecera y las tres columnas: las cifras
+       del ámbito consultado son el resumen de la página entera y no caben bien
+       en la columna central, que es la que las demás vistas irán ocupando. */
+    .wildcards { margin-bottom: 1.75rem; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+      gap: .6rem;
+    }
+
+    .card {
+      padding: .7rem .85rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .55rem;
+    }
+
+    .card .label {
+      font-family: var(--mono);
+      font-size: .64rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card .count {
+      margin-top: .25rem;
+      font-size: 1.6rem;
+      font-weight: 650;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card.is-project .count { color: var(--accent); }
+    .card.is-bad     { border-color: rgba(240, 113, 120, .35); background: rgba(240, 113, 120, .07); }
+    .card.is-bad .count,
+    .card.is-bad .label { color: var(--bad); }
+    .card.is-zero .count { color: var(--muted); }
+
+    /* ---- Armazón de tres columnas ---- */
+
+    /* Las dos laterales se pegan al borde superior para que la central, que es
+       la que crecerá con las vistas posteriores, se recorra sola. */
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr) minmax(17rem, 21rem);
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .col-side { position: sticky; top: 1.5rem; }
+
+    @media (max-width: 78rem) {
+      .shell { grid-template-columns: minmax(0, 1fr); }
+      .col-side { position: static; }
+    }
+
+    h2 {
+      margin: 0 0 .8rem;
+      font-size: .74rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h2:not(:first-child) { margin-top: 1.75rem; }
+
+    h2 .scope {
+      margin-left: .5rem;
+      font-family: var(--mono);
+      font-size: 1.15em;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--text);
+      overflow-wrap: anywhere;
+    }
+
+    .panel {
+      padding: .9rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .6rem;
+    }
+
+    /* ---- Columna izquierda: proyectos ---- */
+
+    .plist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: .35rem;
+    }
+
+    .pitem {
+      display: grid;
+      gap: .25rem;
+      padding: .5rem .65rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .5rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .pitem:hover { border-color: rgba(110, 168, 254, .4); }
+
+    .pitem.is-selected {
+      background: rgba(110, 168, 254, .1);
+      border-color: var(--accent);
+    }
+
+    .phead { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; }
+
+    .pname {
+      font-family: var(--mono);
+      font-size: .86rem;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .badge {
+      padding: .05rem .4rem;
+      border-radius: 99px;
+      background: rgba(110, 168, 254, .16);
+      border: 1px solid rgba(110, 168, 254, .35);
+      color: var(--accent);
+      font-size: .58rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .badge.is-bad {
+      background: rgba(240, 113, 120, .14);
+      border-color: rgba(240, 113, 120, .4);
+      color: var(--bad);
+    }
+
+    .badge.is-empty {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--muted);
+    }
+
+    .pnums {
+      display: flex;
+      gap: .6rem;
+      font-family: var(--mono);
+      font-size: .66rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pnums b { color: var(--text); font-weight: 600; }
+    .pnums .bad b { color: var(--bad); }
+
+    .unselect {
+      display: inline-block;
+      margin-top: .75rem;
+      font-size: .72rem;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .unselect:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ---- Columna central ---- */
+
+    .desc {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    /* La miga de pan es la profundidad recorrida: cada nivel anterior es un
+       enlace de regreso y el presente se declara sin enlazar. */
+    .crumbs {
+      margin: 0 0 1rem;
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .crumbs a {
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .crumbs a:hover { color: var(--accent); border-color: var(--accent); }
+
+    .crumbs .csep { opacity: .4; padding: 0 .35rem; }
+
+    .crumbs .cnow { color: var(--text); }
+
+    /* El origen de la instancia es un metadato más de su vista: la misma letra
+       pequeña de la miga, con el enlace al documento que la inicia. */
+    .origin {
+      margin: -0.5rem 0 1rem;
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .origin a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .origin a:hover { border-color: var(--accent); }
+
+    /* La prosa del documento conserva la estética del tablero: el markdown ya
+       llega escapado del controlador, así que aquí solo se viste. */
+    .prose { font-size: .82rem; line-height: 1.65; overflow-wrap: anywhere; }
+
+    .prose > :first-child { margin-top: 0; }
+    .prose > :last-child { margin-bottom: 0; }
+
+    .prose h1, .prose h2, .prose h3, .prose h4 {
+      font-family: var(--mono);
+      color: var(--text);
+      line-height: 1.3;
+      margin: 1.6rem 0 .6rem;
+    }
+
+    .prose h1 { font-size: 1.05rem; }
+    .prose h2 { font-size: .95rem; }
+    .prose h3 { font-size: .87rem; }
+    .prose h4 { font-size: .82rem; }
+
+    .prose code {
+      font-family: var(--mono);
+      font-size: .9em;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .3rem;
+      padding: .05rem .3rem;
+    }
+
+    .prose pre {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .5rem;
+      padding: .7rem .85rem;
+      overflow-x: auto;
+    }
+
+    .prose pre code { background: none; border: 0; padding: 0; }
+
+    .prose table {
+      border-collapse: collapse;
+      margin: .8rem 0;
+      font-size: .76rem;
+      width: 100%;
+    }
+
+    .prose th, .prose td {
+      border: 1px solid var(--line);
+      padding: .35rem .55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .prose th { font-family: var(--mono); color: var(--muted); font-weight: 600; }
+
+    .prose a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--line); }
+    .prose a:hover { border-color: var(--accent); }
+
+    .prose blockquote {
+      margin: .8rem 0;
+      padding: .2rem 0 .2rem .9rem;
+      border-left: 2px solid var(--line);
+      color: var(--muted);
+    }
+
+    .prose hr { border: 0; border-top: 1px solid var(--line); margin: 1.2rem 0; }
+
+    .prose ul, .prose ol { padding-left: 1.3rem; margin: .6rem 0; }
+
+    /* ---- Vista de artefacto: un registro se dibuja desde sus campos ---- */
+
+    /* Las secciones y su orden los fija el esquema del registro, no esta hoja:
+       aquí solo se viste lo que el controlador proyecta. */
+    .rhead { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .7rem; }
+
+    .rtitle { margin: 0 0 1.1rem; font-size: .86rem; overflow-wrap: anywhere; }
+
+    .rsec + .rsec { margin-top: 1.3rem; }
+
+    .rsec > .gtitle { margin-bottom: .5rem; }
+
+    .rgroup + .rgroup { margin-top: .75rem; }
+
+    .rverb { margin: 0; font-size: .74rem; color: var(--muted); }
+
+    .rverb b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+    /* Los destinos y las acciones se dibujan como identidades, no como enlaces:
+       la vista no resuelve por su cuenta lo que el registro solo nombra. */
+    .chips {
+      list-style: none;
+      margin: .4rem 0 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem;
+    }
+
+    .chip {
+      padding: .12rem .45rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .35rem;
+      font-family: var(--mono);
+      font-size: .7rem;
+      overflow-wrap: anywhere;
+    }
+
+    .rtable { border-collapse: collapse; width: 100%; font-size: .76rem; }
+
+    .rtable th, .rtable td {
+      border: 1px solid var(--line);
+      padding: .35rem .55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .rtable th {
+      width: 1%;
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .rtable td { overflow-wrap: anywhere; }
+
+    .rplatform { margin: 0 0 .5rem; font-size: .76rem; color: var(--muted); }
+
+    .rplatform code { font-family: var(--mono); color: var(--text); }
+
+    /* Los comandos constan literales: el mismo tratamiento del comando de la
+       columna derecha, con `user-select: all` para copiarlos de un clic. */
+    .rcommands { list-style: none; margin: 0 0 .6rem; padding: 0; display: grid; gap: .35rem; }
+
+    .rcommands code {
+      display: block;
+      padding: .4rem .55rem;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--good);
+      overflow-wrap: anywhere;
+      user-select: all;
+    }
+
+    .routputs {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      gap: .3rem;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    .routputs li { overflow-wrap: anywhere; }
+
+    .rnone { margin: 0; font-size: .78rem; font-style: italic; color: var(--muted); }
+
+    .rdates {
+      margin: 1.3rem 0 0;
+      padding-top: .85rem;
+      border-top: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .rdates b { color: var(--text); font-weight: 500; }
+
+    .hint {
+      margin: 1rem 0 0;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .broken {
+      margin: 1rem 0 0;
+      padding: .6rem .8rem;
+      border-left: 2px solid var(--bad);
+      background: rgba(240, 113, 120, .07);
+      border-radius: 0 .4rem .4rem 0;
+      color: var(--bad);
+      font-size: .82rem;
+    }
+
+    .panel > .broken:first-child,
+    .panel > .hint:first-child { margin-top: 0; }
+
+    .clean { margin: 0; font-size: .82rem; color: var(--good); }
+
+    .clean code,
+    .anote code,
+    .adetail code {
+      font-family: var(--mono);
+      color: var(--text);
+      opacity: .8;
+    }
+
+    /* ---- Filas de la columna central: workflows y artefactos de su raíz ---- */
+
+    .wlist,
+    .alist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: .5rem;
+    }
+
+    .witem,
+    .aitem {
+      display: grid;
+      gap: .3rem;
+      padding: .6rem .8rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .55rem;
+    }
+
+    /* La fila de workflow y la de artefacto son enlaces a lo que abren: el mismo
+       dibujo, sin color de enlace, y el borde acusa el paso como en las filas de
+       proyecto. */
+    .witem.is-link,
+    .aitem.is-link { text-decoration: none; color: var(--text); }
+
+    .witem.is-link:hover,
+    .aitem.is-link:hover { border-color: rgba(110, 168, 254, .4); }
+
+    .whead,
+    .ahead { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+
+    .wname,
+    .aname {
+      font-family: var(--mono);
+      font-size: .84rem;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .wpath,
+    .apath {
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .atitle { font-size: .8rem; }
+
+    .fgroup + .fgroup { margin-top: 1.1rem; }
+
+    .wblock {
+      padding: .4rem .6rem;
+      border-left: 2px solid var(--bad);
+      background: rgba(240, 113, 120, .07);
+      border-radius: 0 .35rem .35rem 0;
+      font-size: .72rem;
+      color: var(--bad);
+    }
+
+    .empty {
+      margin: 0;
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ---- Columna derecha: operaciones y comandos ---- */
+
+    .anote {
+      margin: 0 0 .9rem;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .opform {
+      display: grid;
+      gap: .4rem;
+      margin: .6rem 0 0;
+    }
+
+    /* Un botón por proyecto: sin script no hay forma de enviar el formulario en
+       dos pasos, así que el envío es el propio clic. */
+    .opbtn {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: .5rem;
+      width: 100%;
+      padding: .5rem .65rem;
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: .5rem;
+      color: var(--text);
+      font: inherit;
+      font-size: .8rem;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .opbtn:hover:not(:disabled) { border-color: rgba(110, 168, 254, .4); }
+
+    .opbtn:disabled { cursor: default; opacity: .6; }
+
+    .opbtn .opname { font-family: var(--mono); overflow-wrap: anywhere; }
+
+    .opbtn .ophint {
+      font-size: .58rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .opbtn.is-current {
+      background: rgba(110, 168, 254, .1);
+      border-color: var(--accent);
+    }
+
+    .opbtn.is-current .ophint { color: var(--accent); }
+
+    .agroup + .agroup {
+      margin-top: 1.1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .gtitle {
+      margin: 0 0 .5rem;
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      overflow-wrap: anywhere;
+    }
+
+    .gnote {
+      margin: 0 0 .7rem;
+      padding: .45rem .6rem;
+      border-left: 2px solid var(--bad);
+      background: rgba(240, 113, 120, .07);
+      border-radius: 0 .35rem .35rem 0;
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .action + .action {
+      margin-top: .75rem;
+      padding-top: .75rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .alabel { font-size: .8rem; font-weight: 600; }
+
+    /* user-select: all es el equivalente sin script de un botón de copiar: un
+       clic selecciona el comando entero. */
+    .action code,
+    .op > code {
+      display: block;
+      margin-top: .35rem;
+      padding: .4rem .55rem;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      font-family: var(--mono);
+      font-size: .74rem;
+      color: var(--good);
+      overflow-wrap: anywhere;
+      user-select: all;
+    }
+
+    .adetail {
+      margin: .35rem 0 0;
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 2rem;
+      font-size: .72rem;
+      color: var(--muted);
+      opacity: .7;
+    }
+
+    footer code { font-family: var(--mono); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><a href="?">HACTORS</a></h1>
+    <div class="headmeta">
+      <div class="tagline">
+        Raíz <code>{{ data.root }}</code>
+        <span class="sep">·</span> proyecto activo
+        {% if data.projects %}
+        <form class="pickform" method="post" action="?">
+          <input type="hidden" name="marca" value="{{ data.marca }}">
+          {# El envío al cambiar es el único JavaScript de la página: un `select` no
+             se envía solo, y activar al elegir es lo que distingue este control de
+             los botones de la columna derecha. #}
+          <select class="pick" name="proyecto" onchange="this.form.submit()">
+            <option value="" disabled{% if not data.active %} selected{% endif %}>ninguno</option>
+            {% for project in data.projects %}
+            <option value="{{ project.name }}"{% if project.active %} selected{% endif %}>{{ project.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+        {% else %}
+        <code>ninguno</code>
+        {% endif %}
+      </div>
+      <span class="live">Resuelto en vivo · sin caché</span>
+    </div>
+  </header>
+
+  <section class="wildcards">
+    {% if data.selected %}
+    <h2>Artefactos<span class="scope">{{ data.selected.name }}</span></h2>
+    {% else %}
+    <h2>ARTEFACTOS</h2>
+    {% endif %}
+    <div class="panel">
+      <div class="cards">
+        {% for card in data.cards %}
+        <div class="card
+                    {%- if card.kind == 'project' %} is-project
+                    {%- elif card.kind == 'problem' and card.count %} is-bad
+                    {%- elif not card.count %} is-zero{% endif %}">
+          <div class="label">{{ card.label }}</div>
+          <div class="count">{{ card.count }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if data.missing %}
+      <p class="broken">No hay ningún proyecto llamado «{{ data.missing }}» en la raíz.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="shell">
+
+    <aside class="col-side">
+      <h2>Proyectos</h2>
+      <div class="panel">
+        {% if data.projects %}
+        <ul class="plist">
+          {% for project in data.projects %}
+          <li>
+            <a class="pitem{% if data.selected and data.selected.name == project.name %} is-selected{% endif %}"
+               href="?proyecto={{ project.name | urlencode }}">
+              <span class="phead">
+                <span class="pname">{{ project.name }}</span>
+                {% if project.active %}<span class="badge">activo</span>{% endif %}
+                {% if project.error %}<span class="badge is-bad">roto</span>{% endif %}
+              </span>
+              <span class="pnums">
+                <span><b>{{ project.artifacts }}</b> art</span>
+                <span><b>{{ project.runs }}</b> ej</span>
+                <span{% if project.problems %} class="bad"{% endif %}><b>{{ project.problems | length }}</b> inc</span>
+              </span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if data.selected %}
+        <a class="unselect" href="?">Ver la raíz entera</a>
+        {% endif %}
+        {% else %}
+        <p class="empty">No hay ningún proyecto en la raíz.</p>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main>
+      {% if data.selected %}
+      <h2>Proyecto<span class="scope">{{ data.selected.name }}</span></h2>
+
+      {% if data.selected.error %}
+      <div class="panel">
+        <p class="broken">No proyectable: {{ data.selected.error }}</p>
+      </div>
+      {% else %}
+      {% if data.doc %}
+      <h2>Artefacto<span class="scope">{{ data.doc.id }}</span></h2>
+      <p class="desc">
+        <code>{{ data.doc.path }}</code> del proyecto <code>{{ data.selected.name }}</code>:
+        {%- if data.doc.record %}
+        los campos que declara su esquema, en el orden en que los lista y sin añadir ninguno.
+        {%- else %}
+        su markdown dibujado tal como está escrito, con su marcado propio escapado.
+        {%- endif %}
+      </p>
+      {% if data.doc.record %}
+      {% set record = data.doc.record %}
+      <div class="panel">
+        {% if record.badges %}
+        <div class="rhead">
+          {% for badge in record.badges %}
+          <span class="badge{% if badge.bad %} is-bad{% endif %}">{{ badge.value }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if record.title %}<p class="rtitle">{{ record.title }}</p>{% endif %}
+
+        {% for section in record.sections %}
+        <div class="rsec">
+          <p class="gtitle">{{ section.label }}</p>
+          {% if section.kind == 'relations' %}
+          {% if section.groups %}
+          {% for group in section.groups %}
+          <div class="rgroup">
+            <p class="rverb">{{ group.label }}<span class="sep">·</span><b>{{ group.targets | length }}</b></p>
+            <ul class="chips">
+              {% for target in group.targets %}<li class="chip">{{ target }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="rnone">{{ section.empty }}</p>
+          {% endif %}
+          {% elif section.kind == 'fields' %}
+          {% if section.rows %}
+          <table class="rtable">
+            <tbody>
+              {% for field in section.rows %}
+              <tr><th>{{ field.label }}</th><td>{{ field.value }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="rnone">{{ section.empty }}</p>
+          {% endif %}
+          {% elif section.kind == 'chips' %}
+          {% if section.entries %}
+          <ul class="chips">
+            {% for entry in section.entries %}<li class="chip">{{ entry }}</li>{% endfor %}
+          </ul>
+          {% else %}
+          <p class="rnone">{{ section.empty }}</p>
+          {% endif %}
+          {% elif section.kind == 'environment' %}
+          {% set observed = section.environment %}
+          {% if observed.platform %}<p class="rplatform">Plataforma: <code>{{ observed.platform }}</code></p>{% endif %}
+          {% if observed.commands %}
+          <ul class="rcommands">
+            {% for command in observed.commands %}<li><code>{{ command }}</code></li>{% endfor %}
+          </ul>
+          {% endif %}
+          {% if observed.outputs %}
+          <ul class="routputs">
+            {% for output in observed.outputs %}<li>{{ output }}</li>{% endfor %}
+          </ul>
+          {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        {% if record.dates %}
+        <p class="rdates">
+          {%- for date in record.dates %}
+          {%- if not loop.first %}<span class="sep">·</span>{% endif %}
+          {{ date.label }}: <b>{{ date.value }}</b>
+          {%- endfor %}
+        </p>
+        {% endif %}
+      </div>
+      {% else %}
+      <article class="prose panel">{{ data.doc.markdown | safe }}</article>
+      {% endif %}
+      {% if data.run %}
+      <a class="unselect"
+         href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ data.run.id | urlencode }}">Volver a {{ data.run.id }}</a>
+      {% else %}
+      <a class="unselect" href="?proyecto={{ data.selected.name | urlencode }}">Ver los workflows del proyecto</a>
+      {% endif %}
+      {% elif data.run %}
+      {% if data.run_trail | length > 1 %}
+      <nav class="crumbs" aria-label="Profundidad de la instancia">
+        {% for crumb in data.run_trail %}
+        {%- if not loop.last %}
+        <a href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ crumb | urlencode }}">{{ crumb }}</a><span class="csep">/</span>
+        {%- else %}
+        <span class="cnow">{{ crumb }}</span>
+        {%- endif %}
+        {% endfor %}
+      </nav>
+      {% endif %}
+      <h2>Instancia<span class="scope">{{ data.run.id }}</span></h2>
+      <p class="desc">
+        <code>{{ data.run.kind }}</code> en <code>{{ data.run.path }}</code> del proyecto
+        <code>{{ data.selected.name }}</code>: solo los artefactos que viven directamente en ese
+        directorio y las instancias que anida, no lo que vive en sus profundidades.
+      </p>
+      {% if data.origin_doc %}
+      <p class="origin">Origen:
+        <a href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ data.run.id | urlencode }}&documento={{ data.origin_doc.path | urlencode }}">{{ data.origin_doc.id }}</a>
+      </p>
+      {% elif data.origin_ref %}
+      <p class="origin">Origen: <code>{{ data.origin_ref }}</code>, declarado sin documento en el proyecto.</p>
+      {% endif %}
+
+      <h2>Artefactos</h2>
+      <div class="panel">
+        {# El cuerpo de la fila es el mismo la abra o no la vista de artefacto: solo
+           cambia el elemento que la envuelve, y una familia sin vista se queda sin
+           enlace en lugar de llevar a una denuncia. #}
+        {% macro afields(art) %}
+        <span class="ahead">
+          <span class="aname">{{ art.id }}</span>
+          <span class="badge{% if not art.status %} is-empty{% endif %}">{{ art.status or 'sin estado' }}</span>
+        </span>
+        {% if art.title %}<span class="atitle">{{ art.title }}</span>{% endif %}
+        <span class="apath">{{ art.path }}</span>
+        {% endmacro %}
+        {% if data.run_direct %}
+        {% for group in data.run_direct %}
+        <div class="fgroup">
+          <p class="gtitle">{{ group.label }}</p>
+          <ul class="alist">
+            {% for art in group.entries %}
+            <li>
+              {% if art.served %}
+              <a class="aitem is-link"
+                 href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ data.run.id | urlencode }}&documento={{ art.path | urlencode }}">{{ afields(art) }}</a>
+              {% else %}
+              <div class="aitem">{{ afields(art) }}</div>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="clean">Sin artefactos</p>
+        {% endif %}
+      </div>
+
+      <h2>Instancias</h2>
+      <div class="panel">
+        {% if data.run_children %}
+        <ul class="wlist">
+          {% for child in data.run_children %}
+          <li>
+            <a class="witem is-link"
+               href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ child.id | urlencode }}">
+              <span class="whead">
+                <span class="wname">{{ child.id }}</span>
+                <span class="badge{% if not child.status %} is-empty{% endif %}">{{ child.status or 'sin estado' }}</span>
+              </span>
+              <span class="wpath">{{ child.path }}</span>
+              {% if child.blocked_reason %}<span class="wblock">{{ child.blocked_reason }}</span>{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="clean">Sin instancias</p>
+        {% endif %}
+      </div>
+
+      {% if data.run.parent %}
+      <a class="unselect"
+         href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ data.run.parent | urlencode }}">Subir a {{ data.run.parent }}</a>
+      {% else %}
+      <a class="unselect" href="?proyecto={{ data.selected.name | urlencode }}">Ver los workflows del proyecto</a>
+      {% endif %}
+
+      {% else %}
+      <p class="desc">{{ data.selected.description or 'Sin descripción declarada.' }}</p>
+
+      <h2>Workflows</h2>
+      <div class="panel">
+        {% if data.run_missing %}
+        <p class="broken">No hay ninguna instancia llamada «{{ data.run_missing }}» en el proyecto.</p>
+        {% endif %}
+        {% if data.doc_missing %}
+        <p class="broken">No hay ningún artefacto llamado «{{ data.doc_missing }}» que el visor dibuje en el proyecto.</p>
+        {% endif %}
+        {% if data.selected.workflows %}
+        <ul class="wlist">
+          {% for wf in data.selected.workflows %}
+          <li>
+            <a class="witem is-link"
+               href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ wf.id | urlencode }}">
+              <span class="whead">
+                <span class="wname">{{ wf.id }}</span>
+                <span class="badge{% if not wf.status %} is-empty{% endif %}">{{ wf.status or 'sin estado' }}</span>
+              </span>
+              <span class="wpath">{{ wf.path }}</span>
+              {% if wf.blocked_reason %}<span class="wblock">{{ wf.blocked_reason }}</span>{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="clean">Ninguno: el proyecto no declara ninguna instancia <code>workflow_run</code>.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% endif %}
+
+      {% else %}
+      <h2>Vista general</h2>
+      <div class="panel">
+        <p class="hint">
+          Ningún proyecto consultado: los artefactos de arriba son las de toda la raíz. Elige uno a
+          la izquierda y sus vistas se irán añadiendo a esta columna.
+        </p>
+      </div>
+      {% endif %}
+    </main>
+
+    <aside class="col-side">
+      <h2>Operaciones</h2>
+      <div class="panel">
+        <p class="anote">
+          Estas sí las ejecuta el visor, sobre la raíz <code>{{ data.root }}</code>. Cada una
+          muestra el comando de la CLI que produce lo mismo.
+        </p>
+
+        {% if data.rejected %}<p class="gnote">{{ data.rejected }}</p>{% endif %}
+
+        <div class="op">
+          <div class="alabel">Proyecto activo</div>
+          <p class="adetail">
+            Ahora <b>{{ data.active or 'ninguno' }}</b>. Activar otro escribe
+            <code>projects/.state.yaml</code> y limpia la selección de ejecución.
+          </p>
+
+          {% if data.projects %}
+          <form class="opform" method="post" action="?">
+            <input type="hidden" name="marca" value="{{ data.marca }}">
+            {% for project in data.projects %}
+            <button class="opbtn{% if project.active %} is-current{% endif %}" type="submit"
+                    name="proyecto" value="{{ project.name }}"{% if project.active %} disabled{% endif %}>
+              <span class="opname">{{ project.name }}</span>
+              <span class="ophint">{% if project.active %}activo{% else %}activar{% endif %}</span>
+            </button>
+            {% endfor %}
+          </form>
+          {% else %}
+          <p class="empty">No hay ningún proyecto que activar.</p>
+          {% endif %}
+
+          <code>hactors use-project &lt;nombre&gt;</code>
+        </div>
+      </div>
+
+      <h2>Comandos</h2>
+      <div class="panel">
+        <p class="anote">
+          Estos no los ejecuta el visor: cada uno es el comando de la CLI que produce la misma
+          operación. Se supone ejecutado desde <code>{{ data.root }}</code>; desde otro
+          directorio, añade <code>--root</code>.
+        </p>
+
+        {% for group in data.actions %}
+        <div class="agroup">
+          <p class="gtitle">{{ group.title }}</p>
+          {% if group.note %}<p class="gnote">{{ group.note }}</p>{% endif %}
+          {% for action in group.actions %}
+          <div class="action">
+            <div class="alabel">{{ action.label }}</div>
+            <code>{{ action.command }}</code>
+            <p class="adetail">{{ action.detail }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </aside>
+
+  </div>
+
+  <footer>
+    El visor resuelve en vivo y no es fuente de verdad: ninguna de sus cifras acredita el
+    estado de un proyecto. No genera artefactos, no consume contadores ni registra relaciones;
+    lo único que escribe es el proyecto activo, en <code>projects/.state.yaml</code> y solo por
+    el selector de la cabecera o el formulario de operaciones. El proyecto elegido para verlo
+    vive en la consulta y no en el estado activo.
+  </footer>
+
+</div>
+</body>
+</html>

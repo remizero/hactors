@@ -27,7 +27,7 @@ La necesidad de documentar una decisión no autoriza al ejecutor a adoptarla uni
 
 ## Plan y decisión secuencial
 
-Un plan (`PLAN-nnnnn`) es una decisión secuencial: compromete un orden de ejecución, recursos y criterios de avance.
+Un plan (`PLAN-nnnnn`, del contador `plan`) es una decisión secuencial: compromete un orden de ejecución, recursos y criterios de avance.
 Su formato está en [templates/PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md).
 Los puntos de decisión dentro del plan (decision gates) son aprobados por [actor: human] antes de avanzar.
 Si la decisión es única y no secuencial, pertenece al registro de ADR; si es un conjunto ordenado de pasos con gates, pertenece al plan.

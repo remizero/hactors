@@ -1,0 +1,11 @@
+[
+  {
+    "endpoint_id": "projects",
+    "protocol": "view",
+    "blueprint_id": "projects_view",
+    "rule": "/",
+    "action": "apps/hactors/services/view/viewer/v1/render/projects",
+    "action_name": "projects",
+    "methods": [ "GET", "POST" ]
+  }
+]

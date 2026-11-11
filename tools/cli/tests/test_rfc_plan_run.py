@@ -104,7 +104,7 @@ def test_core_uses_explicit_parent_even_in_another_project(run_case):
     assert snapshot(other) == before
 
 
-def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
+def test_counters_span_parents_but_not_projects(hactors_root, load_yaml, zero_counters):
     for project_name in ("first", "second"):
         project = create_project(project_name, hactors_root)
         for index in (1, 2):
@@ -120,8 +120,8 @@ def test_counters_span_parents_but_not_projects(hactors_root, load_yaml):
             assert harness.name == f"harness_run_{index:06d}"
             assert harness.parent == test
         assert load_yaml(project / "manifest.yaml")["counters"] == {
-            "task": 0, "action": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 2, "plan_run": 2,
-            "test_run": 2, "harness_run": 2, "evidence": 0, "finding": 0, "adr": 0,
+            **zero_counters, "workflow_run": 2, "task_run": 2, "rfc_run": 2,
+            "plan_run": 2, "test_run": 2, "harness_run": 2,
         }
 
 
@@ -269,16 +269,15 @@ def test_new_counter_added_without_rewriting_ancestors(run_case, load_yaml):
 
 
 @pytest.mark.parametrize("depth", [6, 10])
-def test_recursive_chain_preserves_all_ancestors_and_global_counters(hactors_root, load_yaml, depth):
+def test_recursive_chain_preserves_all_ancestors_and_global_counters(
+    hactors_root, load_yaml, zero_counters, depth
+):
     project = create_project("proj", hactors_root)
     workflow = create_workflow(hactors_root, project.name, task_ref="TASK-00001")
     runs = [workflow, create_task_run(hactors_root, project.name, workflow.relative_to(project).as_posix())]
     originals = {run / "manifest.yaml": (run / "manifest.yaml").read_bytes() for run in runs}
     templates = {name: load_template(hactors_root, f"{name}_template.yaml") for name in ("rfc_run", "plan_run")}
-    expected_counters = {
-        "task": 0, "action": 0, "workflow_run": 1, "task_run": 1, "rfc_run": 0, "plan_run": 0,
-        "test_run": 0, "harness_run": 0, "evidence": 0, "finding": 0, "adr": 0,
-    }
+    expected_counters = {**zero_counters, "workflow_run": 1, "task_run": 1}
     for current_depth in range(2, depth + 1):
         is_rfc = current_depth % 2 == 0
         prefix, field, ref = ("rfc_run", "rfc_ref", "RFC-A00001") if is_rfc else ("plan_run", "plan_ref", "PLAN-00001")

@@ -1,6 +1,6 @@
 # Sistema de ejecución HACTORS.
 
-> **Alcance de la CLI:** implementa la jerarquía recursiva, la ruta activa completa y la navegación descritas en este documento. Los comandos crean y seleccionan instancias; no generan artefactos RFC/PLAN/TEST/HARNESS ni gestionan su aprobación, avance o cierre. `create-harness-run` registra referencias declaradas: no resuelve catálogos, verifica contenido, publica versiones ni construye o ejecuta recetas.
+> **Alcance de la CLI:** implementa la jerarquía recursiva, la ruta activa completa y la navegación descritas en este documento. Los comandos crean y seleccionan instancias; no generan artefactos RFC/PLAN/TEST/HARNESS ni deciden su aprobación, avance o cierre. `transition` reescribe el estado documental conforme a la sección 17, sin decidirlo ni propagarlo. `create-harness-run` registra referencias declaradas: no resuelve catálogos, verifica contenido, publica versiones ni construye o ejecuta recetas.
 
 ## 1. ¿Qué es el sistema de ejecución HACTORS?
 
@@ -32,7 +32,7 @@ Este sistema se basa en tres principios:
 
 ### Relación entre WORKFLOW y workflow_run
 
-Un WORKFLOW define las fases y pasos abstractos de un proceso. Un `workflow_run` es una instancia concreta de ese workflow: tiene identidad propia, un estado observable en cada momento y resultados que se preservan.
+Un WORKFLOW define las fases y pasos de un proceso, con identidad `WORKFLOW-nnnnn` y versiones publicadas en `workflows/`, conforme a [WORKFLOW.md](WORKFLOW.md#identidad-y-versiones). Un `workflow_run` es una instancia concreta de ese workflow: tiene identidad propia, un estado observable en cada momento y resultados que se preservan, y declara la versión exacta que sigue en `identity.workflow_version`.
 
 La distinción es importante: el WORKFLOW dice *cómo debería ser* el proceso; el `workflow_run` registra *cómo fue* la ejecución real, incluyendo intentos fallidos, bloqueos y decisiones tomadas durante el recorrido.
 
@@ -95,7 +95,7 @@ projects/.state.yaml
 | Ruta | Artefacto | Contenido |
 |------|-----------|-----------|
 | `project.yaml` | Identidad del proyecto | Nombre, descripción, fecha de creación y referencia normativa. |
-| `manifest.yaml` | Grafo del proyecto | Relaciones entre artefactos y contadores de ejecución. |
+| `manifest.yaml` | Grafo del proyecto | Relaciones entre artefactos y los contadores que numeran cada tipo. |
 | `decisions/` | ADRs | Decisiones registradas del proyecto, cada una en su propio archivo; ver [DECISIONS.md](DECISIONS.md). |
 | `tasks/` | TASKs | Artefactos iniciadores. Cada TASK define qué se pretende ejecutar. |
 | `rfcs/` | RFCs | Especificaciones normativas originales e inmutables. |
@@ -156,7 +156,7 @@ Padre, ascendencia y profundidad se calculan desde la ruta; no se duplican como 
 
 ## 3. Manifest del proyecto: contadores y relaciones
 
-El archivo `manifest.yaml` en la raíz del proyecto tiene tres responsabilidades: identificar el proyecto, registrar las relaciones entre artefactos y mantener los contadores de ejecución.
+El archivo `manifest.yaml` en la raíz del proyecto tiene tres responsabilidades: identificar el proyecto, registrar las relaciones entre artefactos y mantener los contadores que numeran cada tipo de artefacto y de instancia.
 
 ### Estructura y campos
 
@@ -166,7 +166,7 @@ La estructura del manifest se define en [manifest_template.yaml](templates/manif
 
 **`relations`** — El grafo del proyecto: la lista de las relaciones entre sus artefactos. Permite navegar la trazabilidad sin mantener índices duplicados. Su elemento, su vocabulario y su correspondencia con las declaraciones documentales se definen en «Relaciones del proyecto».
 
-**`counters`** — Contadores secuenciales para cada tipo de artefacto ejecutable. Se incrementan automáticamente al crear una nueva instancia.
+**`counters`** — Contadores secuenciales, uno por tipo de artefacto y de instancia. Se incrementan al crear la instancia o al declarar el artefacto documental que numeran. La definición WORKFLOW y su ejecución son la excepción: comparten `workflow_run`, porque lo que se numera y se cuenta es lo físico.
 
 ### Relaciones del proyecto
 
@@ -183,7 +183,7 @@ relations:
 |---|---|
 | `source` | Artefacto del que parte el vínculo. En la lista de un documento el origen es implícito; aquí es explícito, porque esta lista agrega las relaciones de todo el proyecto. |
 | `target` | Artefacto al que llega, en el formato que admita el documento que declara la relación. Puede llevar un fragmento `#<identificador>` cuando el vínculo es con un criterio u objetivo dentro del artefacto, y ese identificador debe existir en él. |
-| `relation` | Tipo de vínculo, en la dirección que fija su propia especificación: [RFC.md](RFC.md#relaciones) para los de RFC, y la sección de relaciones de [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md), [FND_TEMPLATE.md](templates/FND_TEMPLATE.md) y [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md) para los suyos. |
+| `relation` | Tipo de vínculo, en la dirección que fija su propia especificación: [RFC.md](RFC.md#relaciones) para los de RFC, y la sección de relaciones de [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md), [FND_TEMPLATE.md](templates/FND_TEMPLATE.md), [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md) y [TESTS.md](TESTS.md#relaciones) para los suyos. |
 
 No hay campo de ubicación: la ruta de un artefacto se deriva de su identidad y de la especificación que la define, y repetirla aquí abriría una segunda fuente capaz de desmentir a la primera.
 
@@ -207,8 +207,12 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 | Contador | Se incrementa al crear | Formato del ID generado |
 |----------|------------------------|--------------------------|
 | `task` | Una TASK en `tasks/` | `TASK-00001` |
-| `action` | Una acción derivada declarada en el campo `actions:` de una RFC | `AC-00001` |
-| `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001` |
+| `action` | Una acción derivada declarada en el campo `actions:` de una RFC | `ACT-00001` |
+| `rfc_a`, `rfc_f`, `rfc_i`, `rfc_t`, `rfc_d` | Una RFC nueva de su tipo, también cuando es derivada | `RFC-A00001` |
+| `plan` | Un documento PLAN en `plans/` o `docs/plans/` | `PLAN-00001` |
+| `test` | Un TEST en `tests/` | `TEST-00001` |
+| `harness` | Un catálogo HRN en `harnesses/` | `HRN-00001` |
+| `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001`; la definición WORKFLOW que lo anticipa se redacta con ese mismo número, `WORKFLOW-00001` |
 | `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
 | `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
 | `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
@@ -218,11 +222,15 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 | `finding` | Un hallazgo en el directorio de su origen | `FND-00001` |
 | `adr` | Una decisión en `decisions/` | `ADR-00001` |
 
-Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores de ejecución no numeran artefactos RFC, PLAN, TEST, HRN ni versiones de receta y no se reinician al abrir una rama.
+Los contadores son independientes por tipo y globales al proyecto, no al padre ni a la profundidad. En el árbol de la sección 2, los cuatro rfc_runs consumen el mismo contador aunque tengan padres y profundidades diferentes; lo mismo ocurre con los dos test_runs y los tres harness_runs, cada tipo con su contador. Los contadores documentales numeran el artefacto, no sus versiones: las versiones de receta y de definición (`@vNNN`) no consumen contador. Ningún contador se reinicia al abrir una rama ni al derivar; una RFC derivada consume el correlativo global de su tipo, conforme a [RFC.md](RFC.md#derivación-y-numeración).
 
-Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación.
+Los contadores `evidence` y `finding` no son de ejecución: numeran registros EVD y FND cuya ubicación depende de su origen, conforme a las secciones 13 y 14, por lo que un mismo proyecto los reparte entre varios directorios sin reiniciar la numeración. Los contadores `task`, `action` y `adr` tampoco lo son: numeran artefactos documentales, no instancias; el primero las TASK de `tasks/`, conforme a la sección 7, el segundo las acciones derivadas que cada RFC declara en su campo `actions:`, conforme a [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), y el tercero las decisiones de `decisions/`, conforme a [DECISIONS.md](DECISIONS.md). `hactors create-action` consume `action` al añadir el elemento a su RFC y `hactors create-adr` consume `adr` al crear el archivo de la decisión; quien declare esos artefactos a mano incrementa el contador en la misma operación. Los contadores `rfc_a` a `rfc_d`, `plan`, `test` y `harness` tampoco son de ejecución y ningún comando los consume: numeran artefactos documentales que se redactan a mano, así que quien declara uno incrementa el contador de su tipo en la misma operación. La definición WORKFLOW se redacta a mano como esos artefactos, pero no tiene contador propio ni consume ninguno: un único campo `workflow_run` numera el concepto y su ejecución, porque lo físico es la instancia y una definición de trabajo no tiene un recuento propio. Solo `hactors create-workflow` lo consume, al crear el workflow_run; el catálogo de `workflows/` se redacta con el número que tendrá su workflow_run, así que mientras esa definición no se ejecute el contador va por detrás de su número y `hactors validate` denuncia el hueco.
 
-Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia; no es necesario reescribir sus ejecuciones anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
+Los nuevos contadores se incorporan al manifest de un proyecto existente al crear su primera instancia o al declarar su primer artefacto del tipo; no es necesario reescribir los objetos anteriores. Antes de persistir el incremento se comprueba que el ID candidato no repita un ancestro ni tenga ya una entrada en el padre elegido. Si un contador ausente o desfasado provoca uno de esos conflictos, se rechaza la creación sin modificarlo; no se renumeran instancias ni se reparan contadores automáticamente.
+
+Como un artefacto descartado o no implementado permanece en el proyecto como historia y nunca se elimina, el contador de un tipo y el número de artefactos de ese tipo presentes coinciden siempre: un mismo campo es a la vez el siguiente identificador y el recuento de existentes. Retirar un artefacto no decrementa su contador, porque reasignar ese identificador rompería las referencias que ya lo nombran.
+
+`hactors validate` comprueba esa igualdad en cada contador que esta tabla define, en las dos direcciones: un valor por debajo de una identidad existente anuncia que la próxima creación repetiría un número ya asignado, y un valor por encima denuncia el hueco entre lo numerado y lo presente. La definición WORKFLOW cuenta para el límite inferior y no para el recuento, porque la cuentan sus workflow_run. La corrección canónica de cada caso está en [TRANSACTIONS.md](TRANSACTIONS.md#detección).
 
 ### Ejemplo
 
@@ -245,7 +253,7 @@ counters:
   adr: 0
 ```
 
-Los contadores registran la numeración asignada, no la ubicación ni una comprobación de existencia. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
+Los contadores registran la numeración asignada, no la ubicación. El parentesco de las instancias del ejemplo se obtiene de sus directorios, no de estos valores.
 
 ## 4. Archivo de estado activo
 
@@ -305,6 +313,7 @@ Una ruta inválida o un padre incompatible produce un error sin cambiar la selec
 | `hactors create-action --rfc <ruta>` | Proyecto activo y archivo existente en ese proyecto que declare `rfc:` y un campo `actions:` en forma de bloque | No cambia el estado activo: añade el elemento al final de `actions:` con el contador `action`. |
 | `hactors create-adr --title <título>` | Proyecto activo y su directorio `decisions/` | No cambia el estado activo: escribe `decisions/ADR-nnnnn — nombre-descriptivo.md` con el contador `adr`. |
 | `hactors relate --source <…> --target <…> --relation <…>` | Proyecto activo y un `target` que resuelva en él | No cambia el estado activo: añade la arista a `relations` del manifest del proyecto. |
+| `hactors transition --artifact <ruta> --to <estado> [--id <identificador>]` | Proyecto activo y un archivo existente en ese proyecto que pertenezca a una familia de la sección 17 | No cambia el estado activo: reescribe el campo de estado del artefacto, o del elemento que identifica `--id`, conforme a la sección 17. |
 | `hactors validate` | Proyecto activo | No cambia el estado activo: examina el proyecto entero, lista sus inconsistencias y termina con error si hay alguna, conforme a la sección 16. |
 | `hactors export` | Proyecto activo | No cambia el estado activo: escribe su modelo de lectura en `views/project.json`, conforme a [VIEWS.md](VIEWS.md). |
 | `hactors render` | Raíz de HACTORS con su directorio `projects/`; no exige proyecto activo | No cambia el estado activo: escribe el tablero de cada proyecto de la raíz y el visor de `projects/views/`, conforme a [VIEWS.md](VIEWS.md). |
@@ -413,14 +422,14 @@ La clave de nivel superior es el ID del workflow_run. Todo el contenido del mani
 identity:
   id: "workflow_run_000001"
   task_ref: "TASK-00001"
-  workflow_version: "1.0"
+  workflow_version: "WORKFLOW-00001@v001"
 ```
 
 | Campo | Descripción |
 |-------|-------------|
 | `id` | Identificador único del workflow_run. Coincide con el nombre del directorio y la clave envolvente. |
 | `task_ref` | Identificador de la TASK que inició esta ejecución, conforme a la sección 7. Puede estar vacío si el workflow_run se crea antes de asociarlo a una TASK. |
-| `workflow_version` | Versión del WORKFLOW abstracto que se está ejecutando. |
+| `workflow_version` | Referencia exacta `WORKFLOW-nnnnn@vNNN` de la definición que sigue esta ejecución, conforme a [WORKFLOW_TEMPLATE.md](templates/WORKFLOW_TEMPLATE.md#identidad). Vacía mientras la asociación esté pendiente; los `step_XXX` de `global_state` pertenecen a esa versión. |
 
 ### Bloque 2: global_state
 
@@ -827,7 +836,7 @@ Crear el archivo no satisface por sí solo los mínimos de [SUMMARY.md](SUMMARY.
 
 ### Identidad documental
 
-Cada documento de `rfcs/*.md` declara un `rfc:` y cada PLAN de `plans/` o `docs/plans/` declara un `id:`, sin identificadores repetidos en el proyecto y sin bloques `yaml` ilegibles. Los archivos de resumen de la sección 15 viven en `rfcs/` y quedan fuera del barrido: su identidad es `artifact:`, la de la RFC que resumen, y exigirles `rfc:` los denunciaría a todos.
+Cada documento de `rfcs/*.md` declara un `rfc:`, y cada PLAN de `plans/` o `docs/plans/` y cada TEST de `tests/` en la raíz del proyecto declara un `id:`, sin identificadores repetidos en el proyecto y sin bloques `yaml` ilegibles. Los archivos de resumen de la sección 15 viven en `rfcs/` y quedan fuera del barrido: su identidad es `artifact:`, la de la RFC que resumen, y exigirles `rfc:` los denunciaría a todos.
 
 ### Integridad referencial
 
@@ -838,9 +847,18 @@ Cada referencia declarada por una instancia resuelve a un objeto existente del p
 | workflow_run | `identity.task_ref` | `tasks/TASK-nnnnn.md`, en la forma normalizada de la sección 7 |
 | rfc_run | `identity.rfc_ref` | Un documento de `rfcs/` que declare ese `rfc:` |
 | plan_run | `identity.plan_ref` | Un documento de `plans/` o `docs/plans/` que declare ese `id:` |
+| test_run | `identity.test_ref` | Un documento de `tests/` que declare ese `id:` |
 | harness_run | `identity.harness_ref` | `harnesses/HRN-nnnnn/versions/vNNN/harness.yaml`, la referencia exacta de [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md) |
 
-Una referencia vacía es una asociación pendiente conforme a la sección 4, no una inconsistencia: el comando no la rellena ni la denuncia. `identity.test_ref` de un test_run no se resuelve porque TEST carece de formato de identidad y de ubicación definidos; `identity.content_ref` de un harness_run tampoco, porque acredita un contenido conservado fuera del proyecto.
+Una referencia vacía es una asociación pendiente conforme a la sección 4, no una inconsistencia: el comando no la rellena ni la denuncia. `identity.content_ref` de un harness_run no se resuelve porque acredita un contenido conservado fuera del proyecto.
+
+### Jerarquía e identidad de las instancias
+
+Cada instancia persistida bajo `hactors/` vive dentro del padre que admite la tabla de anidamiento de la sección 2, y su `identity.id` coincide con el componente de ruta de su directorio. El barrido recorre todo el árbol, no solo la rama activa: una instancia mal ubicada se denuncia aunque ninguna selección la alcance. Un manifiesto ilegible se denuncia una vez y no deja leer su identidad, así que de esa instancia solo se comprueba la ubicación. La corrección canónica es reparar el manifiesto, no mover la instancia, conforme a [TRANSACTIONS.md](TRANSACTIONS.md#detección).
+
+### Contadores
+
+Cada contador que la tabla de la sección 3 define cumple dos invariantes sobre las identidades de su tipo: no es menor que ninguna identidad existente e iguala exactamente la cantidad de las presentes. Las identidades se observan en `task`, `plan` y `test` desde los documentos del proyecto, en `evidence` y `finding` desde sus registros, en `adr` desde los archivos de `decisions/`, en `harness` desde los catálogos, en `action` desde los `id` del campo `actions:` de las RFC con identidad, en `rfc_a` a `rfc_d` desde el último segmento de tipo de cada identidad de RFC, y en los seis contadores de ejecución desde los directorios de instancia. Los directorios de `workflows/` se observan bajo `workflow_run` y solo para el límite inferior: la definición no consume contador ni cuenta entre las presentes, que son sus workflow_run. Un contador que no es un entero no negativo se denuncia por sí mismo y no se compara con nada; uno sin identidades de su tipo presentes debe valer cero. La comprobación no renumera nada ni repara el manifest: la corrección es la de [TRANSACTIONS.md](TRANSACTIONS.md#detección).
 
 ### Hallazgos bloqueantes
 
@@ -848,23 +866,91 @@ Ningún `FND-nnnnn.yaml` con severidad `critical` o `high` en estado `open` tien
 
 ### Esquema de las acciones derivadas
 
-El campo `actions:` de cada documento de `rfcs/` cumple el esquema de [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), con los tipos y los estados de [AC_TEMPLATE.md](templates/AC_TEMPLATE.md). Una RFC que no declara el campo incumple el esquema; una acción con campos por resolver no, porque los valores vacíos son información pendiente.
+El campo `actions:` de cada documento de `rfcs/` cumple el esquema de [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas), con los tipos y los estados de [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md). Una RFC que no declara el campo incumple el esquema; una acción con campos por resolver no, porque los valores vacíos son información pendiente.
 
 ### Grafo del proyecto
 
 Las dos comprobaciones sobre `relations` aplican el elemento y la tabla de traducción de la sección 3.
 
-**Resolución de destinos.** Cada elemento es un mapeo con `source`, `target` y `relation`, sin campos ajenos al esquema. Un `target` que identifica una familia con objeto propio en el proyecto —`TASK-`, `PLAN-`, `ADR-`, `EVD-`, `FND-`, `HRN-` y `RFC-X`, con formato en [DEFINITIONS.md](DEFINITIONS.md#nomenclatura)— debe resolver al objeto que lo porta: su documento, su archivo, su catálogo o, con `@vNNN`, su paquete de versión. Un identificador local declarado sin el artefacto que lo define no resuelve, conforme a [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md): es el caso de `AC-nnnnn`, que vive en el campo `actions:` de su RFC y cuya referencia con el artefacto que lo define no está escrita en ninguna especificación. Una referencia vacía es una relación por representar, no una inconsistencia.
+**Resolución de destinos.** Cada elemento es un mapeo con `source`, `target` y `relation`, sin campos ajenos al esquema. Un `target` que identifica una familia con objeto propio en el proyecto —`WORKFLOW-`, `TASK-`, `PLAN-`, `TEST-`, `ADR-`, `EVD-`, `FND-`, `HRN-` y `RFC-X`, con formato en [DEFINITIONS.md](DEFINITIONS.md#nomenclatura)— debe resolver al objeto que lo porta: su documento, su archivo, su catálogo o, con `@vNNN`, su paquete de versión. Un identificador local declarado sin el artefacto que lo define no resuelve, conforme a [EVD_TEMPLATE.md](templates/EVD_TEMPLATE.md): es el caso de `ACT-nnnnn`, que vive en el campo `actions:` de su RFC y cuya referencia con el artefacto que lo define no está escrita en ninguna especificación. Una referencia vacía es una relación por representar, no una inconsistencia.
 
-Un `target` ajeno a esas familias no se denuncia, porque su forma escrita no está definida: ni `TEST-`, que carece de identidad, ni la referencia a otro proyecto. El fragmento `#<identificador>` tampoco se comprueba: ninguna especificación define cómo se escribe un criterio u objetivo dentro de su artefacto. `source` no se resuelve.
+Un `target` ajeno a esas familias no se denuncia, porque su forma escrita no está definida: ni la referencia a un módulo del sistema documentado, ni la referencia a otro proyecto. El fragmento `#<identificador>` tampoco se comprueba: ninguna especificación define cómo se escribe un criterio u objetivo dentro de su artefacto. `source` no se resuelve.
 
-**Completitud.** Toda arista que la tabla de la sección 3 traduce desde un campo documental debe constar en `relations`: `origin`, `depends_on`, `supersedes` y `superseded_by` de cada RFC, y las entradas de `relations:` de cada RFC, de cada registro EVD y FND y de cada catálogo HRN —estas últimas con su origen explícito, la identidad HRN o la versión exacta según la lista que las contenga—. Una arista declarada desde los dos extremos, `supersedes` en la sucesora y `superseded_by` en la sustituida, se denuncia una sola vez. La comparación es literal: el grafo no normaliza dos formas escritas de una misma identidad, ni deduce una arista de otra.
+**Completitud.** Toda arista que la tabla de la sección 3 traduce desde un campo documental debe constar en `relations`: `origin`, `depends_on`, `supersedes` y `superseded_by` de cada RFC, y las entradas de `relations:` de cada RFC, de cada TEST, de cada registro EVD y FND y de cada catálogo HRN —estas últimas con su origen explícito, la identidad HRN o la versión exacta según la lista que las contenga—. Una arista declarada desde los dos extremos, `supersedes` en la sucesora y `superseded_by` en la sustituida, se denuncia una sola vez. La comparación es literal: el grafo no normaliza dos formas escritas de una misma identidad, ni deduce una arista de otra.
+
+### Contexto activo
+
+La instancia activa de `projects/.state.yaml` resuelve con el mismo criterio que usan `use-run` y las creaciones de la sección 4: la ruta tiene la forma y el anidamiento admitidos, cada directorio existe con su manifiesto y cada manifiesto declara la identidad de su componente de ruta. La comprobación solo aplica al proyecto activo, que es el único al que apunta el contexto. Una ruta activa vacía es un proyecto sin instancia seleccionada, no una inconsistencia. Un manifiesto ilegible dentro de la rama activa produce dos denuncias con correcciones distintas: la de la instancia, que se repara corrigiendo el manifiesto, y la del contexto, que se re-selecciona con `use-run` una vez reparado.
 
 ### Lo que no comprueba
 
-El comando no comprueba las invariantes de cierre entre niveles de [LIFECYCLE.md](LIFECYCLE.md): ni que cada acción de una RFC en `done` esté `completed`, ni que cada RFC del alcance de una TASK en `done` esté `done`. Ni el estado de publicación de la versión de HARNESS que referencia un harness_run, ni la jerarquía de las instancias, que ya validan `use-run` y las creaciones de la sección 4.
+El comando no comprueba las invariantes de cierre entre niveles de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles): ni que cada acción de una RFC en `done` esté `completed`, ni que cada RFC del alcance de una TASK en `done` esté `done`. Las comprueba la sección 17 al transicionar al estado que cierra el nivel, sobre los datos persistidos en ese momento; `validate` examina el proyecto entero sin conocer el destino de ninguna transición. Ni el estado de publicación de la versión de HARNESS que referencia un harness_run. Tampoco resuelve `identity.workflow_version` contra su paquete `workflows/WORKFLOW-nnnnn/versions/vNNN/workflow.yaml`, ni comprueba que los `step_XXX` de su `global_state` pertenezcan a esa versión.
 
-Del grafo quedan fuera los campos documentales que la tabla de la sección 3 no traduce, porque ninguna especificación fija qué arista producen: `rfcs:` y `execution.evidence:` de una TASK, `origin`, `derived_rfcs` y `references` de un PLAN, `origin` y `affiliation` de un catálogo HRN, y `artifact:` de un resumen. Tampoco se valida `relation` contra los vocabularios a los que la sección 3 remite, ni se denuncia una arista del manifest que ningún documento declare.
+Del grafo quedan fuera los campos documentales que la tabla de la sección 3 no traduce, porque ninguna especificación fija qué arista producen: `rfcs:` y `execution.evidence:` de una TASK, `origin`, `derived_rfcs` y `references` de un PLAN, `origin` y `references` de un TEST, `origin` y `affiliation` de un catálogo HRN, y `artifact:` de un resumen. Tampoco se valida `relation` contra los vocabularios a los que la sección 3 remite, ni se denuncia una arista del manifest que ningún documento declare.
 
 No ejecuta Git ni asume que existe un repositorio Git.
+
+## 17. Transición de estados documentales
+
+Un estado documental vive en el archivo de su artefacto. Su valor inicial lo fija el comando que lo crea o quien lo redacta; sus cambios los escribe `hactors transition`. Los valores admitidos, las aristas entre ellos y el actor de cada transición pertenecen a [LIFECYCLE.md](LIFECYCLE.md) y a las normas a las que esta sección remite: aquí se define únicamente qué archivo toca el comando, qué comprueba antes de tocarlo y qué queda fuera.
+
+El estado observable de una instancia de ejecución no es un estado documental y queda fuera. `global_state.status`, `state.status` y `blocked_reason` se registran en el manifiesto de cada instancia conforme a las secciones 5 a 12, y [LIFECYCLE.md](LIFECYCLE.md) excluye las instancias de sus transiciones. Sus valores no forman un vocabulario cerrado en ninguna norma —las secciones 5 y 6 los enumeran como ejemplo— y ningún comando los escribe: los registra quien observa la ejecución, con el orden de [TRANSACTIONS.md](TRANSACTIONS.md).
+
+### Objetivo y campo
+
+`transition` exige un proyecto activo y un objetivo. `--artifact <ruta>` declara una ruta relativa al proyecto con la forma que exige la sección 13 —sin `.` ni `..`, separadores alternativos ni componentes vacíos— y además debe existir, ser un archivo y no ser un enlace simbólico; a diferencia del origen de la sección 13, no admite un directorio. `--to <estado>` declara el estado destino. `--id <identificador>` señala el elemento cuando el estado no pertenece al archivo entero, y se rechaza cuando el objetivo no tiene elementos.
+
+La única ruta que puede resolver fuera del proyecto es la del TRV de la raíz de la copia, la segunda ubicación que [TRIVIAL.md](TRIVIAL.md#identificador-y-ubicación) prescribe y que no está dentro de ningún proyecto. Cuando `trivial/TRV-nnnnn — nombre-descriptivo.md` no existe en el proyecto activo, se resuelve contra la raíz de HACTORS. El proyecto tiene precedencia, así que un TRV de la raíz que comparta nombre con uno del proyecto activo no es alcanzable por el comando y su `status` se escribe a mano. El comando exige proyecto activo en los dos casos, y ninguna otra familia admite esa segunda ubicación.
+
+| Objetivo | Ubicación admitida | Campo que se reescribe | Valores y aristas |
+|---|---|---|---|
+| TASK | `tasks/TASK-nnnnn.md` | `execution.status` | [LIFECYCLE.md](LIFECYCLE.md#task) |
+| RFC | Un archivo de `rfcs/` que declare `rfc:` | `status` | [LIFECYCLE.md](LIFECYCLE.md#rfc) |
+| Resumen | Los dos destinos de la sección 15, en el archivo que declare `artifact:` | `status` | [LIFECYCLE.md](LIFECYCLE.md#summary) |
+| WORKFLOW | `workflows/WORKFLOW-nnnnn/manifest.yaml` | `status` | [LIFECYCLE.md](LIFECYCLE.md#workflow-y-acciones-derivadas) |
+| PLAN | `plans/` y `docs/plans/` | `status` | [PLAN_TEMPLATE.md](templates/PLAN_TEMPLATE.md#estados) |
+| ADR | `decisions/ADR-nnnnn — nombre-descriptivo.md` | `status` | [DECISIONS.md](DECISIONS.md#estados-de-adr) |
+| TRV | `trivial/TRV-nnnnn — nombre-descriptivo.md` del proyecto, o de la raíz de la copia | `status` | [TRIVIAL.md](TRIVIAL.md#estados) |
+| Acción derivada | Un archivo de `rfcs/`, el elemento de `actions:` que identifica `--id` | `status` | [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md#estados) y [PROJECT_STATE.md](PROJECT_STATE.md#transiciones-de-una-acción) |
+| Hallazgo | Cualquier `FND-nnnnn.yaml` del proyecto | `state` | [FND_TEMPLATE.md](templates/FND_TEMPLATE.md#estados-y-transiciones) |
+
+La familia se determina por la ubicación y por el campo de identidad que el archivo declara, con el criterio de los barridos de la sección 16: en `rfcs/`, el archivo que declara `rfc:` es una RFC y el que declara `artifact:` es su resumen. Un archivo cuya identidad no corresponde a su ubicación se rechaza antes que transicionarlo.
+
+Las versiones de HARNESS quedan fuera: su `retired` no cambia un solo campo, porque retirar la versión vigente exige resolver además `current_version` del catálogo conforme a [HRN_TEMPLATE.md](templates/HRN_TEMPLATE.md#estados), y esa operación de dos campos debe definirse junto con el comando que cree el catálogo. Un TEST tampoco tiene estado: su contenido y su propósito no cambian una vez establecido, conforme a [TESTS.md](TESTS.md#inmutabilidad). Y un objetivo ajeno a la tabla se rechaza: ni el manifiesto de una instancia, ni una evidencia, ni un paquete de versión, ni un documento que no declare el campo de su familia.
+
+### Escritura
+
+El comando reescribe únicamente el campo de estado y conserva el resto del archivo byte a byte: la línea del campo dentro del bloque `yaml` en un documento con frontmatter, la clave correspondiente en un registro o catálogo YAML, y la línea `status:` del elemento identificado dentro del intervalo de `actions:` en una acción derivada, con una intervención textual puntual en lugar de reemitir el bloque cuyo esquema fija [RFC_TEMPLATE.md](templates/RFC_TEMPLATE.md#acciones-derivadas). No añade ni reordena campos, no toca las fechas del archivo, no reescribe sus comentarios y no consume ningún contador: una transición no crea identidad.
+
+Una transición no produce aristas. La identidad del sucesor que exigen `superseded` en una RFC y en un ADR se escribe en los campos y documentos que cada norma prevé, y su representación en `relations` la hace `hactors relate` por separado, con la completitud que falta denunciada por la sección 16. Tampoco escribe el motivo de una disposición: cada familia lo registra donde su plantilla lo prevé, y el comando no inventa un campo para ello.
+
+### Comprobaciones
+
+El comando comprueba antes de escribir, y rechaza sin escribir nada cuando alguna comprobación falla:
+
+1. El objetivo existe, es un archivo y pertenece a una familia de la tabla; `--id` está presente si y solo si la familia tiene elementos, y el elemento que identifica existe en ese archivo.
+2. El campo de estado de la familia existe y es legible, y su valor actual pertenece al vocabulario de esa familia. Un estado que la norma no define es un documento defectuoso, no un punto de partida: se corrige en el documento.
+3. `--to` pertenece al vocabulario de la familia y es distinto del valor actual: repetir el estado propio no es una transición.
+4. El par actual → destino es una arista admitida por la norma de la familia, incluidas las disposiciones de [LIFECYCLE.md](LIFECYCLE.md#rechazo-sustitución-y-cancelación) y los retornos de [LIFECYCLE.md](LIFECYCLE.md#iteraciones-y-agregación).
+5. Cuando el destino cierra un nivel, la invariante que los datos persistidos permiten decidir, conforme a [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles).
+
+| Destino que cierra | Comprobación |
+|---|---|
+| TASK `done` | Cada identidad de su campo `rfcs:` resuelve a un documento de `rfcs/` en `done`, o en `superseded` cuyo `superseded_by` también conste en `rfcs:` y esté en `done`, que es la incorporación de [actor: human] que exige [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). Y ningún hallazgo `critical` o `high` cuya TASK de origen sea esa queda en `open`, la invariante de la sección 16. |
+| RFC `done` | Cada elemento de su campo `actions:` está en `completed`. |
+| Acción `completed` | Su campo `evidence` no está vacío, conforme a [ACT_TEMPLATE.md](templates/ACT_TEMPLATE.md#evidencia). |
+| Resumen `consolidated` | Ningún hallazgo `critical` o `high` en `open` cuyo origen sea el artefacto que resume: `source.artifact` igual a la ruta de la RFC cuando resume una RFC, o `source.execution` dentro del subárbol del workflow_run cuando resume uno, con las dos vías de la sección 16. La condición la fija [SUMMARY.md](SUMMARY.md#fase-y-consolidación). |
+| WORKFLOW `closed` | Ninguna: el catálogo no declara su alcance, que se recupera de los workflow_run que referencian sus versiones, y `identity.workflow_version` es una referencia que la sección 16 aún no resuelve. La regla 1 de [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles) no es decidible sobre los datos persistidos y queda en quien invoca el comando, no en la comprobación. |
+
+Una lista vacía no bloquea: una TASK de propuesta puede no declarar RFC todavía, conforme a [TASK_TEMPLATE.md](templates/TASK_TEMPLATE.md), y una RFC declara `actions:` necesariamente pero puede declararlo vacío. El comando no resuelve las referencias de `evidence` ni de `depends_on`, que tampoco resuelven `create-action` ni la sección 16.
+
+La comprobación de una RFC exige `completed` en cada elemento de su campo `actions:` y por eso no admite las otras dos salidas: al nivel de la acción derivada, cancelar la RFC es la única, conforme a [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). La TASK no tiene este límite: su alcance es el campo `rfcs:`, cuya reducción sí es observable en los datos persistidos, aunque la justificación que la acompaña se registre en prosa y el comando no la lea: comprueba el alcance resultante, no la razón del cambio.
+
+### Lo que no comprueba
+
+El comando no comprueba las condiciones que son un juicio y no un dato: la revisión técnica del alcance, la producción de los entregables, la ejecución de las comprobaciones previstas, la suficiencia de la evidencia, ni que el artefacto resumido haya alcanzado su condición de finalización. Cada una queda declarada por quien invoca el comando y la acredita la evidencia, conforme a [EVIDENCE.md](EVIDENCE.md).
+
+Tampoco acredita al operador. La columna de actor de [LIFECYCLE.md](LIFECYCLE.md) y de [PROJECT_STATE.md](PROJECT_STATE.md#propiedad-del-estado) rige quién puede realizar cada transición, y una etiqueta de actor indica elegibilidad, no autorización, conforme a [DEFINITIONS.md](DEFINITIONS.md#actores). La CLI no autentica a quien la invoca y ningún artefacto registra quién realizó una transición: la autoría consta en la creación —`proposed_by` de una RFC, un PLAN, un TEST y una TRV, `review.accepted_by` de un workflow_run— y no en sus cambios de estado, y una TASK y un ADR no declaran ningún campo de autoría. Una transición reservada a `[actor: human]` e invocada por un agente queda registrada igual que la inversa: distinguirlas exige un mecanismo que HACTORS no tiene ni añade, y esa distinción queda en quien invoca el comando, no en sus artefactos.
+
+No propaga estados, ni hacia los descendientes ni hacia los ancestros, conforme a [PROJECT_STATE.md](PROJECT_STATE.md#regla-de-consistencia-entre-niveles). No consolida un resumen al cerrar el artefacto que resume ni cierra el artefacto al consolidar su resumen. No escribe historial ni rastro de la operación, que HACTORS no tiene conforme a [TRANSACTIONS.md](TRANSACTIONS.md). No altera `.state.yaml`, ni el manifiesto de ninguna instancia, ni el `manifest.yaml` del proyecto. No repara un estado defectuoso y no reescribe un archivo rechazado. No ejecuta Git ni asume que existe un repositorio Git.
 

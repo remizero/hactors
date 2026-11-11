@@ -180,7 +180,7 @@ def test_template_defaults_are_preserved_unless_a_value_is_explicit(
     template["opened"] = "1999-01-01"
     template["updated"] = "1999-01-02"
     template["resolved"] = "1999-01-03"
-    template["actions"] = ["AC-00001"]
+    template["actions"] = ["ACT-00001"]
     template["relations"] = [{"target": "RFC-A00001", "relation": "affects"}]
     template["source"].update(workflow="WORKFLOW-PLANTILLA", task="TASK-PLANTILLA", rfc="RFC-PLANTILLA")
     source.write_text(yaml.safe_dump(template))

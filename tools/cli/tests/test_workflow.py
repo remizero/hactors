@@ -168,7 +168,7 @@ def test_task_requires_workflow_manifest(hactors_root):
     assert snapshot(hactors_root / "projects") == before
 
 
-def test_task_counters_span_workflows_not_projects(hactors_root, load_yaml):
+def test_task_counters_span_workflows_not_projects(hactors_root, load_yaml, zero_counters):
     for name in ("first", "second"):
         project = create_project(name, hactors_root)
         for index in (1, 2):
@@ -177,8 +177,7 @@ def test_task_counters_span_workflows_not_projects(hactors_root, load_yaml):
             assert task.parent == workflow
             assert task.name == f"task_run_{index:06d}"
         assert load_yaml(project / "manifest.yaml")["counters"] == {
-            "task": 0, "action": 0, "workflow_run": 2, "task_run": 2, "rfc_run": 0, "plan_run": 0,
-            "test_run": 0, "harness_run": 0, "evidence": 0, "finding": 0, "adr": 0,
+            **zero_counters, "workflow_run": 2, "task_run": 2,
         }
 
 

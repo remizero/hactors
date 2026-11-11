@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 COUNTER_FORMAT = "{prefix}_{number:06d}"
-ACTION_ID_FORMAT = "AC-{number:05d}"
+ACTION_ID_FORMAT = "ACT-{number:05d}"
 ACTION_COUNTER = "action"
 ADR_ID_FORMAT = "ADR-{number:05d}"
 ADR_COUNTER = "adr"

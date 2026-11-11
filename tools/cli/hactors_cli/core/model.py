@@ -12,6 +12,7 @@ from .scan import (
     RUN_STATE_BLOCK,
     STATE_BLOCKS,
     TASKS_DIRNAME,
+    TESTS_DIRNAME,
     ScanError,
     adr_documents,
     blocks,
@@ -48,7 +49,7 @@ def build_model(root: Path, project_name: str) -> dict:
         manifest = {}
 
     artifacts: list[dict] = []
-    for family in (_tasks, _rfcs, _plans, _decisions, _summaries, _records, _harnesses):
+    for family in (_tasks, _rfcs, _plans, _tests, _decisions, _summaries, _records, _harnesses):
         artifacts.extend(family(project))
 
     counters = manifest.get("counters")
@@ -213,6 +214,20 @@ def _plans(project: Path) -> list[dict]:
         entries.append(
             _entry(
                 "plan", identity, relative(project, path),
+                _text(block, "title"), _text(block, "status"),
+            )
+        )
+    return entries
+
+
+def _tests(project: Path) -> list[dict]:
+    identities, _ = documents(project, (f"{TESTS_DIRNAME}/*.md",), "id")
+    entries = []
+    for identity, path in sorted(identities.items(), key=lambda item: relative(project, item[1])):
+        block = _block(project, path, "id")
+        entries.append(
+            _entry(
+                "test", identity, relative(project, path),
                 _text(block, "title"), _text(block, "status"),
             )
         )

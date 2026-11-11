@@ -11,12 +11,15 @@ DECISIONS_DIRNAME = "decisions"
 HARNESSES_DIRNAME = "harnesses"
 RFCS_DIRNAME = "rfcs"
 TASKS_DIRNAME = "tasks"
+TESTS_DIRNAME = "tests"
+WORKFLOWS_DIRNAME = "workflows"
 PLAN_LOCATIONS = ("plans", "docs/plans")
 EVIDENCE_FILE_PATTERN = re.compile(r"EVD-[0-9]{5,}\.yaml")
 FINDING_FILE_PATTERN = re.compile(r"FND-[0-9]{5,}\.yaml")
 RECORD_FILE_PATTERNS = (EVIDENCE_FILE_PATTERN, FINDING_FILE_PATTERN)
 ADR_FILE_PATTERN = re.compile(r"ADR-[0-9]{5,}")
 HARNESS_REF_PATTERN = re.compile(r"(HRN-[0-9]{5,})@(v[0-9]{3,})")
+WORKFLOW_REF_PATTERN = re.compile(r"(WORKFLOW-[0-9]{5,})@(v[0-9]{3,})")
 SUMMARY_PATTERNS = (f"{RFCS_DIRNAME}/*{SUMMARY_SUFFIX}", f"hactors/*/{SUMMARY_FILENAME}")
 REFERENCE_FIELDS = {
     "workflow_run": "task_ref",
@@ -61,7 +64,7 @@ def documents(
     problems: list[str] = []
     seen: set[Path] = set()
     for pattern in patterns:
-        for path in sorted(project.rglob(pattern)):
+        for path in sorted(project.glob(pattern)):
             if "hactors" in path.relative_to(project).parts or path in seen:
                 continue
             if path.name.endswith(skip_suffixes):
@@ -149,6 +152,16 @@ def harness_package(project: Path, reference: str) -> Path:
         )
     harness_id, version = match.groups()
     return project / HARNESSES_DIRNAME / harness_id / "versions" / version / "harness.yaml"
+
+
+def workflow_package(project: Path, reference: str) -> Path:
+    match = WORKFLOW_REF_PATTERN.fullmatch(reference)
+    if not match:
+        raise ScanError(
+            f"Referencia de WORKFLOW inválida: '{reference}'; se espera 'WORKFLOW-nnnnn@vNNN'."
+        )
+    workflow_id, version = match.groups()
+    return project / WORKFLOWS_DIRNAME / workflow_id / "versions" / version / "workflow.yaml"
 
 
 def harness_catalogs(project: Path) -> tuple[list, list[str]]:

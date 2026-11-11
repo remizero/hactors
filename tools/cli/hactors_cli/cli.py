@@ -16,6 +16,7 @@ from .commands.create_workflow import create_workflow_cmd
 from .commands.export import export_cmd
 from .commands.relate import relate_cmd
 from .commands.render import render_cmd
+from .commands.transition import transition_cmd
 from .commands.use_project import use_project_cmd
 from .commands.use_run import use_run_cmd
 from .commands.validate import validate_cmd
@@ -43,6 +44,7 @@ cli.add_command(create_summary_cmd)
 cli.add_command(create_action_cmd)
 cli.add_command(create_adr_cmd)
 cli.add_command(relate_cmd)
+cli.add_command(transition_cmd)
 cli.add_command(validate_cmd)
 cli.add_command(export_cmd)
 cli.add_command(render_cmd)

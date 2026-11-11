@@ -1,0 +1,22 @@
+# Viewer de HACTORS — dependencias de Success.
+#
+# Flask-SQLAlchemy y la pila de marshmallow están aunque el viewer no use base
+# de datos: SuccessController hereda de SuccessModel (declarativo de SQLAlchemy)
+# y SuccessInput hereda de SuccessSchema (mm.SQLAlchemySchema), y ambas bases se
+# resuelven al definir la clase. Quitarlas exige parchear la capa de modelos.
+#
+# La CLI de HACTORS no va aquí: se instala aparte con `pip install -e ../cli`,
+# que es lo que aporta hactors_cli y sus pyyaml y click.
+
+Flask
+Flask-SQLAlchemy
+flask-marshmallow
+marshmallow-sqlalchemy
+python-dotenv
+python-json-logger
+colorama
+pytz
+
+# El renderizador de markdown de la vista de artefacto del visor: no es
+# dependencia de Success, es del visor mismo.
+mistune

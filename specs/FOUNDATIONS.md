@@ -53,7 +53,7 @@ Los términos empleados se definen en [DEFINITIONS.md](DEFINITIONS.md).
 
 - Mantener una definición normativa por concepto; referenciarla en lugar de redefinirla.
 - Separar reglas, fundamentos y ejemplos: un ejemplo no añade obligaciones implícitas.
-- Construir el contexto con las dependencias necesarias antes de actuar, según CONTEXT_LOADING.md.
+- Construir el contexto con las dependencias necesarias antes de actuar, según [CONTEXT_LOADING.md](CONTEXT_LOADING.md).
 - Declarar supuestos y resolver contradicciones antes de basar cambios en ellos.
 - Mantener sincronizados los contratos documentados y los cambios que los afectan.
 - Conservar la historia sin confundirla con el estado vigente; la autoridad de cada artefacto se define en [ARTIFACTS.md](ARTIFACTS.md).
@@ -63,7 +63,7 @@ Los términos empleados se definen en [DEFINITIONS.md](DEFINITIONS.md).
 - Proponer y aprobar cambios significativos antes de implementarlos.
 - Revisar y verificar antes de integrar; no sustituir evidencia por una declaración de cumplimiento.
 - Limitar cada tarea al alcance autorizado y preservar el trabajo ajeno.
-- Aplicar las responsabilidades y transiciones de WORKFLOW.md y de [LIFECYCLE.md](LIFECYCLE.md).
+- Aplicar las responsabilidades y transiciones de [WORKFLOW.md](WORKFLOW.md) y de [LIFECYCLE.md](LIFECYCLE.md).
 - La autoría humana o automatizada no cambia los criterios de calidad ni concede autoridad adicional.
 
 ## Referencias de diseño

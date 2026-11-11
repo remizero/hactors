@@ -50,7 +50,7 @@ Un identificador retirado no se reutiliza. El hallazgo pertenece al proyecto que
 | `source.workflow` | WORKFLOW del contexto de origen, cuando corresponda; no sustituye la identidad de su ejecución. |
 | `source.task` | TASK del contexto de origen, cuando corresponda. |
 | `source.rfc` | RFC del contexto de origen, cuando corresponda; no declara afectación. |
-| `actions` | Lista de `AC-nnnnn`: acciones que tratan este hallazgo. |
+| `actions` | Lista de `ACT-nnnnn`: acciones que tratan este hallazgo. |
 | `relations` | Artefactos afectados mediante vínculos `affects`; ver «Relaciones de afectación». |
 | `opened` | `YYYY-MM-DD` de registro. |
 | `updated` | `YYYY-MM-DD` de la última modificación. |
