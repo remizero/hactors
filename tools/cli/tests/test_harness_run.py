@@ -58,7 +58,7 @@ def test_creation_only_adds_directory_manifest_counter_and_selection(hactors_roo
         harness_ref=recipe.relative_to(project).as_posix(), content_ref=content.relative_to(project).as_posix(),
     )
 
-    assert run == parent / "harness_run_000001"
+    assert run == parent / "harness_run_00001"
     assert load_yaml(run / "manifest.yaml") == {
         "identity": {
             "id": run.name, "harness_ref": recipe.relative_to(project).as_posix(),
@@ -168,7 +168,7 @@ def test_reusing_version_creates_independent_siblings_and_runs_under_other_tests
     derived_test = create_test_run(hactors_root, project.name, derived.relative_to(project).as_posix())
     fourth = create_harness_run(hactors_root, project.name, derived_test.relative_to(project).as_posix(), **refs)
     runs = [first, second, third, fourth]
-    assert [run.name for run in runs] == [f"harness_run_{i:06d}" for i in range(1, 5)]
+    assert [run.name for run in runs] == [f"harness_run_{i:05d}" for i in range(1, 5)]
     assert first.parent == second.parent == test
     assert third.parent == sibling_test and sibling_test.parent == rfc
     assert fourth.parent == derived_test and derived_test.parent == derived

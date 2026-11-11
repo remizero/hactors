@@ -289,9 +289,9 @@ def test_creation_never_changes_the_active_selection(hactors_root, harness_origi
     "rfcs//RFC-A00001.md", "rfcs/", "/rfcs/RFC-A00001.md", "rfcs\\RFC-A00001.md",
     "hactors", "hactors/", "missing.md", "rfcs/missing.md", "rfcs/missing/dir.md",
     "hactors/workflow_run_999999", "hactors/workflow_run_1",
-    "hactors/workflow_run_000001/harness_run_000001",
-    "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/harness_run_000001",
-    "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001/manifest.yaml",
+    "hactors/workflow_run_00001/harness_run_00001",
+    "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/harness_run_00001",
+    "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/test_run_00001/manifest.yaml",
     None, 42, [],
 ])
 def test_invalid_origins_are_rejected_without_side_effects(hactors_root, harness_origin, origin):

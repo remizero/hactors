@@ -9,7 +9,7 @@ HACTORS_MARKERS = ("specs/templates", "projects")
 PROJECTS_DIRNAME = "projects"
 VIEWS_DIRNAME = "views"
 RUN_TYPES = ("workflow_run", "task_run", "rfc_run", "plan_run", "test_run", "harness_run")
-RUN_PATTERN = re.compile(r"(%s)_[0-9]{6,}" % "|".join(RUN_TYPES))
+RUN_PATTERN = re.compile(r"(%s)_[0-9]{5,}" % "|".join(RUN_TYPES))
 RUN_CHILD_TYPES = {
     "hactors": ("workflow_run",),
     "workflow_run": ("task_run",),

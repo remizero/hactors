@@ -43,38 +43,38 @@ La ejecución se organiza físicamente dentro del directorio del proyecto. Cada 
 ```
 projects/<project_name>/
 ├── hactors/
-│   ├── workflow_run_000001/
+│   ├── workflow_run_00001/
 │   │   ├── manifest.yaml
 │   │   ├── SUMMARY.md
-│   │   ├── task_run_000001/
+│   │   ├── task_run_00001/
 │   │   │   ├── manifest.yaml
-│   │   │   └── rfc_run_000001/
+│   │   │   └── rfc_run_00001/
 │   │   │       ├── manifest.yaml
-│   │   │       ├── plan_run_000001/
+│   │   │       ├── plan_run_00001/
 │   │   │       │   ├── manifest.yaml
-│   │   │       │   ├── rfc_run_000002/
+│   │   │       │   ├── rfc_run_00002/
 │   │   │       │   │   ├── manifest.yaml
-│   │   │       │   │   └── plan_run_000002/
+│   │   │       │   │   └── plan_run_00002/
 │   │   │       │   │       ├── manifest.yaml
-│   │   │       │   │       └── rfc_run_000003/
+│   │   │       │   │       └── rfc_run_00003/
 │   │   │       │   │           ├── manifest.yaml
-│   │   │       │   │           └── test_run_000002/
+│   │   │       │   │           └── test_run_00002/
 │   │   │       │   │               ├── manifest.yaml
-│   │   │       │   │               └── harness_run_000003/
+│   │   │       │   │               └── harness_run_00003/
 │   │   │       │   │                   └── manifest.yaml
-│   │   │       │   └── rfc_run_000004/
+│   │   │       │   └── rfc_run_00004/
 │   │   │       │       └── manifest.yaml
-│   │   │       └── test_run_000001/
+│   │   │       └── test_run_00001/
 │   │   │           ├── manifest.yaml
-│   │   │           ├── harness_run_000001/
+│   │   │           ├── harness_run_00001/
 │   │   │           │   ├── manifest.yaml
 │   │   │           │   ├── EVD-00001.yaml
 │   │   │           │   └── FND-00001.yaml
-│   │   │           └── harness_run_000002/
+│   │   │           └── harness_run_00002/
 │   │   │               └── manifest.yaml
-│   │   └── task_run_000002/
+│   │   └── task_run_00002/
 │   │       └── manifest.yaml
-│   └── workflow_run_000002/
+│   └── workflow_run_00002/
 │       └── manifest.yaml
 ├── decisions/
 ├── rfcs/
@@ -100,12 +100,12 @@ projects/.state.yaml
 | `tasks/` | TASKs | Artefactos iniciadores. Cada TASK define qué se pretende ejecutar. |
 | `rfcs/` | RFCs | Especificaciones normativas originales e inmutables. |
 | `standards/` | Normas del proyecto | Convenciones de documentación, Git y estilo de código. |
-| `hactors/workflow_run_XXXXXX/` | workflow_run | Instancia de ejecución con su propio manifest. |
-| `hactors/workflow_run_XXXXXX/task_run_XXXXXX/` | task_run | Unidad de trabajo que contiene ejecuciones de RFC. |
-| `…/task_run_XXXXXX/rfc_run_XXXXXX/` o `…/plan_run_XXXXXX/rfc_run_XXXXXX/` | rfc_run | Ejecución que referencia una RFC inicial o derivada. |
-| `…/rfc_run_XXXXXX/plan_run_XXXXXX/` | plan_run | Ejecución que referencia un PLAN y puede contener nuevos rfc_runs. |
-| `…/rfc_run_XXXXXX/test_run_XXXXXX/` | test_run | Ejecución que referencia un TEST y puede contener harness_runs. |
-| `…/test_run_XXXXXX/harness_run_XXXXXX/` | harness_run | Uso de una versión de HARNESS; hoja de ejecución. |
+| `hactors/workflow_run_XXXXX/` | workflow_run | Instancia de ejecución con su propio manifest. |
+| `hactors/workflow_run_XXXXX/task_run_XXXXX/` | task_run | Unidad de trabajo que contiene ejecuciones de RFC. |
+| `…/task_run_XXXXX/rfc_run_XXXXX/` o `…/plan_run_XXXXX/rfc_run_XXXXX/` | rfc_run | Ejecución que referencia una RFC inicial o derivada. |
+| `…/rfc_run_XXXXX/plan_run_XXXXX/` | plan_run | Ejecución que referencia un PLAN y puede contener nuevos rfc_runs. |
+| `…/rfc_run_XXXXX/test_run_XXXXX/` | test_run | Ejecución que referencia un TEST y puede contener harness_runs. |
+| `…/test_run_XXXXX/harness_run_XXXXX/` | harness_run | Uso de una versión de HARNESS; hoja de ejecución. |
 | `EVD-nnnnn.yaml` junto a su origen | EVIDENCE | Registro verificable escrito en el directorio del artefacto o ejecución que lo originó; ver sección 13. |
 | `FND-nnnnn.yaml` junto a su origen | FINDING | Hecho observado escrito en el directorio del artefacto o ejecución que lo originó, con su procedencia y sus afectados; ver sección 14. |
 | `SUMMARY.md` junto al manifiesto del workflow_run | SUMMARY | Síntesis del resultado de toda la ejecución; las instancias intermedias no tienen resumen propio. Ver [SUMMARY.md](SUMMARY.md). |
@@ -127,7 +127,7 @@ projects/.state.yaml
 - Tras `workflow_run → task_run`, las ramas recursivas alternan `rfc_run → plan_run → rfc_run → …`, sin una profundidad fija del modelo. Desde cualquier rfc_run puede abrirse una rama `rfc_run → test_run → harness_run`, que termina en el HARNESS. Cada ruta concreta es finita y queda sujeta a los límites del sistema de archivos.
 - Cada instancia tiene un único padre inmediato y conserva su ubicación. No se reutiliza una instancia como hija de otro padre ni se enlaza un ancestro como descendiente; el árbol de cada workflow_run no contiene ciclos.
 - Pueden repetirse los tipos, pero no la identidad de una instancia dentro del proyecto. Ejecutar de nuevo un documento requiere otra instancia con otro ID; el mismo documento referenciado no convierte esas instancias en una sola.
-- Los IDs son secuenciales por tipo y proyecto, con un mínimo de seis dígitos. El número no codifica parentesco ni profundidad.
+- Los IDs son secuenciales por tipo y proyecto, con un mínimo de cinco dígitos. El número no codifica parentesco ni profundidad.
 - El estado activo (`.state.yaml`) conserva una sola ruta seleccionada, no todo el árbol. Las demás ramas permanecen en sus directorios aunque no estén activas.
 
 ### Ascendencia y profundidad
@@ -138,19 +138,19 @@ Para la rama más profunda del árbol anterior:
 
 | Profundidad | Instancia | Padre inmediato |
 |-------------|-----------|-----------------|
-| 0 | `workflow_run_000001` | `hactors/` del proyecto |
-| 1 | `task_run_000001` | `workflow_run_000001` |
-| 2 | `rfc_run_000001` | `task_run_000001` |
-| 3 | `plan_run_000001` | `rfc_run_000001` |
-| 4 | `rfc_run_000002` | `plan_run_000001` |
-| 5 | `plan_run_000002` | `rfc_run_000002` |
-| 6 | `rfc_run_000003` | `plan_run_000002` |
-| 7 | `test_run_000002` | `rfc_run_000003` |
-| 8 | `harness_run_000003` | `test_run_000002` |
+| 0 | `workflow_run_00001` | `hactors/` del proyecto |
+| 1 | `task_run_00001` | `workflow_run_00001` |
+| 2 | `rfc_run_00001` | `task_run_00001` |
+| 3 | `plan_run_00001` | `rfc_run_00001` |
+| 4 | `rfc_run_00002` | `plan_run_00001` |
+| 5 | `plan_run_00002` | `rfc_run_00002` |
+| 6 | `rfc_run_00003` | `plan_run_00002` |
+| 7 | `test_run_00002` | `rfc_run_00003` |
+| 8 | `harness_run_00003` | `test_run_00002` |
 
-`rfc_run_000004` es hermano de `rfc_run_000002`: ambos tienen profundidad `4`. No es descendiente de `rfc_run_000003`, aunque su número sea mayor. `test_run_000001` tiene profundidad `3`, igual que su hermano `plan_run_000001`; `test_run_000002` conserva todos los ancestros de su RFC padre y suma un nivel. Sus harness_runs añaden otro nivel: `harness_run_000001` y `harness_run_000002` tienen profundidad `4`; `harness_run_000003`, profundidad `8`.
+`rfc_run_00004` es hermano de `rfc_run_00002`: ambos tienen profundidad `4`. No es descendiente de `rfc_run_00003`, aunque su número sea mayor. `test_run_00001` tiene profundidad `3`, igual que su hermano `plan_run_00001`; `test_run_00002` conserva todos los ancestros de su RFC padre y suma un nivel. Sus harness_runs añaden otro nivel: `harness_run_00001` y `harness_run_00002` tienen profundidad `4`; `harness_run_00003`, profundidad `8`.
 
-La ascendencia se reconstruye como una **secuencia ordenada de instancias**, mediante todos los prefijos de la ruta. No se reduce a un mapa por tipo ni se elimina un ancestro porque otro tenga el mismo tipo. Para `rfc_run_000003`, las RFCs ancestras son las instancias `rfc_run_000001` y `rfc_run_000002`, en sus posiciones originales; ninguna sustituye a la otra.
+La ascendencia se reconstruye como una **secuencia ordenada de instancias**, mediante todos los prefijos de la ruta. No se reduce a un mapa por tipo ni se elimina un ancestro porque otro tenga el mismo tipo. Para `rfc_run_00003`, las RFCs ancestras son las instancias `rfc_run_00001` y `rfc_run_00002`, en sus posiciones originales; ninguna sustituye a la otra.
 
 Padre, ascendencia y profundidad se calculan desde la ruta; no se duplican como campos persistentes en los manifiestos o en el estado activo. La profundidad documental de una RFC, definida por su derivación, es distinta de esta profundidad de ejecución.
 
@@ -212,12 +212,12 @@ Los dos extremos son artefactos, conforme a [DEFINITIONS.md](DEFINITIONS.md): un
 | `plan` | Un documento PLAN en `plans/` o `docs/plans/` | `PLAN-00001` |
 | `test` | Un TEST en `tests/` | `TEST-00001` |
 | `harness` | Un catálogo HRN en `harnesses/` | `HRN-00001` |
-| `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_000001`; la definición WORKFLOW que lo anticipa se redacta con ese mismo número, `WORKFLOW-00001` |
-| `task_run` | Un task_run dentro de un workflow_run | `task_run_000001` |
-| `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_000001` |
-| `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_000001` |
-| `test_run` | Un test_run dentro de un rfc_run | `test_run_000001` |
-| `harness_run` | Un harness_run dentro de un test_run | `harness_run_000001` |
+| `workflow_run` | Un workflow_run en `hactors/` | `workflow_run_00001`; la definición WORKFLOW que lo anticipa se redacta con ese mismo número, `WORKFLOW-00001` |
+| `task_run` | Un task_run dentro de un workflow_run | `task_run_00001` |
+| `rfc_run` | Un rfc_run dentro de un task_run o de un plan_run | `rfc_run_00001` |
+| `plan_run` | Un plan_run dentro de un rfc_run | `plan_run_00001` |
+| `test_run` | Un test_run dentro de un rfc_run | `test_run_00001` |
+| `harness_run` | Un harness_run dentro de un test_run | `harness_run_00001` |
 | `evidence` | Una evidencia en el directorio de su origen | `EVD-00001` |
 | `finding` | Un hallazgo en el directorio de su origen | `FND-00001` |
 | `adr` | Una decisión en `decisions/` | `ADR-00001` |
@@ -276,10 +276,10 @@ Ejemplo con tres rfc_runs y dos plan_runs en la misma ascendencia:
 
 ```yaml
 active_project: "mi_proyecto"
-active_run_path: "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003"
+active_run_path: "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001/rfc_run_00002/plan_run_00002/rfc_run_00003"
 ```
 
-La instancia activa es únicamente el último componente (`rfc_run_000003`). Los anteriores son sus ancestros, no selecciones independientes. Excluido `hactors/`, la ruta tiene siete componentes: su profundidad es `7 - 1 = 6`, según la convención de la sección 2. El padre se obtiene quitando un componente, sin buscar otro nodo por su tipo.
+La instancia activa es únicamente el último componente (`rfc_run_00003`). Los anteriores son sus ancestros, no selecciones independientes. Excluido `hactors/`, la ruta tiene siete componentes: su profundidad es `7 - 1 = 6`, según la convención de la sección 2. El padre se obtiene quitando un componente, sin buscar otro nodo por su tipo.
 
 ### Validación de la ruta
 
@@ -343,37 +343,37 @@ hactors create-rfc-run --rfc-ref RFC-A00001-F00001-T00001
 La ruta resultante es la del ejemplo anterior, con profundidad `6`. Para crear otra RFC bajo el primer plan_run, sin confundirlo con el segundo:
 
 ```bash
-hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001
+hactors use-run hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001
 hactors create-rfc-run --rfc-ref RFC-A00001-F00002
 hactors use-run --parent
 ```
 
-Se crea `rfc_run_000004` a profundidad `4`, hermano de `rfc_run_000002`. La última operación vuelve a `plan_run_000001` a profundidad `3`, desde donde puede crearse otra RFC hermana. Ninguna operación elimina la rama que alcanza `rfc_run_000003`.
+Se crea `rfc_run_00004` a profundidad `4`, hermano de `rfc_run_00002`. La última operación vuelve a `plan_run_00001` a profundidad `3`, desde donde puede crearse otra RFC hermana. Ninguna operación elimina la rama que alcanza `rfc_run_00003`.
 
 Para añadir ejecuciones TEST bajo la RFC inicial y una derivada:
 
 ```bash
-hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001
+hactors use-run hactors/workflow_run_00001/task_run_00001/rfc_run_00001
 hactors create-test-run --test-ref verificacion-autenticacion
 hactors use-run --parent
-hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003
+hactors use-run hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001/rfc_run_00002/plan_run_00002/rfc_run_00003
 hactors create-test-run --test-ref verificacion-autenticacion
 ```
 
-Se crean `test_run_000001` a profundidad `3` y `test_run_000002` a profundidad `7`, como en el árbol de la sección 2. Queda seleccionada la ruta completa del segundo test_run. La referencia es ilustrativa, no una convención de nombres TEST; reutilizar un TEST compatible no reutiliza la identidad de su ejecución, conforme a [TESTS.md](TESTS.md).
+Se crean `test_run_00001` a profundidad `3` y `test_run_00002` a profundidad `7`, como en el árbol de la sección 2. Queda seleccionada la ruta completa del segundo test_run. La referencia es ilustrativa, no una convención de nombres TEST; reutilizar un TEST compatible no reutiliza la identidad de su ejecución, conforme a [TESTS.md](TESTS.md).
 
 Para crear usos de una receta bajo ambos TESTs, preservando el contexto solicitante:
 
 ```bash
-hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001
+hactors use-run hactors/workflow_run_00001/task_run_00001/rfc_run_00001/test_run_00001
 hactors create-harness-run --harness-ref HRN-00001@v002
 hactors use-run --parent
 hactors create-harness-run --harness-ref HRN-00001@v002
-hactors use-run hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003/test_run_000002
+hactors use-run hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001/rfc_run_00002/plan_run_00002/rfc_run_00003/test_run_00002
 hactors create-harness-run --harness-ref HRN-00001@v002
 ```
 
-Se crean `harness_run_000001` y `harness_run_000002` a profundidad `4`, y `harness_run_000003` a profundidad `8`; queda seleccionado el tercero. La referencia HRN es ilustrativa y declarada, no resuelta ni verificada. `content_ref`, revisión examinada y parámetros conservan los valores de la plantilla; este ejemplo no satisface los requisitos para ejecutar la receta.
+Se crean `harness_run_00001` y `harness_run_00002` a profundidad `4`, y `harness_run_00003` a profundidad `8`; queda seleccionado el tercero. La referencia HRN es ilustrativa y declarada, no resuelta ni verificada. `content_ref`, revisión examinada y parámetros conservan los valores de la plantilla; este ejemplo no satisface los requisitos para ejecutar la receta.
 
 Todos los comandos anteriores admiten `--root <directorio-hactors>`. `--rfc-ref` pertenece a `create-rfc-run`, no a `create-task-run`; `--plan-ref` pertenece a `create-plan-run`, `--test-ref` a `create-test-run`, y `--harness-ref` / `--content-ref` a `create-harness-run`.
 
@@ -400,10 +400,10 @@ El manifiesto de un `workflow_run` es el registro completo de una instancia de e
 
 ### Estructura general
 
-La estructura del manifiesto se define en [workflow_run_manifest_template.yaml](templates/workflow_run_manifest_template.yaml). El archivo `manifest.yaml` dentro de `hactors/workflow_run_XXXXXX/` se almacena envuelto bajo su propio ID:
+La estructura del manifiesto se define en [workflow_run_manifest_template.yaml](templates/workflow_run_manifest_template.yaml). El archivo `manifest.yaml` dentro de `hactors/workflow_run_XXXXX/` se almacena envuelto bajo su propio ID:
 
 ```yaml
-workflow_run_000001:
+workflow_run_00001:
   identity:
     ...
   global_state:
@@ -420,7 +420,7 @@ La clave de nivel superior es el ID del workflow_run. Todo el contenido del mani
 
 ```yaml
 identity:
-  id: "workflow_run_000001"
+  id: "workflow_run_00001"
   task_ref: "TASK-00001"
   workflow_version: "WORKFLOW-00001@v001"
 ```
@@ -503,7 +503,7 @@ Un `task_run` es una unidad de trabajo dentro de un `workflow_run`. Agrupa insta
 ### Ubicación
 
 ```
-hactors/workflow_run_000001/task_run_000001/manifest.yaml
+hactors/workflow_run_00001/task_run_00001/manifest.yaml
 ```
 
 Cada task_run tiene su propio directorio dentro del workflow_run que lo contiene. No puede existir un task_run fuera de un workflow_run.
@@ -525,15 +525,15 @@ Mientras el `workflow_run` registra el estado global del proceso (qué paso se e
 Un workflow_run puede contener múltiples task_runs. Este ejemplo independiente muestra solo RFCs iniciales, sin expandir posibles descendientes:
 
 ```
-workflow_run_000001/
+workflow_run_00001/
 ├── manifest.yaml
-├── task_run_000001/
+├── task_run_00001/
 │   ├── manifest.yaml
-│   ├── rfc_run_000001/
+│   ├── rfc_run_00001/
 │   │   └── manifest.yaml
-│   └── rfc_run_000002/
+│   └── rfc_run_00002/
 │       └── manifest.yaml
-└── task_run_000002/
+└── task_run_00002/
     └── manifest.yaml
 ```
 
@@ -572,9 +572,9 @@ Crear el archivo no satisface por sí solo lo que [LIFECYCLE.md](LIFECYCLE.md#ta
 La TASK es el punto de partida. Cuando se crea un workflow_run, se referencia la TASK que lo inicia mediante el campo `task_ref` en el bloque `identity` del manifiesto del workflow_run:
 
 ```yaml
-workflow_run_000001:
+workflow_run_00001:
   identity:
-    id: "workflow_run_000001"
+    id: "workflow_run_00001"
     task_ref: "TASK-00001"
 ```
 
@@ -627,10 +627,10 @@ actor: "human"
 Se crea un workflow_run que referencia esa TASK:
 
 ```yaml
-# hactors/workflow_run_000001/manifest.yaml
-workflow_run_000001:
+# hactors/workflow_run_00001/manifest.yaml
+workflow_run_00001:
   identity:
-    id: "workflow_run_000001"
+    id: "workflow_run_00001"
     task_ref: "TASK-00001"
   global_state:
     status: "in_progress"
@@ -640,24 +640,24 @@ workflow_run_000001:
 Dentro del workflow_run se crea un task_run y, dentro de él, el rfc_run inicial. Si esa RFC produce `PLAN-00001`, su plan_run puede contener ejecuciones de RFCs derivadas. Estos fragmentos ilustran estados durante el trabajo, no valores asignados por los comandos de creación:
 
 ```yaml
-# hactors/workflow_run_000001/task_run_000001/rfc_run_000001/manifest.yaml
+# hactors/workflow_run_00001/task_run_00001/rfc_run_00001/manifest.yaml
 identity:
-  id: "rfc_run_000001"
+  id: "rfc_run_00001"
   rfc_ref: "RFC-A00001"
 state:
   status: "completed"
 ```
 
 ```yaml
-# hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/manifest.yaml
+# hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001/rfc_run_00002/manifest.yaml
 identity:
-  id: "rfc_run_000002"
+  id: "rfc_run_00002"
   rfc_ref: "RFC-A00001-F00001"
 state:
   status: "in_progress"
 ```
 
-El `plan_run_000001` intermedio referencia `PLAN-00001` mediante `identity.plan_ref`. Si la RFC derivada produce `PLAN-00002`, su ejecución se anida en `rfc_run_000002/plan_run_000002/`; la ejecución de `RFC-A00001-F00001-T00001` será `rfc_run_000003` dentro de ese segundo plan_run. La RFC `RFC-A00001-F00002` tiene su ejecución hermana `rfc_run_000004` bajo el primer plan_run, no bajo el segundo. Las profundidades resultantes son las de la sección 2.
+El `plan_run_00001` intermedio referencia `PLAN-00001` mediante `identity.plan_ref`. Si la RFC derivada produce `PLAN-00002`, su ejecución se anida en `rfc_run_00002/plan_run_00002/`; la ejecución de `RFC-A00001-F00001-T00001` será `rfc_run_00003` dentro de ese segundo plan_run. La RFC `RFC-A00001-F00002` tiene su ejecución hermana `rfc_run_00004` bajo el primer plan_run, no bajo el segundo. Las profundidades resultantes son las de la sección 2.
 
 ### Reconstrucción del estado
 
@@ -736,7 +736,7 @@ Cada instancia conserva su propio `manifest.yaml`, cuya estructura y valores ini
 
 | Campo | Responsabilidad |
 |---|---|
-| `identity.id` | ID `harness_run_` con un mínimo de seis dígitos; coincide con el directorio. |
+| `identity.id` | ID `harness_run_` con un mínimo de cinco dígitos; coincide con el directorio. |
 | `identity.harness_ref` | Referencia exacta a la versión publicada, con la notación de HRN_TEMPLATE; nunca `current`, `latest` ni un HRN sin versión. |
 | `identity.content_ref` | Referencia al contenido inmutable resuelta al asociar la versión; coincide con la asociación publicada en el catálogo y queda fijada para esta ejecución. |
 | `execution.source_revision` | Revisión exacta examinada, no la revisión de la receta ni un tag o rama mutable. |
@@ -760,7 +760,7 @@ La ruta activa mantiene exactamente los dos campos de la sección 4. Estado resu
 
 ```yaml
 active_project: "mi_proyecto"
-active_run_path: "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/plan_run_000002/rfc_run_000003/test_run_000002/harness_run_000003"
+active_run_path: "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001/rfc_run_00002/plan_run_00002/rfc_run_00003/test_run_00002/harness_run_00003"
 ```
 
 Cambiar de rama o la versión vigente del catálogo no modifica ejecuciones anteriores. El comando no mueve recetas, modifica catálogos, copia ancestros ni registra relaciones documentales automáticamente.
@@ -819,7 +819,7 @@ Un resumen no es una instancia de ejecución: no se anida, no tiene hijos ni cam
 
 | `--origin` | Validación | `level` | Archivo creado |
 |------------|------------|---------|----------------|
-| `hactors/workflow_run_XXXXXX` | Ruta de ejecución completa válida, con la validación de la sección 4 | `workflow_run` | `SUMMARY.md` en el directorio de esa instancia |
+| `hactors/workflow_run_XXXXX` | Ruta de ejecución completa válida, con la validación de la sección 4 | `workflow_run` | `SUMMARY.md` en el directorio de esa instancia |
 | `rfcs/<archivo>.md` | Debe existir, ser un archivo y no ser un enlace simbólico | `rfc` | `rfcs/<nombre-sin-extension> - Summary.md`, junto a la RFC |
 
 Cualquier otra instancia de ejecución se rechaza: lo registrado en un `task_run`, `rfc_run`, `plan_run`, `test_run` o `harness_run` se agrega al resumen de su RFC o al global, conforme a [SUMMARY.md](SUMMARY.md#niveles). Un artefacto fuera de `rfcs/` también se rechaza, porque el nivel 1 existe únicamente por RFC. Un origen que empieza por `hactors/` se trata siempre como ejecución: si la ruta es inválida se rechaza, sin reinterpretarla como artefacto. Un `--origin` vacío explícito sigue siendo un origen inválido y no se confunde con la omisión. Tomar la instancia activa como origen no modifica la selección. El comando no registra rutas absolutas ni referencias externas como identidad del artefacto resumido.

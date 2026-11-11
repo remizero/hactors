@@ -25,7 +25,7 @@ El valor es una cadena, no un número: `1.0` y `1.10` son distintos y se compara
 |---|---|---|
 | Comentario HTML `<!-- schema: <clave>/<mayor>.<menor> -->` en la primera línea, antes del primer encabezado. | Plantillas documentales de `specs/templates/*.md`. | La estructura del artefacto que la plantilla define. |
 | Campo `schema` del documento proyectado. | `views/project.json`, conforme a [VIEWS.md](VIEWS.md#el-modelo-de-lectura). | `hactors-model/1.0`. |
-| Campo `identity.workflow_version` del manifiesto. | `hactors/workflow_run_XXXXXX/manifest.yaml`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#bloque-1-identity). | La referencia exacta `WORKFLOW-nnnnn@vNNN` de la definición que se ejecuta, no la de un esquema de artefacto. |
+| Campo `identity.workflow_version` del manifiesto. | `hactors/workflow_run_XXXXX/manifest.yaml`, conforme a [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#bloque-1-identity). | La referencia exacta `WORKFLOW-nnnnn@vNNN` de la definición que se ejecuta, no la de un esquema de artefacto. |
 
 La plantilla documental es la fuente de verdad de su propia versión: HACTORS no mantiene un registro agregado de versiones vigentes, igual que no mantiene índices ni tablas duplicadas a mano, conforme a [PROJECTS.md](PROJECTS.md). Consultar la versión vigente de una familia es leer la primera línea de su plantilla.
 

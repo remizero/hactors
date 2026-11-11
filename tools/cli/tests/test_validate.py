@@ -353,7 +353,7 @@ def test_illegible_manifest_is_reported(hactors_root, project, tree):
     problems = validate(hactors_root, project)
     assert len(problems) == 2
     assert problems[0].startswith(
-        "YAML ilegible en 'hactors/workflow_run_000001/task_run_000001/rfc_run_000001/manifest.yaml':"
+        "YAML ilegible en 'hactors/workflow_run_00001/task_run_00001/rfc_run_00001/manifest.yaml':"
     )
     assert problems[1].startswith("projects/.state.yaml: la instancia activa")
 
@@ -404,7 +404,7 @@ def test_a_workflow_catalog_is_numbered_by_the_run_it_awaits(hactors_root, proje
 def test_a_run_counter_below_its_instances_is_reported(hactors_root, project, tree):
     set_counter(project, "test_run", 0)
     assert validate(hactors_root, project) == [
-        "manifest.yaml: el contador `test_run` vale 0 y existe la identidad 'test_run_000001'; "
+        "manifest.yaml: el contador `test_run` vale 0 y existe la identidad 'test_run_00001'; "
         "debe ser mayor o igual que cualquier identidad de su tipo."
     ]
 
@@ -418,22 +418,22 @@ def test_a_counter_that_is_not_an_integer_is_reported(hactors_root, project):
 
 
 def test_an_instance_outside_its_admitted_parent_is_reported(hactors_root, project, tree):
-    misplaced = tree["workflow_run"] / "rfc_run_000001"
+    misplaced = tree["workflow_run"] / "rfc_run_00001"
     misplaced.mkdir()
-    (misplaced / "manifest.yaml").write_text("identity:\n  id: rfc_run_000001\n  rfc_ref: ''\n")
+    (misplaced / "manifest.yaml").write_text("identity:\n  id: rfc_run_00001\n  rfc_ref: ''\n")
     set_counter(project, "rfc_run", 2)
     assert validate(hactors_root, project) == [
-        "hactors/workflow_run_000001/rfc_run_000001: jerarquía inválida: "
+        "hactors/workflow_run_00001/rfc_run_00001: jerarquía inválida: "
         "rfc_run no puede vivir dentro de workflow_run."
     ]
 
 
 def test_an_identity_that_does_not_match_its_directory_is_reported(hactors_root, project, tree):
-    set_identity(tree["rfc_run"] / "manifest.yaml", id="rfc_run_000009")
+    set_identity(tree["rfc_run"] / "manifest.yaml", id="rfc_run_00009")
     problems = validate(hactors_root, project)
     assert problems[0] == (
-        "hactors/workflow_run_000001/task_run_000001/rfc_run_000001: "
-        "`identity.id` no coincide con su componente de ruta 'rfc_run_000001'."
+        "hactors/workflow_run_00001/task_run_00001/rfc_run_00001: "
+        "`identity.id` no coincide con su componente de ruta 'rfc_run_00001'."
     )
     assert problems[1].startswith("projects/.state.yaml: la instancia activa")
 
@@ -443,7 +443,7 @@ def test_an_active_run_that_no_longer_exists_is_reported(hactors_root, project, 
     set_counter(project, "harness_run", 0)
     assert validate(hactors_root, project) == [
         f"projects/.state.yaml: la instancia activa '{active_run(hactors_root)}' no es válida: "
-        "harness_run no encontrado o sin manifest: 'harness_run_000001'."
+        "harness_run no encontrado o sin manifest: 'harness_run_00001'."
     ]
 
 
@@ -526,7 +526,7 @@ def harness_catalog(project: Path, harness_id: str = "HRN-00001", **fields) -> P
 def paired_workflow_run(project: Path, workflow_id: str) -> None:
     """El catálogo no consume contador: lo consume su ejecución, con el mismo número."""
     number = int(workflow_id.rsplit("-", 1)[-1])
-    run = project / "hactors" / f"workflow_run_{number:06d}"
+    run = project / "hactors" / f"workflow_run_{number:05d}"
     run.mkdir(parents=True, exist_ok=True)
     (run / "manifest.yaml").write_text(
         yaml.dump(

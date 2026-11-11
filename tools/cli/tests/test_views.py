@@ -344,7 +344,7 @@ def test_a_workflow_run_summary_is_projected(hactors_root, populated, runs):
     model = build_model(hactors_root, populated.name)
     paths = [item["path"] for item in model["artifacts"] if item["kind"] == "summary"]
     assert paths == [
-        "hactors/workflow_run_000001/SUMMARY.md",
+        "hactors/workflow_run_00001/SUMMARY.md",
         "rfcs/RFC-A00001 - Summary.md",
     ]
 
@@ -379,7 +379,7 @@ def test_a_test_is_projected_like_the_other_documents(hactors_root, populated, r
     model = build_model(hactors_root, populated.name)
     test = entry(model, "TEST-00001")
     assert (test["kind"], test["path"]) == ("test", "tests/TEST-00001.md")
-    assert instance(model, "test_run_000001")["reference"] == "TEST-00001"
+    assert instance(model, "test_run_00001")["reference"] == "TEST-00001"
     assert model["problems"] == []
 
 
@@ -417,18 +417,18 @@ def test_an_unreadable_record_is_projected_with_empty_fields(hactors_root, popul
 def test_runs_project_their_hierarchy(hactors_root, populated):
     model = build_model(hactors_root, populated.name)
     assert [(item["id"], item["kind"], item["parent"]) for item in model["runs"]] == [
-        ("workflow_run_000001", "workflow_run", ""),
-        ("task_run_000001", "task_run", "workflow_run_000001"),
-        ("rfc_run_000001", "rfc_run", "task_run_000001"),
-        ("test_run_000001", "test_run", "rfc_run_000001"),
+        ("workflow_run_00001", "workflow_run", ""),
+        ("task_run_00001", "task_run", "workflow_run_00001"),
+        ("rfc_run_00001", "rfc_run", "task_run_00001"),
+        ("test_run_00001", "test_run", "rfc_run_00001"),
     ]
-    assert instance(model, "task_run_000001")["path"] == "hactors/workflow_run_000001/task_run_000001"
+    assert instance(model, "task_run_00001")["path"] == "hactors/workflow_run_00001/task_run_00001"
 
 
 def test_a_workflow_run_reads_its_state_from_global_state(hactors_root, populated, runs):
     set_state(runs["workflow_run"] / "manifest.yaml", "global_state",
               status="blocked", blocked_reason="Falta una evidencia")
-    workflow = instance(build_model(hactors_root, populated.name), "workflow_run_000001")
+    workflow = instance(build_model(hactors_root, populated.name), "workflow_run_00001")
     assert workflow["status"] == "blocked"
     assert workflow["blocked_reason"] == "Falta una evidencia"
 
@@ -436,22 +436,22 @@ def test_a_workflow_run_reads_its_state_from_global_state(hactors_root, populate
 def test_the_other_instances_read_their_state_from_state(hactors_root, populated, runs):
     set_state(runs["task_run"] / "manifest.yaml", "state", status="in-progress")
     model = build_model(hactors_root, populated.name)
-    assert instance(model, "task_run_000001")["status"] == "in-progress"
-    assert instance(model, "task_run_000001")["blocked_reason"] == ""
+    assert instance(model, "task_run_00001")["status"] == "in-progress"
+    assert instance(model, "task_run_00001")["blocked_reason"] == ""
 
 
 def test_a_pending_reference_is_projected_empty(hactors_root, populated):
     model = build_model(hactors_root, populated.name)
-    assert instance(model, "workflow_run_000001")["reference"] == ""
-    assert instance(model, "task_run_000001")["reference"] == ""
+    assert instance(model, "workflow_run_00001")["reference"] == ""
+    assert instance(model, "task_run_00001")["reference"] == ""
 
 
 def test_a_declared_reference_is_projected_without_resolution(hactors_root, populated, runs):
     set_identity(runs["workflow_run"] / "manifest.yaml", task_ref="TASK-00001")
     set_identity(runs["rfc_run"] / "manifest.yaml", rfc_ref="RFC-A00001")
     model = build_model(hactors_root, populated.name)
-    assert instance(model, "workflow_run_000001")["reference"] == "TASK-00001"
-    assert instance(model, "rfc_run_000001")["reference"] == "RFC-A00001"
+    assert instance(model, "workflow_run_00001")["reference"] == "TASK-00001"
+    assert instance(model, "rfc_run_00001")["reference"] == "RFC-A00001"
     assert model["problems"] == []
 
 
@@ -601,7 +601,7 @@ def test_the_board_shows_the_execution_branch(hactors_root, populated, runs):
     render_views(hactors_root)
     text = board(populated)
     assert "<ul class='tree'>" in text
-    assert "workflow_run_000001" in text
+    assert "workflow_run_00001" in text
     assert "bloqueado: Falta una evidencia" in text
 
 

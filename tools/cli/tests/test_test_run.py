@@ -46,7 +46,7 @@ def test_creation_only_adds_manifest_and_updates_counter_and_selection(hactors_r
 
     run = create_test_run(hactors_root, project.name, parent_path, test_ref=sentinel.name)
 
-    assert run == parent / "test_run_000001"
+    assert run == parent / "test_run_00001"
     assert load_yaml(run / "manifest.yaml") == {
         "identity": {"id": run.name, "test_ref": sentinel.name},
         "state": {"status": "", "blocked_reason": ""},
@@ -92,12 +92,12 @@ def test_sibling_tests_coexist_with_plans_and_do_not_interrupt_recursion(hactors
     derived = create_rfc_run(hactors_root, project.name, plan.relative_to(project).as_posix())
     third = create_test_run(hactors_root, project.name, derived.relative_to(project).as_posix())
     assert [run.name for run in (first, second, third)] == [
-        "test_run_000001", "test_run_000002", "test_run_000003",
+        "test_run_00001", "test_run_00002", "test_run_00003",
     ]
     assert first.parent == second.parent == plan.parent == other_plan.parent == parent
     assert third.parent == derived and derived.parent == plan
-    assert plan.name == f"plan_run_{counters['plan_run'] + 1:06d}"
-    assert other_plan.name == f"plan_run_{counters['plan_run'] + 2:06d}"
+    assert plan.name == f"plan_run_{counters['plan_run'] + 1:05d}"
+    assert other_plan.name == f"plan_run_{counters['plan_run'] + 2:05d}"
     counters["plan_run"] += 2
     counters["rfc_run"] += 1
     counters["test_run"] += 3
@@ -210,7 +210,7 @@ def test_preflight_collision_preserves_existing_test_and_can_recover(hactors_roo
     data["counters"]["test_run"] = 1
     manifest.write_text(yaml.safe_dump(data))
     second = create_test_run(hactors_root, project.name, path)
-    assert second.name == "test_run_000002"
+    assert second.name == "test_run_00002"
     assert load_yaml(first / "manifest.yaml")["identity"]["test_ref"] == "keep this reference"
     data["counters"]["test_run"] = 2
     assert load_yaml(manifest) == data

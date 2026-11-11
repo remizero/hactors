@@ -38,7 +38,7 @@ TASK_PATH = "tasks/TASK-00001.md"
 RFC_PATH = "rfcs/RFC-A00001.md"
 SUCCESSOR_PATH = "rfcs/RFC-A00002.md"
 SUMMARY_PATH = f"rfcs/RFC-A00001{SUMMARY_SUFFIX}"
-RUN_SUMMARY_PATH = "hactors/workflow_run_000001/SUMMARY.md"
+RUN_SUMMARY_PATH = "hactors/workflow_run_00001/SUMMARY.md"
 WORKFLOW_PATH = "workflows/WORKFLOW-00001/manifest.yaml"
 PLAN_PATH = "plans/PLAN-00001.md"
 ADR_PATH = "decisions/ADR-00001 — cierre-del-modo.md"
@@ -200,8 +200,8 @@ def test_the_summary_identity_is_the_artifact_it_summarises(hactors_root, projec
 
 
 def test_the_workflow_run_summary_is_also_a_summary(hactors_root, project):
-    summary(project, "hactors/workflow_run_000001", relpath=RUN_SUMMARY_PATH)
-    assert go(hactors_root, project, RUN_SUMMARY_PATH, "consolidated")[0] == "hactors/workflow_run_000001"
+    summary(project, "hactors/workflow_run_00001", relpath=RUN_SUMMARY_PATH)
+    assert go(hactors_root, project, RUN_SUMMARY_PATH, "consolidated")[0] == "hactors/workflow_run_00001"
 
 
 def test_a_plan_also_lives_under_docs(hactors_root, project):
@@ -210,8 +210,8 @@ def test_a_plan_also_lives_under_docs(hactors_root, project):
 
 
 def test_a_finding_is_recognised_wherever_it_lives(hactors_root, project):
-    finding(project, relpath="hactors/workflow_run_000001/FND-00002.yaml")
-    subject, _, _ = go(hactors_root, project, "hactors/workflow_run_000001/FND-00002.yaml", "tracked")
+    finding(project, relpath="hactors/workflow_run_00001/FND-00002.yaml")
+    subject, _, _ = go(hactors_root, project, "hactors/workflow_run_00001/FND-00002.yaml", "tracked")
     assert subject == "FND-00002"
 
 
@@ -366,8 +366,8 @@ def test_no_other_target_resolves_outside_the_project(hactors_root, project, pre
 @pytest.mark.parametrize(
     "prepare, relpath",
     [
-        (lambda p: write(p, "hactors/workflow_run_000001/manifest.yaml", "identity:\n  id: x\n"),
-         "hactors/workflow_run_000001/manifest.yaml"),
+        (lambda p: write(p, "hactors/workflow_run_00001/manifest.yaml", "identity:\n  id: x\n"),
+         "hactors/workflow_run_00001/manifest.yaml"),
         (lambda p: write(p, "harnesses/HRN-00001/manifest.yaml", "id: HRN-00001\nstatus: active\n"),
          "harnesses/HRN-00001/manifest.yaml"),
         (lambda p: write(p, "harnesses/HRN-00001/versions/v001/harness.yaml", "status: draft\n"),
@@ -395,7 +395,7 @@ def test_a_file_in_rfcs_that_declares_no_identity_is_rejected(hactors_root, proj
 def test_the_manifest_of_a_run_instance_is_rejected(hactors_root, project):
     invoke(hactors_root, "create-workflow")
     with pytest.raises(TransitionError, match="ninguna familia"):
-        go(hactors_root, project, "hactors/workflow_run_000001/manifest.yaml", "active")
+        go(hactors_root, project, "hactors/workflow_run_00001/manifest.yaml", "active")
 
 
 @pytest.mark.parametrize(
@@ -627,7 +627,7 @@ def test_a_blocking_finding_keeps_its_task_open(hactors_root, project, severity)
 def test_a_blocking_finding_reached_through_its_execution_keeps_the_task_open(hactors_root, project):
     invoke(hactors_root, "create-workflow", "--task-ref", "TASK-00001")
     task(project, "tested")
-    finding(project, severity="critical", execution="hactors/workflow_run_000001")
+    finding(project, severity="critical", execution="hactors/workflow_run_00001")
     with pytest.raises(TransitionError, match="bloquea TASK 'TASK-00001'"):
         go(hactors_root, project, TASK_PATH, "done")
 
@@ -716,18 +716,18 @@ def test_a_blocking_finding_on_another_artifact_does_not_block_the_summary(hacto
 
 
 @pytest.mark.parametrize(
-    "execution", ["hactors/workflow_run_000001", "hactors/workflow_run_000001/task_run_000002"]
+    "execution", ["hactors/workflow_run_00001", "hactors/workflow_run_00001/task_run_00002"]
 )
 def test_a_blocking_finding_inside_the_run_subtree_blocks_its_summary(hactors_root, project, execution):
-    summary(project, "hactors/workflow_run_000001", relpath=RUN_SUMMARY_PATH)
+    summary(project, "hactors/workflow_run_00001", relpath=RUN_SUMMARY_PATH)
     finding(project, severity="critical", execution=execution)
     with pytest.raises(TransitionError, match="bloquea Resumen"):
         go(hactors_root, project, RUN_SUMMARY_PATH, "consolidated")
 
 
 def test_a_blocking_finding_outside_the_run_subtree_does_not_block_its_summary(hactors_root, project):
-    summary(project, "hactors/workflow_run_000001", relpath=RUN_SUMMARY_PATH)
-    finding(project, severity="critical", execution="hactors/workflow_run_000002")
+    summary(project, "hactors/workflow_run_00001", relpath=RUN_SUMMARY_PATH)
+    finding(project, severity="critical", execution="hactors/workflow_run_00002")
     assert go(hactors_root, project, RUN_SUMMARY_PATH, "consolidated")[2] == "in-progress"
 
 

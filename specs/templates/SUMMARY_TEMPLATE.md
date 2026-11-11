@@ -20,7 +20,7 @@ date: ""
 
 | Campo | Contenido |
 |---|---|
-| `artifact` | El artefacto resumido, por la ruta relativa al proyecto de su origen: la RFC con su identidad completa, o el `workflow_run_XXXXXX`. |
+| `artifact` | El artefacto resumido, por la ruta relativa al proyecto de su origen: la RFC con su identidad completa, o el `workflow_run_XXXXX`. |
 | `title` | Descripción breve del resultado. |
 | `level` | `rfc` o `workflow_run`. |
 | `status` | Fase del resumen: `in-progress` o `consolidated`, conforme a [LIFECYCLE.md](../LIFECYCLE.md#summary). |
@@ -111,7 +111,7 @@ Solo con `level: rfc`. Una entrada por cada instancia que ejecuta la RFC, sin su
 
 | Instancia | Motivo | Estado inicial | Trabajo realizado | Artefactos | Evidencias y hallazgos | Resultado | Estado final |
 |---|---|---|---|---|---|---|---|
-| `rfc_run_XXXXXX` | | | | | | | |
+| `rfc_run_XXXXX` | | | | | | | |
 
 Cubre el `rfc_run` y todos sus descendientes, incluidos los anidados bajo un `plan_run`.
 
@@ -133,7 +133,7 @@ Las tres dimensiones del resumen global —Estado, Resultados y Trazabilidad— 
 
 | Artefacto | Ruta relativa al proyecto |
 |---|---|
-| La RFC o el workflow_run resumido | `rfcs/` o `hactors/workflow_run_XXXXXX/manifest.yaml` |
+| La RFC o el workflow_run resumido | `rfcs/` o `hactors/workflow_run_XXXXX/manifest.yaml` |
 | La TASK declarada en `identity.task_ref` | `tasks/` |
 | Las RFC derivadas | solo como relación `derives` |
 

@@ -46,7 +46,7 @@ COUNTER_ID_PATTERNS = {
     "plan": re.compile(r"PLAN-([0-9]{5,})"),
     "test": re.compile(r"TEST-([0-9]{5,})"),
     "harness": re.compile(r"HRN-([0-9]{5,})"),
-    "workflow_run": re.compile(r"workflow_run_([0-9]{6,})"),
+    "workflow_run": re.compile(r"workflow_run_([0-9]{5,})"),
     "evidence": re.compile(r"EVD-([0-9]{5,})"),
     "finding": re.compile(r"FND-([0-9]{5,})"),
     "adr": re.compile(r"ADR-([0-9]{5,})"),

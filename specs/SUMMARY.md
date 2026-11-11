@@ -35,7 +35,7 @@ Existen dos niveles, y solo dos. Las instancias intermedias —`task_run`, `rfc_
 | Nivel | Artefacto resumido | Ubicación |
 |---|---|---|
 | 1 | Una RFC | `rfcs/<nombre-sin-extension> - Summary.md`, junto a la RFC |
-| 2 | Un workflow_run | `hactors/workflow_run_XXXXXX/SUMMARY.md`, junto a su manifiesto |
+| 2 | Un workflow_run | `hactors/workflow_run_XXXXX/SUMMARY.md`, junto a su manifiesto |
 
 `hactors create-summary` crea ese archivo con su cabecera: `--origin <ruta>` declara la RFC en `rfcs/` o el workflow_run en `hactors/` y, si se omite, el destino es el workflow_run de la instancia activa. Las reglas del origen admitido y de los valores que no rellena se describen en [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#15-creación-del-archivo-de-resumen).
 

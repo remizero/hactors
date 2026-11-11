@@ -45,7 +45,7 @@ def test_run_matches_template_and_preserves_source(run_case, load_yaml):
     expected["identity"].update(id=run.name, **options)
     expected = {run.name: expected} if prefix == "workflow_run" else expected
     assert run.parent == parent
-    assert run.name == f"{prefix}_000001"
+    assert run.name == f"{prefix}_00001"
     assert run.is_dir()
     assert load_yaml(run / "manifest.yaml") == expected
     assert path.read_bytes() == original
@@ -62,8 +62,8 @@ def test_sequential_runs_only_increment_their_own_counter(run_case, load_yaml):
     manifest = args[0] / "projects" / args[1] / "manifest.yaml"
     expected = load_yaml(manifest)["counters"].copy()
     first, second = create(*args), create(*args)
-    assert first.name == f"{prefix}_000001"
-    assert second.name == f"{prefix}_000002"
+    assert first.name == f"{prefix}_00001"
+    assert second.name == f"{prefix}_00002"
     expected[prefix] += 2
     assert load_yaml(manifest)["counters"] == expected
 
@@ -110,7 +110,7 @@ def test_missing_template_has_no_side_effects(run_case):
 @pytest.mark.parametrize("collision", ["directory", "file"])
 def test_existing_run_is_not_overwritten_or_counted(run_case, collision):
     create, error, args, parent, prefix = run_case
-    existing = parent / f"{prefix}_000001"
+    existing = parent / f"{prefix}_00001"
     if collision == "directory":
         existing.mkdir()
         (existing / "manifest.yaml").write_text("preserved: true\n")
@@ -146,8 +146,8 @@ def test_invalid_project_has_no_side_effects(run_case, problem, load_yaml):
 
 
 @pytest.mark.parametrize("parent_path", [
-    "hactors/workflow_run_999999", "workflow_run_000001",
-    "hactors/workflow_run_000001/../workflow_run_000001", 42,
+    "hactors/workflow_run_999999", "workflow_run_00001",
+    "hactors/workflow_run_00001/../workflow_run_00001", 42,
 ])
 def test_task_requires_a_complete_existing_parent_path(hactors_root: Path, parent_path):
     create_project("proj", hactors_root)
@@ -175,7 +175,7 @@ def test_task_counters_span_workflows_not_projects(hactors_root, load_yaml, zero
             workflow = create_workflow(hactors_root, name)
             task = create_task_run(hactors_root, name, workflow.relative_to(project).as_posix())
             assert task.parent == workflow
-            assert task.name == f"task_run_{index:06d}"
+            assert task.name == f"task_run_{index:05d}"
         assert load_yaml(project / "manifest.yaml")["counters"] == {
             **zero_counters, "workflow_run": 2, "task_run": 2,
         }
@@ -195,5 +195,5 @@ def test_missing_counter_is_added_without_rewriting_existing_runs(hactors_root, 
         original = (workflow / "manifest.yaml").read_bytes()
         run = create_task_run(hactors_root, project.name, workflow.relative_to(project).as_posix())
         assert (workflow / "manifest.yaml").read_bytes() == original
-    assert run.name == f"{prefix}_000001"
+    assert run.name == f"{prefix}_00001"
     assert load_yaml(manifest)["counters"][prefix] == 1

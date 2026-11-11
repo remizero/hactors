@@ -68,7 +68,7 @@ Fragmento ilustrativo: una observación originada en una RFC puede aportar resul
 
 ```yaml
 source:
-  execution: "hactors/workflow_run_000001/task_run_000001/rfc_run_000001"
+  execution: "hactors/workflow_run_00001/task_run_00001/rfc_run_00001"
 relations:
   - target: "RFC-A00001#C1"
     relation: verifies

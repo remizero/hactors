@@ -72,8 +72,8 @@ def test_creates_workflow_and_task_with_reference(hactors_root, load_yaml):
     assert "Workflow creado" in workflow_result.output
     task_result = invoke(hactors_root, "create-task-run")
     assert "Task run creado" in task_result.output
-    workflow = project / "hactors" / "workflow_run_000001"
-    task = workflow / "task_run_000001"
+    workflow = project / "hactors" / "workflow_run_00001"
+    task = workflow / "task_run_00001"
     assert load_yaml(workflow / "manifest.yaml")[workflow.name]["identity"]["task_ref"] == "TASK-00001"
     assert load_yaml(task / "manifest.yaml")["identity"] == {"id": task.name}
     assert load_state(hactors_root) == {
@@ -154,7 +154,7 @@ def test_use_run_requires_exactly_one_selector(hactors_root, cli_chain, both):
 
 def test_use_run_requires_project_and_parent_requires_run(hactors_root):
     before = snapshot(hactors_root / "projects")
-    result = invoke(hactors_root, "use-run", "hactors/workflow_run_000001", expected=1)
+    result = invoke(hactors_root, "use-run", "hactors/workflow_run_00001", expected=1)
     assert "No hay proyecto activo" in result.output
     assert snapshot(hactors_root / "projects") == before
     create_project("proj", hactors_root)
@@ -183,8 +183,8 @@ def test_use_run_parent_visits_every_ancestor_then_project(hactors_root, cli_cha
 def test_selection_and_creation_reject_invalid_full_path_without_mutation(hactors_root, cli_chain, command, case):
     project, paths = cli_chain
     path = {
-        "absolute": str(project / paths[-1]), "bare-id": "workflow_run_000001",
-        "dotdot": paths[0] + "/../workflow_run_000001", "trailing": paths[-1] + "/",
+        "absolute": str(project / paths[-1]), "bare-id": "workflow_run_00001",
+        "dotdot": paths[0] + "/../workflow_run_00001", "trailing": paths[-1] + "/",
         "file": paths[-1] + "/manifest.yaml", "suffix": paths[-1] + "/unknown_000001",
         "missing": str(Path(paths[-1]).with_name(Path(paths[-1]).name.rsplit("_", 1)[0] + "_999999")),
     }[case]
@@ -213,7 +213,7 @@ def test_selection_and_creation_reject_invalid_full_path_without_mutation(hactor
     ("create-harness-run", "active_project: false\n"),
     ("create-harness-run", b"\xff"),
     ("use-run", "active_project: proj\nactive_run_path: 42\n"),
-    ("use-run", "active_project: ''\nactive_run_path: hactors/workflow_run_000001\n"),
+    ("use-run", "active_project: ''\nactive_run_path: hactors/workflow_run_00001\n"),
 ])
 def test_corrupt_state_reports_error_without_traceback_or_mutation(hactors_root, command, content):
     project = create_project("proj", hactors_root)
@@ -237,7 +237,7 @@ def test_invalid_manifest_is_reported_by_selection_and_creation(hactors_root, cl
         data["project"] = "other"
     elif problem == "wrong-wrapper":
         manifest = project / paths[0] / "manifest.yaml"
-        data = {"workflow_run_999999": load_yaml(manifest)["workflow_run_000001"]}
+        data = {"workflow_run_999999": load_yaml(manifest)["workflow_run_00001"]}
     else:
         manifest = project / paths[3] / "manifest.yaml"
         data = load_yaml(manifest)
@@ -277,7 +277,7 @@ def test_create_run_uses_selected_parent_and_verbatim_reference(
     command = "create-" + prefix.replace("_", "-")
     result = invoke(hactors_root, command, *args)
     assert f"{prefix.split('_')[0].title()} run creado" in result.output
-    path = f"{parent}/{prefix}_000001"
+    path = f"{parent}/{prefix}_00001"
     run = project / path
     assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": path}
     expected = {
@@ -298,7 +298,7 @@ def test_create_run_uses_selected_parent_and_verbatim_reference(
     invoke(hactors_root, "use-run", "--parent")
     assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": parent}
     invoke(hactors_root, command)
-    sibling = f"{parent}/{prefix}_000002"
+    sibling = f"{parent}/{prefix}_00002"
     assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": sibling}
     before = snapshot(project)
     invoke(hactors_root, "use-run", path)
@@ -322,8 +322,8 @@ def test_cli_legacy_project_uses_template_defaults_and_adds_only_own_counter(hac
     source.write_text(yaml.safe_dump(template))
     originals = source.read_bytes(), (project / paths[-1] / "manifest.yaml").read_bytes()
     invoke(hactors_root, "create-" + prefix.replace("_", "-"))
-    path = f"{paths[-1]}/{prefix}_000001"
-    template["identity"]["id"] = f"{prefix}_000001"
+    path = f"{paths[-1]}/{prefix}_00001"
+    template["identity"]["id"] = f"{prefix}_00001"
     assert load_yaml(project / path / "manifest.yaml") == template
     data["counters"][prefix] = 1
     assert load_yaml(manifest) == data
@@ -356,7 +356,7 @@ def test_create_workflow_from_test_or_harness_still_creates_at_project_level(hac
     counters = load_yaml(project / "manifest.yaml")["counters"].copy()
     invoke(hactors_root, "create-workflow")
     assert load_state(hactors_root) == {
-        "active_project": project.name, "active_run_path": "hactors/workflow_run_000002",
+        "active_project": project.name, "active_run_path": "hactors/workflow_run_00002",
     }
     counters["workflow_run"] += 1
     assert load_yaml(project / "manifest.yaml")["counters"] == counters
@@ -387,7 +387,7 @@ def test_create_run_cli_errors_are_clear_and_do_not_write(hactors_root, cli_chai
             data["counters"] = []
         manifest.write_text(yaml.safe_dump(data))
     else:
-        (project / paths[-1] / f"{prefix}_000001").write_text("never overwrite\n")
+        (project / paths[-1] / f"{prefix}_00001").write_text("never overwrite\n")
     before = snapshot(hactors_root)
     result = invoke(hactors_root, "create-" + prefix.replace("_", "-"), expected=1)
     assert message.lower() in result.output.lower()
@@ -441,10 +441,10 @@ def test_harness_cli_root_resolution(hactors_root, cli_chain, monkeypatch, tmp_p
     result = CliRunner().invoke(cli, args)
     assert result.exit_code == 0, result.output
     assert "Harness run creado" in result.output
-    path = f"{paths[-1]}/harness_run_000001"
+    path = f"{paths[-1]}/harness_run_00001"
     assert load_state(hactors_root) == {"active_project": project.name, "active_run_path": path}
     assert load_yaml(project / path / "manifest.yaml")["identity"] == {
-        "id": "harness_run_000001", "harness_ref": "HRN-00001@v1", "content_ref": "content: # opaque",
+        "id": "harness_run_00001", "harness_ref": "HRN-00001@v1", "content_ref": "content: # opaque",
     }
 
 
@@ -459,8 +459,8 @@ def test_harness_cli_empty_refs_override_only_supplied_template_defaults(hactors
     original = source.read_bytes()
     args = [arg for field in fields for arg in ("--" + field.replace("_", "-"), "")]
     invoke(hactors_root, "create-harness-run", *args)
-    template["identity"].update(id="harness_run_000001", **{field: "" for field in fields})
-    assert load_yaml(project / paths[-1] / "harness_run_000001" / "manifest.yaml") == template
+    template["identity"].update(id="harness_run_00001", **{field: "" for field in fields})
+    assert load_yaml(project / paths[-1] / "harness_run_00001" / "manifest.yaml") == template
     assert source.read_bytes() == original
 
 
@@ -508,13 +508,13 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     process("create-rfc-run", "--rfc-ref", references[1])
     process("create-plan-run", "--plan-ref", "PLAN-00002")
     process("create-rfc-run", "--rfc-ref", references[2])
-    workflow = project / "hactors" / "workflow_run_000001"
-    task = workflow / "task_run_000001"
-    rfc1 = task / "rfc_run_000001"
-    plan1 = rfc1 / "plan_run_000001"
-    rfc2 = plan1 / "rfc_run_000002"
-    plan2 = rfc2 / "plan_run_000002"
-    rfc3 = plan2 / "rfc_run_000003"
+    workflow = project / "hactors" / "workflow_run_00001"
+    task = workflow / "task_run_00001"
+    rfc1 = task / "rfc_run_00001"
+    plan1 = rfc1 / "plan_run_00001"
+    rfc2 = plan1 / "rfc_run_00002"
+    plan2 = rfc2 / "plan_run_00002"
+    rfc3 = plan2 / "rfc_run_00003"
     runs = [workflow, task, rfc1, plan1, rfc2, plan2, rfc3]
     for run, ref in zip((rfc1, rfc2, rfc3), references):
         assert load_yaml(run / "manifest.yaml")["identity"] == {"id": run.name, "rfc_ref": ref}
@@ -532,7 +532,7 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     assert load_yaml(project / "manifest.yaml")["counters"] == counters
 
     assert "Test run creado" in process("create-test-run", "--test-ref", "checks/smoke: opaque")
-    deep_test = rfc3 / "test_run_000001"
+    deep_test = rfc3 / "test_run_00001"
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deep_test.relative_to(project).as_posix()}
     before = snapshot(hactors_root / "projects")
     for command in ("create-task-run", "create-rfc-run", "create-plan-run", "create-test-run"):
@@ -543,11 +543,11 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deepest}
     process("use-run", rfc1.relative_to(project).as_posix())
     process("create-test-run")
-    first_test = rfc1 / "test_run_000002"
+    first_test = rfc1 / "test_run_00002"
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": first_test.relative_to(project).as_posix()}
     process("use-run", "--parent")
     process("create-test-run", "--test-ref", "")
-    sibling_test = rfc1 / "test_run_000003"
+    sibling_test = rfc1 / "test_run_00003"
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": sibling_test.relative_to(project).as_posix()}
     for test, ref in ((deep_test, "checks/smoke: opaque"), (first_test, ""), (sibling_test, "")):
         assert load_yaml(test / "manifest.yaml")["identity"] == {"id": test.name, "test_ref": ref}
@@ -562,7 +562,7 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     assert "Harness run creado" in process(
         "create-harness-run", "--harness-ref", harness_ref, "--content-ref", content_ref,
     )
-    deep_harness = deep_test / "harness_run_000001"
+    deep_harness = deep_test / "harness_run_00001"
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": deep_harness.relative_to(project).as_posix()}
     before = snapshot(hactors_root / "projects")
     for command in ("create-task-run", "create-rfc-run", "create-plan-run", "create-test-run", "create-harness-run"):
@@ -577,10 +577,10 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": ""}
     process("use-run", deep_test.relative_to(project).as_posix())
     process("create-harness-run", "--harness-ref", harness_ref, "--content-ref", content_ref)
-    sibling_harness = deep_test / "harness_run_000002"
+    sibling_harness = deep_test / "harness_run_00002"
     process("use-run", first_test.relative_to(project).as_posix())
     process("create-harness-run", "--harness-ref", "", "--content-ref", "")
-    initial_harness = first_test / "harness_run_000003"
+    initial_harness = first_test / "harness_run_00003"
     for run, hrn, content in (
         (deep_harness, harness_ref, content_ref), (sibling_harness, harness_ref, content_ref),
         (initial_harness, "", ""),
@@ -599,7 +599,7 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
 
     process("use-run", plan1.relative_to(project).as_posix())
     process("create-rfc-run", "--rfc-ref", references[3])
-    rfc4 = plan1 / "rfc_run_000004"
+    rfc4 = plan1 / "rfc_run_00004"
     assert load_yaml(rfc4 / "manifest.yaml")["identity"] == {"id": rfc4.name, "rfc_ref": references[3]}
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": rfc4.relative_to(project).as_posix()}
     counters["rfc_run"] = 4
@@ -636,11 +636,11 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     process("use-run", workflow.relative_to(project).as_posix())
     process("create-task-run")
     process("create-rfc-run", "--rfc-ref", "RFC-F00001")
-    sibling_rfc = workflow / "task_run_000002" / "rfc_run_000005"
+    sibling_rfc = workflow / "task_run_00002" / "rfc_run_00005"
     assert (sibling_rfc / "manifest.yaml").is_file()
     assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": sibling_rfc.relative_to(project).as_posix()}
     process("create-workflow")
-    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": "hactors/workflow_run_000002"}
+    assert load_yaml(state_file) == {"active_project": "proj", "active_run_path": "hactors/workflow_run_00002"}
     before = snapshot(hactors_root / "projects")
     assert "No se puede crear" in process("create-rfc-run", expected=1)
     assert snapshot(hactors_root / "projects") == before
@@ -657,20 +657,20 @@ def test_cli_process_chain(hactors_root, load_yaml, zero_counters):
     assert all(value == 0 for value in load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"].values())
     for command in ("create-workflow", "create-task-run", "create-rfc-run", "create-test-run"):
         process(command)
-    other_path = "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001"
+    other_path = "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/test_run_00001"
     assert load_yaml(state_file) == {"active_project": "other", "active_run_path": other_path}
     assert load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"] == {
         **zero_counters, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "test_run": 1,
     }
     process("create-harness-run")
-    other_path += "/harness_run_000001"
+    other_path += "/harness_run_00001"
     assert load_yaml(state_file) == {"active_project": "other", "active_run_path": other_path}
     assert load_yaml(hactors_root / "projects" / "other" / "manifest.yaml")["counters"] == {
         **zero_counters, "workflow_run": 1, "task_run": 1, "rfc_run": 1, "test_run": 1,
         "harness_run": 1,
     }
     assert load_yaml(hactors_root / "projects" / "other" / other_path / "manifest.yaml") == {
-        "identity": {"id": "harness_run_000001", "harness_ref": "", "content_ref": ""},
+        "identity": {"id": "harness_run_00001", "harness_ref": "", "content_ref": ""},
         "execution": {"source_revision": "", "parameters": {}},
         "state": {"status": "", "blocked_reason": ""},
     }

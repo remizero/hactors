@@ -96,7 +96,7 @@ class TestLoadState:
         "active_project: proj\nactive_run_path: false\n",
         "active_project: proj\nactive_run_path: []\n",
         "active_project: proj\nactive_run_path: {}\n",
-        "active_project: ''\nactive_run_path: hactors/workflow_run_000001\n",
+        "active_project: ''\nactive_run_path: hactors/workflow_run_00001\n",
     ])
     def test_corrupt_state_is_a_readable_error_without_mutation(self, hactors_root, content):
         path = hactors_root / "projects" / ".state.yaml"
@@ -231,7 +231,7 @@ def test_entire_run_path_is_validated_without_normalizing(hactors_root, selected
         "wrong-prefix": valid.replace("hactors/", "runs/", 1),
         "short-id": "hactors/workflow_run_1",
         "unknown-suffix": valid + "/unknown_000001",
-        "extra-manifest-suffix": valid + "/manifest.yaml/plan_run_000001",
+        "extra-manifest-suffix": valid + "/manifest.yaml/plan_run_00001",
         "number": 42,
         "none": None,
     }

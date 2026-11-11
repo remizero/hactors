@@ -132,14 +132,14 @@ def test_workflow_run_origin_creates_summary_md_next_to_its_manifest(hactors_roo
     project = artifacts
     invoke(hactors_root, "use-project", project.name)
     invoke(hactors_root, "create-workflow", "--task-ref", "TASK-00001")
-    run = project / "hactors" / "workflow_run_000001"
+    run = project / "hactors" / "workflow_run_00001"
     manifest_before = (run / "manifest.yaml").read_bytes()
     before = snapshot(hactors_root)
 
-    path = create_summary(hactors_root, project.name, "hactors/workflow_run_000001")
+    path = create_summary(hactors_root, project.name, "hactors/workflow_run_00001")
 
     assert path == run / "SUMMARY.md"
-    assert front_matter(path)[0] == expected_summary("workflow_run", "hactors/workflow_run_000001")
+    assert front_matter(path)[0] == expected_summary("workflow_run", "hactors/workflow_run_00001")
     assert (run / "manifest.yaml").read_bytes() == manifest_before
     after = snapshot(hactors_root)
     assert after.keys() - before.keys() == {path.relative_to(hactors_root).as_posix()}
@@ -312,12 +312,12 @@ def test_existing_workflow_summary_is_never_overwritten(hactors_root, artifacts)
     project = artifacts
     invoke(hactors_root, "use-project", project.name)
     invoke(hactors_root, "create-workflow", "--task-ref", "TASK-00001")
-    summary = project / "hactors" / "workflow_run_000001" / "SUMMARY.md"
+    summary = project / "hactors" / "workflow_run_00001" / "SUMMARY.md"
     summary.write_text("artifact: manual\n")
     before = snapshot(hactors_root)
 
     with pytest.raises(SummaryError, match="Ya existe un resumen"):
-        create_summary(hactors_root, project.name, "hactors/workflow_run_000001")
+        create_summary(hactors_root, project.name, "hactors/workflow_run_00001")
 
     assert snapshot(hactors_root) == before
 
@@ -340,9 +340,9 @@ def test_creation_never_changes_the_active_selection(hactors_root, harness_origi
     "rfcs//RFC-A00001.md", "rfcs/", "/rfcs/RFC-A00001.md", "rfcs\\RFC-A00001.md",
     "hactors/", "missing.md", "rfcs/missing.md",
     "hactors/workflow_run_999999", "hactors/workflow_run_1",
-    "hactors/workflow_run_000001/harness_run_000001",
-    "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/harness_run_000001",
-    "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/test_run_000001/manifest.yaml",
+    "hactors/workflow_run_00001/harness_run_00001",
+    "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/harness_run_00001",
+    "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/test_run_00001/manifest.yaml",
     None, 42, [],
 ])
 def test_invalid_origins_are_rejected_without_side_effects(hactors_root, harness_origin, origin):
@@ -453,13 +453,13 @@ def test_cli_creates_summaries_at_both_levels(hactors_root, artifacts):
     )
 
     result = invoke(
-        hactors_root, "create-summary", "--origin", "hactors/workflow_run_000001",
+        hactors_root, "create-summary", "--origin", "hactors/workflow_run_00001",
         "--title", "Resultado global",
     )
-    assert str(project / "hactors" / "workflow_run_000001" / "SUMMARY.md") in result.output
-    assert front_matter(project / "hactors" / "workflow_run_000001" / "SUMMARY.md")[0] == (
+    assert str(project / "hactors" / "workflow_run_00001" / "SUMMARY.md") in result.output
+    assert front_matter(project / "hactors" / "workflow_run_00001" / "SUMMARY.md")[0] == (
         expected_summary(
-            "workflow_run", "hactors/workflow_run_000001", title="Resultado global",
+            "workflow_run", "hactors/workflow_run_00001", title="Resultado global",
         )
     )
     assert (hactors_root / "projects" / ".state.yaml").read_bytes() == state_before
@@ -513,17 +513,17 @@ def test_cli_process_creates_summaries_in_a_separate_process(hactors_root, artif
         "create-summary", "--origin", "rfcs/RFC-A00001.md", "--title", "Uno",
     )
     assert "Resumen creado en" in process(
-        "create-summary", "--origin", "hactors/workflow_run_000001", "--title", "Global",
+        "create-summary", "--origin", "hactors/workflow_run_00001", "--title", "Global",
     )
     assert front_matter(project / "rfcs" / "RFC-A00001 - Summary.md")[0] == expected_summary(
         "rfc", "rfcs/RFC-A00001.md", title="Uno",
     )
-    assert front_matter(project / "hactors" / "workflow_run_000001" / "SUMMARY.md")[0] == (
-        expected_summary("workflow_run", "hactors/workflow_run_000001", title="Global")
+    assert front_matter(project / "hactors" / "workflow_run_00001" / "SUMMARY.md")[0] == (
+        expected_summary("workflow_run", "hactors/workflow_run_00001", title="Global")
     )
     after = snapshot(hactors_root)
     assert after.keys() - before.keys() == {
         "projects/proj/rfcs/RFC-A00001 - Summary.md",
-        "projects/proj/hactors/workflow_run_000001/SUMMARY.md",
+        "projects/proj/hactors/workflow_run_00001/SUMMARY.md",
     }
     assert [p for p in before if before[p] != after[p]] == []

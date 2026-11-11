@@ -68,7 +68,7 @@ Fragmento ilustrativo de un hallazgo detectado en un test_run de una RFC derivad
 
 ```yaml
 source:
-  execution: "hactors/workflow_run_000001/task_run_000001/rfc_run_000001/plan_run_000001/rfc_run_000002/test_run_000001"
+  execution: "hactors/workflow_run_00001/task_run_00001/rfc_run_00001/plan_run_00001/rfc_run_00002/test_run_00001"
 relations:
   - target: "RFC-A00001"
     relation: affects

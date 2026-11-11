@@ -54,7 +54,7 @@ def test_run_matches_template_and_preserves_source(run_case, load_yaml):
     run = create(*args, **{field: ref})
     expected["identity"].update(id=run.name, **{field: ref})
     assert run.parent == parent
-    assert run.name == f"{prefix}_000001"
+    assert run.name == f"{prefix}_00001"
     assert load_yaml(run / "manifest.yaml") == expected
     assert source.read_bytes() == original
     assert load_state(root) == {
@@ -85,8 +85,8 @@ def test_run_ids_are_sequential_and_counters_independent(run_case, load_yaml):
     manifest = args[0] / "projects" / args[1] / "manifest.yaml"
     expected = load_yaml(manifest)["counters"].copy()
     first, second = create(*args), create(*args)
-    assert first.name == f"{prefix}_000001"
-    assert second.name == f"{prefix}_000002"
+    assert first.name == f"{prefix}_00001"
+    assert second.name == f"{prefix}_00002"
     expected[prefix] += 2
     assert load_yaml(manifest)["counters"] == expected
 
@@ -114,10 +114,10 @@ def test_counters_span_parents_but_not_projects(hactors_root, load_yaml, zero_co
             plan = create_plan_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
             test = create_test_run(hactors_root, project_name, rfc.relative_to(project).as_posix())
             harness = create_harness_run(hactors_root, project_name, test.relative_to(project).as_posix())
-            assert rfc.name == f"rfc_run_{index:06d}"
-            assert plan.name == f"plan_run_{index:06d}"
-            assert test.name == f"test_run_{index:06d}"
-            assert harness.name == f"harness_run_{index:06d}"
+            assert rfc.name == f"rfc_run_{index:05d}"
+            assert plan.name == f"plan_run_{index:05d}"
+            assert test.name == f"test_run_{index:05d}"
+            assert harness.name == f"harness_run_{index:05d}"
             assert harness.parent == test
         assert load_yaml(project / "manifest.yaml")["counters"] == {
             **zero_counters, "workflow_run": 2, "task_run": 2, "rfc_run": 2,
@@ -190,13 +190,13 @@ def test_invalid_parent_paths_are_rejected(run_case, case):
     create, error, args, _, _, _, _ = run_case
     valid = args[2]
     bad_value = {
-        "outside": "../outside", "absolute": "/tmp/outside", "bare-id": "workflow_run_000001",
+        "outside": "../outside", "absolute": "/tmp/outside", "bare-id": "workflow_run_00001",
         "wrong-id": "wrong_000001", "number": 42, "none": None, "empty": "", "hactors-only": "hactors",
         "dot": valid.replace("hactors/", "hactors/./", 1),
         "dotdot": valid.replace("hactors/", "hactors/../hactors/", 1),
         "backslash": valid.replace("/", "\\"), "double-slash": valid.replace("/", "//", 1),
         "trailing-slash": valid + "/", "file": valid + "/manifest.yaml",
-        "short-id": valid.replace("workflow_run_000001", "workflow_run_1"),
+        "short-id": valid.replace("workflow_run_00001", "workflow_run_1"),
         "suffix": valid + "/unknown_000001",
     }[case]
     before = snapshot(args[0] / "projects")
@@ -217,7 +217,7 @@ def test_invalid_project_context_is_rejected(run_case, bad_name):
 @pytest.mark.parametrize("collision", ["directory", "file", "symlink", "dangling-symlink"])
 def test_existing_run_is_never_overwritten_or_counted(run_case, collision, tmp_path):
     create, error, args, parent, prefix, _, _ = run_case
-    existing = parent / f"{prefix}_000001"
+    existing = parent / f"{prefix}_00001"
     target = tmp_path / "collision-target"
     target.mkdir()
     if collision == "directory":
@@ -262,7 +262,7 @@ def test_new_counter_added_without_rewriting_ancestors(run_case, load_yaml):
     manifest.write_text(yaml.safe_dump(data))
     before = (parent / "manifest.yaml").read_bytes()
     run = create(*args)
-    assert run.name == f"{prefix}_000001"
+    assert run.name == f"{prefix}_00001"
     data["counters"][prefix] = 1
     assert load_yaml(manifest) == data
     assert (parent / "manifest.yaml").read_bytes() == before
@@ -291,7 +291,7 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(
         expected = deepcopy(templates[prefix])
         expected["identity"].update(id=run.name, **{field: ref})
         assert load_yaml(run / "manifest.yaml") == expected
-        assert run.name == f"{prefix}_{expected_counters[prefix]:06d}"
+        assert run.name == f"{prefix}_{expected_counters[prefix]:05d}"
         path = run.relative_to(project).as_posix()
         assert Path(path).parts[1:] == tuple(ancestor.name for ancestor in runs)
         assert len(Path(path).parts) - 2 == current_depth
@@ -305,7 +305,7 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(
     sibling = create_rfc_run(hactors_root, project.name, load_state(hactors_root)["active_run_path"])
     expected_counters["rfc_run"] += 1
     assert sibling.parent == runs[4].parent == first_plan
-    assert sibling.name == f"rfc_run_{expected_counters['rfc_run']:06d}"
+    assert sibling.name == f"rfc_run_{expected_counters['rfc_run']:05d}"
     assert select_parent_run(hactors_root) == first_plan.relative_to(project).as_posix()
     set_active_run(hactors_root, project.name, runs[-1].relative_to(project).as_posix())
     assert load_state(hactors_root)["active_run_path"] == runs[-1].relative_to(project).as_posix()
@@ -411,5 +411,5 @@ def test_invalid_template_is_rejected_before_any_write(run_case, content):
 def test_render_does_not_mutate_template(hactors_root):
     template = load_template(hactors_root, "rfc_run_template.yaml")
     before = deepcopy(template)
-    render_run_yaml(template, "rfc_run_000001", "RFC-A00001", "rfc_ref")
+    render_run_yaml(template, "rfc_run_00001", "RFC-A00001", "rfc_ref")
     assert template == before

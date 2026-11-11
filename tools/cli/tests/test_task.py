@@ -325,8 +325,8 @@ def test_cli_creates_a_task_usable_as_task_ref(hactors_root, project, load_yaml)
     assert (hactors_root / "projects" / ".state.yaml").read_bytes() == state_before
 
     invoke(hactors_root, "create-workflow", "--task-ref", "TASK-00001")
-    manifest = load_yaml(project / "hactors" / "workflow_run_000001" / "manifest.yaml")
-    assert manifest["workflow_run_000001"]["identity"]["task_ref"] == "TASK-00001"
+    manifest = load_yaml(project / "hactors" / "workflow_run_00001" / "manifest.yaml")
+    assert manifest["workflow_run_00001"]["identity"]["task_ref"] == "TASK-00001"
 
 
 @pytest.mark.parametrize("task_ref,expected", [
