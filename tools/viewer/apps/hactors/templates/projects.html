@@ -327,23 +327,6 @@
 
     .crumbs .cnow { color: var(--text); }
 
-    /* El origen de la instancia es un metadato más de su vista: la misma letra
-       pequeña de la miga, con el enlace al documento que la inicia. */
-    .origin {
-      margin: -0.5rem 0 1rem;
-      font-family: var(--mono);
-      font-size: .7rem;
-      color: var(--muted);
-    }
-
-    .origin a {
-      color: var(--accent);
-      text-decoration: none;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .origin a:hover { border-color: var(--accent); }
-
     /* La prosa del documento conserva la estética del tablero: el markdown ya
        llega escapado del controlador, así que aquí solo se viste. */
     .prose { font-size: .82rem; line-height: 1.65; overflow-wrap: anywhere; }
@@ -940,16 +923,10 @@
       <h2>Instancia<span class="scope">{{ data.run.id }}</span></h2>
       <p class="desc">
         <code>{{ data.run.kind }}</code> en <code>{{ data.run.path }}</code> del proyecto
-        <code>{{ data.selected.name }}</code>: solo los artefactos que viven directamente en ese
-        directorio y las instancias que anida, no lo que vive en sus profundidades.
+        <code>{{ data.selected.name }}</code>: el artefacto que la inicia, los que viven
+        directamente en ese directorio y las instancias que anida, no lo que vive en sus
+        profundidades.
       </p>
-      {% if data.origin_doc %}
-      <p class="origin">Origen:
-        <a href="?proyecto={{ data.selected.name | urlencode }}&ejecucion={{ data.run.id | urlencode }}&documento={{ data.origin_doc.path | urlencode }}">{{ data.origin_doc.id }}</a>
-      </p>
-      {% elif data.origin_ref %}
-      <p class="origin">Origen: <code>{{ data.origin_ref }}</code>, declarado sin documento en el proyecto.</p>
-      {% endif %}
 
       <h2>Artefactos</h2>
       <div class="panel">
@@ -959,10 +936,16 @@
         {% macro afields(art) %}
         <span class="ahead">
           <span class="aname">{{ art.id }}</span>
+          {% if not art.declared %}
           <span class="badge{% if not art.status %} is-empty{% endif %}">{{ art.status or 'sin estado' }}</span>
+          {% endif %}
         </span>
         {% if art.title %}<span class="atitle">{{ art.title }}</span>{% endif %}
+        {% if art.declared %}
+        <span class="apath">Declarado sin documento en el proyecto.</span>
+        {% else %}
         <span class="apath">{{ art.path }}</span>
+        {% endif %}
         {% endmacro %}
         {% if data.run_direct %}
         {% for group in data.run_direct %}

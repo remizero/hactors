@@ -300,11 +300,9 @@ class Projects ( SuccessController ) :
       "missing"  : wanted if wanted and selected is None else "",
       "run"          : run,
       "run_trail"    : trail,
-      "run_direct"   : self._family_groups ( direct ),
+      "run_direct"   : self._origin_group ( origin_ref, origin_doc ) + self._family_groups ( direct ),
       "run_children" : children,
       "run_missing"  : wanted_run if selected and not selected [ "error" ] and wanted_run and run is None else "",
-      "origin_ref"   : origin_ref,
-      "origin_doc"   : origin_doc,
       "doc"          : doc,
       "doc_missing"  : wanted_doc if selected and not selected [ "error" ] and wanted_doc and doc is None else "",
       "cards"    : self._project_cards ( selected ) if selected else self._cards ( rows, totals ),
@@ -427,6 +425,20 @@ class Projects ( SuccessController ) :
       for kind, label in FAMILY_LABELS.items ()
       if any ( entry.get ( "kind" ) == kind for entry in artifacts )
     ]
+
+
+  def _origin_group ( self, reference : str, document : Optional [ dict ] ) -> list :
+    """El artefacto que inicia la instancia, como primer grupo de los suyos."""
+    # Vive fuera del directorio de la instancia, así que el barrido de sus
+    # artefactos directos no lo aporta y se añade delante de los de familia.
+    if not reference :
+      return []
+    entry = (
+      { **document, "origin" : True } if document else
+      { "id" : reference, "status" : "", "title" : "", "path" : "",
+        "served" : False, "origin" : True, "declared" : True }
+    )
+    return [ { "kind" : "origin", "label" : "Origen de esta instancia", "entries" : [ entry ] } ]
 
 
   def _cards ( self, rows : list, totals : dict ) -> list :
