@@ -103,10 +103,6 @@ def test_creates_workflow_and_task_with_reference(hactors_root, load_yaml):
     ("create-test-run", 5, "No se puede crear"),
     ("create-harness-run", 0, "No hay proyecto activo"),
     ("create-harness-run", 1, "No hay instancia activa"),
-    ("create-harness-run", 2, "No se puede crear"),
-    ("create-harness-run", 3, "No se puede crear"),
-    ("create-harness-run", 4, "No se puede crear"),
-    ("create-harness-run", 5, "No se puede crear"),
 ])
 def test_commands_require_selected_leaf_without_falling_back(hactors_root, command, steps, message):
     create_project("proj", hactors_root)

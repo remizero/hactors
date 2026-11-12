@@ -12,10 +12,10 @@ RUN_TYPES = ("workflow_run", "task_run", "rfc_run", "plan_run", "test_run", "har
 RUN_PATTERN = re.compile(r"(%s)_[0-9]{5,}" % "|".join(RUN_TYPES))
 RUN_CHILD_TYPES = {
     "hactors": ("workflow_run",),
-    "workflow_run": ("task_run",),
-    "task_run": ("rfc_run",),
-    "rfc_run": ("plan_run", "test_run"),
-    "plan_run": ("rfc_run",),
+    "workflow_run": ("task_run", "harness_run"),
+    "task_run": ("rfc_run", "harness_run"),
+    "rfc_run": ("plan_run", "test_run", "harness_run"),
+    "plan_run": ("rfc_run", "harness_run"),
     "test_run": ("harness_run",),
     "harness_run": (),
 }

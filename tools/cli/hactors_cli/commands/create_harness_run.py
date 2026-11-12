@@ -20,7 +20,7 @@ from ..core.state import StateError, require_active_project, require_active_run_
 def create_harness_run_cmd(
     harness_ref: Optional[str], content_ref: Optional[str], root: Optional[Path]
 ) -> None:
-    """Crear y seleccionar un harness_run bajo el test_run activo, sin ejecutar su receta."""
+    """Crear y seleccionar un harness_run bajo la instancia activa, sin ejecutar su receta."""
     hactors_root = root if root is not None else find_hactors_root(Path.cwd())
     try:
         project_name = require_active_project(hactors_root)

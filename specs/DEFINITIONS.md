@@ -66,7 +66,7 @@ En la prosa, un identificador genérico se escribe con cifras `nnnnn`; en una ta
 | `rfc_run` | Instancia de ejecución de una RFC, dentro de un task_run o de un plan_run. |
 | `plan_run` | Instancia de ejecución de un PLAN, dentro de un rfc_run; puede contener ejecuciones de RFC derivadas. |
 | `test_run` | Instancia de ejecución de un TEST, dentro de un rfc_run inicial o derivado; puede contener harness_runs. |
-| `harness_run` | Instancia de uso de una versión de HARNESS bajo el test_run solicitante; hoja de la ejecución. |
+| `harness_run` | Instancia de uso de una versión de HARNESS bajo la instancia que lo solicita; hoja de la ejecución. |
 | Manifiesto | Archivo `manifest.yaml` que registra identidad, relaciones y contadores; existe uno en la raíz del proyecto y uno por cada instancia de ejecución. |
 | Estado activo | Contexto de trabajo actual en `projects/.state.yaml`: el proyecto seleccionado y la ruta completa de la instancia activa con sus ancestros. |
 | Relación | Vínculo identificable entre dos artefactos, con su tipo, registrado en el grafo del proyecto; la ubicación de cada extremo se deriva de su identidad. |

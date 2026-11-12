@@ -198,26 +198,41 @@ def test_reusing_version_creates_independent_siblings_and_runs_under_other_tests
     assert snapshot(project) == before
 
 
-@pytest.mark.parametrize("parent_type", ["workflow_run", "task_run", "rfc_run", "plan_run", "harness_run"])
-def test_harness_parent_rules_cannot_be_bypassed_by_existing_directory(
-    hactors_root, test_parent, load_yaml, parent_type,
+@pytest.mark.parametrize("parent_type", ["workflow_run", "task_run", "rfc_run", "plan_run", "test_run"])
+def test_harness_run_is_admitted_under_every_instance_that_demands_it(
+    hactors_root, test_parent, parent_type,
 ):
     project, ancestors = test_parent
     rfc = ancestors[-2]
     plan = create_plan_run(hactors_root, project.name, rfc.relative_to(project).as_posix())
-    harness = create_harness_run(hactors_root, project.name, ancestors[-1].relative_to(project).as_posix())
     parent = {
         "workflow_run": ancestors[0], "task_run": ancestors[1], "rfc_run": rfc,
-        "plan_run": plan, "harness_run": harness,
+        "plan_run": plan, "test_run": ancestors[-1],
     }[parent_type]
     path = parent.relative_to(project).as_posix()
+    assert require_run_directory(hactors_root, project.name, path, child_type="harness_run") == parent
+    run = create_harness_run(hactors_root, project.name, path)
+    assert run.parent == parent
+    assert load_state(hactors_root) == {
+        "active_project": project.name, "active_run_path": f"{path}/{run.name}",
+    }
+
+
+def test_harness_run_is_a_leaf_and_cannot_be_bypassed_by_existing_directory(
+    hactors_root, test_parent, load_yaml,
+):
+    project, ancestors = test_parent
+    harness = create_harness_run(
+        hactors_root, project.name, ancestors[-1].relative_to(project).as_posix()
+    )
+    path = harness.relative_to(project).as_posix()
     before = snapshot(hactors_root)
     with pytest.raises(ValueError, match="No se puede crear"):
         require_run_directory(hactors_root, project.name, path, child_type="harness_run")
     with pytest.raises(HarnessRunError, match="No se puede crear"):
         create_harness_run(hactors_root, project.name, path)
     assert snapshot(hactors_root) == before
-    misplaced = parent / "harness_run_999999"
+    misplaced = harness / "harness_run_999999"
     misplaced.mkdir()
     data = load_yaml(harness / "manifest.yaml")
     data["identity"]["id"] = misplaced.name

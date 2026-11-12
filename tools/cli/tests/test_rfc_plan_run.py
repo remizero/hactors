@@ -328,10 +328,6 @@ def test_recursive_chain_preserves_all_ancestors_and_global_counters(
     (create_test_run, CreateTestRunError, "test_run", 0),
     (create_test_run, CreateTestRunError, "test_run", 1),
     (create_test_run, CreateTestRunError, "test_run", 3),
-    (create_harness_run, HarnessRunError, "harness_run", 0),
-    (create_harness_run, HarnessRunError, "harness_run", 1),
-    (create_harness_run, HarnessRunError, "harness_run", 2),
-    (create_harness_run, HarnessRunError, "harness_run", 3),
 ])
 def test_incompatible_parent_never_falls_back_to_ancestor(
     hactors_root, create, error, child_type, parent_index,
