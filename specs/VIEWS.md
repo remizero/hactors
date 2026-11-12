@@ -59,7 +59,7 @@ El estado y el actor se leen del campo que la plantilla de cada familia define, 
 | RFC | `rfcs/*.md`, fuera los resúmenes | `status` | No tiene: `proposed_by` registra autoría, no autorización de ejecución |
 | Acción derivada | Campo `actions:` de su RFC | `status` | `actor` |
 | PLAN | `plans/*.md` y `docs/plans/*.md` | `status` | No tiene |
-| TEST | `tests/TEST-nnnnn.md` | No tiene: su cabecera no declara estado | No tiene: `proposed_by` registra autoría, no autorización de ejecución |
+| TEST | `tests/TEST-nnnnn — nombre-descriptivo.md` | No tiene: su cabecera no declara estado | No tiene: `proposed_by` registra autoría, no autorización de ejecución |
 | ADR | `decisions/ADR-nnnnn — nombre-descriptivo.md` | `status` | No tiene: aceptar una decisión es de [actor: human](DECISIONS.md) |
 | SUMMARY | Junto al artefacto que resume | `status` | No tiene |
 | EVD | Junto a su origen | No tiene estado | No tiene |

@@ -26,7 +26,7 @@ El esquema de cada elemento de `actions:` se define en [RFC_TEMPLATE.md](RFC_TEM
 | `plan` | Desglose previsto, aún sin ejecutar. | Documento en `plans/`; formato en [PLAN_TEMPLATE.md](PLAN_TEMPLATE.md). |
 | `decision` | Elección entre alternativas. | Registro en `decisions/` y ADR si aplica. |
 | `implementation` | Producción de código o configuración. | Archivo en el módulo afectado. |
-| `test` | Verificación automatizada o manual. | Documento `TEST-nnnnn.md` en `tests/`; formato en [TEST_TEMPLATE.md](TEST_TEMPLATE.md). |
+| `test` | Verificación automatizada o manual. | Documento `TEST-nnnnn — nombre-descriptivo.md` en `tests/`; formato en [TEST_TEMPLATE.md](TEST_TEMPLATE.md). |
 | `evidence` | Prueba de un resultado. | Registro EVD junto al artefacto que la generó; formato en [EVIDENCE.md](../EVIDENCE.md). |
 | `documentation` | Actualización de docs. | Documento afectado. |
 

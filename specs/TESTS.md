@@ -12,7 +12,7 @@ Un TEST especifica una propiedad bajo verificación y los criterios que deciden 
 | Elemento | Formato | Ejemplo |
 |---|---|---|
 | ID | `TEST-nnnnn` único en el proyecto, del contador `test` | `TEST-00001` |
-| Documento | `tests/TEST-nnnnn.md`, en la raíz del proyecto | `tests/TEST-00001.md` |
+| Documento | `tests/TEST-nnnnn — nombre-descriptivo.md`, en la raíz del proyecto | `tests/TEST-00001 — verificación del arranque.md` |
 | Campo de identidad | `id:` en un bloque `yaml` del documento | `id: TEST-00001` |
 
 No se reutiliza un identificador retirado. El documento lo redacta [actor: human | agent] con [templates/TEST_TEMPLATE.md](templates/TEST_TEMPLATE.md); no existe un comando que lo cree, igual que ocurre con una RFC o con un PLAN. El directorio `tests/` lo crea el primer TEST, conforme a [PROJECTS.md](PROJECTS.md).

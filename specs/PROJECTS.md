@@ -55,7 +55,7 @@ La tabla siguiente explica lo que representa la estructura anterior.
 | rfcs/         | Especificaciones de evolución | Contenido normativo original inmutable de una RFC. Cada RFC conserva su contenido original y su identidad. El estado puede evolucionar mediante los mecanismos autorizados, sin reescribir retrospectivamente lo que se propuso. |
 | standards/    | Normas específicas del proyecto | Convenciones particulares de documentación, Git y estilo de código. Solo debe redefinir reglas cuando exista una necesidad real y se respete la autoridad normativa de SPECS. |
 | tasks/        | Artefactos iniciadores | Cada TASK inicia un proceso de ejecución y define su alcance y sus criterios de aceptación. Ver [HACTORS_SYSTEM.md](HACTORS_SYSTEM.md#7-task-artefacto-iniciador). |
-| tests/        | Especificaciones de verificación | Un archivo por TEST, `TEST-nnnnn.md`, con su identidad y su propósito inmutable. Ver [TESTS.md](TESTS.md). |
+| tests/        | Especificaciones de verificación | Un archivo por TEST, `TEST-nnnnn — nombre-descriptivo.md`, con su identidad y su propósito inmutable. Ver [TESTS.md](TESTS.md). |
 | trivial/      | Cambios por vía rápida | Un archivo por cambio, `TRV-nnnnn — nombre-descriptivo.md`, sin libro de registro agregado. Ver [TRIVIAL.md](TRIVIAL.md#identificador-y-ubicación). |
 | views/        | Vistas derivadas | Proyecciones generadas para leer el proyecto sin recorrer sus artefactos; el directorio lo crea la primera que se proyecta. Se regeneran enteras, no se editan y la CLI nunca las lee. Ver [VIEWS.md](VIEWS.md). |
 | workflows/    | Definiciones de flujo | Cada definición vive en `WORKFLOW-nnnnn/` con su `manifest.yaml` y sus versiones publicadas. Ver [WORKFLOW.md](WORKFLOW.md). |

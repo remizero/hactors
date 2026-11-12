@@ -51,7 +51,7 @@ references: []
 
 ## Ubicación
 
-El documento vive en la raíz del proyecto, en `projects/<proyecto>/tests/TEST-nnnnn.md`, con su `id:` en un bloque `yaml`. No se busca en ningún otro nivel ni dentro del árbol de instancias: el vínculo con la RFC de cada ejecución lo declara la instancia, no su ruta.
+El documento vive en la raíz del proyecto, en `projects/<proyecto>/tests/TEST-nnnnn — nombre-descriptivo.md`, con su `id:` en un bloque `yaml`. No se busca en ningún otro nivel ni dentro del árbol de instancias: el vínculo con la RFC de cada ejecución lo declara la instancia, no su ruta.
 Su instancia de ejecución `test_run` vive dentro del `rfc_run` correspondiente y referencia el documento sin copiar sus criterios ni su procedimiento. La jerarquía, su ruta activa y su creación se definen en [HACTORS_SYSTEM.md](../HACTORS_SYSTEM.md).
 
 ## Restricciones
